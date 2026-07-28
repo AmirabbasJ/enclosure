@@ -137,8 +137,27 @@ function SceneContent(
       | 'pixelAlignedPanning'
     >
   >,
+  // ["#fffcf2","#ccc5b9","#403d39","#252422","#eb5e28"]
 ) {
-  const spotLight = useMemo(() => new THREE.SpotLight(0xfffecd, 30), [])
+  const spotLight = useMemo(() => new THREE.SpotLight(0xccc5b9, 30), [])
+  const tilePositions = useMemo<[number, number, number][]>(() => {
+    const positions: [number, number, number][] = []
+    const cols = 5
+    const rows = 4
+    const spacing = 0.8
+
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < cols; col += 1) {
+        const isCorner =
+          (row === 0 || row === rows - 1) && (col === 0 || col === cols - 1)
+        if (isCorner) continue
+
+        positions.push([(col - (cols - 1) / 2) * spacing, 0, (row - (rows - 1) / 2) * spacing])
+      }
+    }
+
+    return positions
+  }, [])
 
   useEffect(() => {
     spotLight.angle = Math.PI / 2
@@ -159,26 +178,36 @@ function SceneContent(
     <>
       <color attach="background" args={[0x151729]} />
       <ambientLight intensity={0} />
-          <primitive object={spotLight} />
-          <primitive object={spotLight.target} />
+          {/* <primitive object={spotLight} />
+          <primitive object={spotLight.target} /> */}
       <PresentationControls
         global
         cursor
         speed={2}
-        rotation={[0, -Math.PI / 4, 0]}
+        // enabled={false}
+        rotation={[0, (Math.PI / 4)   ,  0]}
         polar={[0, 0]}
-        // azimuth={[-Infinity, Infinity]}
+        azimuth={[-Infinity, Infinity]}
       >
-        <group position={[0, 0, 0]} scale={0.7}>
-         
+        <group position={[0, 0, 0]} scale={0.5}>
           <BorderBox
-            size={[2, 0.2, 2]}
+            size={[5.2 - 0.5, 0.08, 4.4 - 0.5]}
             position={[0, -0.1, 0]}
-            backgroundColor="#ffffff"
+            backgroundColor="#2a2d45"
             borderColor="#e8e4d8"
             receiveShadow
           />
-          <BorderBox
+          {tilePositions.map((position, index) => (
+            <BorderBox
+              key={index}
+              size={[0.72 + 0.1, 0.1, 0.72 + 0.1]}
+              position={position}
+              backgroundColor="#ffffff"
+              borderColor="#e8e4d8"
+              receiveShadow
+            />
+          ))}
+          {/* <BorderBox
             size={[2, 1, 0.2]}
             position={[0, 0.501, -0.9]}
             borderColor="#e8e4d8"
@@ -191,7 +220,7 @@ function SceneContent(
             backgroundColor="#ffffff"
             borderColor="#e8e4d8"
             receiveShadow
-          />
+          /> */}
         </group>
       </PresentationControls>
       <PixelationPipeline {...props} />

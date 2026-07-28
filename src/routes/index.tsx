@@ -5,7 +5,7 @@ import { useState } from 'react'
 export const Route = createFileRoute('/')({ component: Home })
 
 function Home() {
-  const [pixelSize, setPixelSize] = useState(4)
+  const [pixelSize, setPixelSize] = useState(3)
   const [normalEdge, setNormalEdge] = useState(0.3)
   const [depthEdge, setDepthEdge] = useState(0)
   const [pixelAlignedPanning, setPixelAlignedPanning] = useState(true)
