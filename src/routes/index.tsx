@@ -7,13 +7,13 @@ export const Route = createFileRoute('/')({ component: Home })
 function Home() {
   const [pixelSize, setPixelSize] = useState(4)
   const [normalEdge, setNormalEdge] = useState(0.3)
-  const [depthEdge, setDepthEdge] = useState(1)
+  const [depthEdge, setDepthEdge] = useState(0)
   const [pixelAlignedPanning, setPixelAlignedPanning] = useState(true)
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#151729] px-4  text-neutral-100">
       <PixelScene
-        className="h-screen w-full overflow-hidden rounded border border-white/10"
+        className="h-[90vh] w-full overflow-hidden rounded border border-white/10"
         pixelSize={pixelSize}
         normalEdgeStrength={normalEdge}
         depthEdgeStrength={depthEdge}

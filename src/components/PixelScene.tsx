@@ -1,6 +1,7 @@
+import { BorderBox } from '#/components/BorderBox'
+import { PresentationControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
-import { OrbitControls as OrbitControlsImpl } from 'three/addons/controls/OrbitControls.js'
 import { pixelationPass } from 'three/addons/tsl/display/PixelationPassNode.js'
 import { uniform } from 'three/tsl'
 import * as THREE from 'three/webgpu'
@@ -11,28 +12,6 @@ type PixelSceneProps = {
   depthEdgeStrength?: number
   pixelAlignedPanning?: boolean
   className?: string
-}
-
-function createCheckerTexture(size = 64, cells = 2): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')!
-  const cell = size / cells
-  for (let y = 0; y < cells; y++) {
-    for (let x = 0; x < cells; x++) {
-      ctx.fillStyle = (x + y) % 2 === 0 ? '#e8e4d8' : '#575A57'
-      ctx.fillRect(x * cell, y * cell, cell, cell)
-    }
-  }
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.minFilter = THREE.NearestFilter
-  texture.magFilter = THREE.NearestFilter
-  texture.generateMipmaps = false
-  texture.wrapS = THREE.RepeatWrapping
-  texture.wrapT = THREE.RepeatWrapping
-  texture.colorSpace = THREE.SRGBColorSpace
-  return texture
 }
 
 function pixelAlignFrustum(
@@ -65,46 +44,6 @@ function pixelAlignFrustum(
   camera.top = 1 - fractY * pixelHeight
   camera.bottom = -1 - fractY * pixelHeight
   camera.updateProjectionMatrix()
-}
-
-function Controls() {
-  const { camera, gl } = useThree()
-  const controls = useMemo(() => {
-    const c = new OrbitControlsImpl(camera, gl.domElement)
-    c.target.set(0, 0.3, 0)
-    c.maxZoom = 2
-    c.update()
-    return c
-  }, [camera, gl])
-
-  useEffect(() => () => controls.dispose(), [controls])
-  useFrame(() => controls.update())
-
-  return null
-}
-
-function CheckerBox({
-  size,
-  position,
-  rotationY,
-  map,
-}: {
-  size: number
-  position: [number, number, number]
-  rotationY: number
-  map: THREE.Texture
-}) {
-  return (
-    <mesh
-      castShadow
-      receiveShadow
-      position={position}
-      rotation={[0, rotationY, 0]}
-    >
-      <boxGeometry args={[size, size, size]} />
-      <meshPhongMaterial map={map} />
-    </mesh>
-  )
 }
 
 function PixelationPipeline({
@@ -199,57 +138,62 @@ function SceneContent(
     >
   >,
 ) {
-  const texChecker = useMemo(() => {
-    const t = createCheckerTexture()
-    t.repeat.set(3, 3)
-    return t
-  }, [])
-  const texChecker2 = useMemo(() => {
-    const t = createCheckerTexture()
-    t.repeat.set(1.5, 1.5)
-    return t
-  }, [])
+  const spotLight = useMemo(() => new THREE.SpotLight(0xfffecd, 30), [])
 
   useEffect(() => {
-    return () => {
-      texChecker.dispose()
-      texChecker2.dispose()
-    }
-  }, [texChecker, texChecker2])
+    spotLight.angle = Math.PI / 2
+    spotLight.penumbra = 0
+    spotLight.decay = 0
+    spotLight.distance = 0
+    spotLight.castShadow = false
+    spotLight.position.set(1.8, 0, 0)
+    spotLight.shadow.mapSize.width = 0
+    spotLight.shadow.mapSize.height = 0
+    spotLight.shadow.camera.near = 0.1
+    spotLight.shadow.camera.far = 10
+    spotLight.shadow.bias = -0.0001
+    spotLight.target.position.set(0, 0, 0)
+  }, [spotLight])
 
   return (
     <>
       <color attach="background" args={[0x151729]} />
-
-      <ambientLight color={0xfffecd} intensity={3} />
-      {/* <directionalLight
-        color={0xfffecd}
-        intensity={1.5}
-        position={[100, 100, 100]}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-      /> */}
-    
-
-      <mesh receiveShadow position={[0, -0.1, 0]}>
-        <boxGeometry args={[2, 0.2, 2]} />
-        <meshPhongMaterial  />
-      </mesh>
-
-      <CheckerBox
-        size={0.4}
-        position={[0, 0.2 + 0.0001, 0]}
-        rotationY={Math.PI / 4}
-        map={texChecker2}
-      />
-      <CheckerBox
-        size={0.5}
-        position={[-0.5, 0.25 + 0.0001, -0.5]}
-        rotationY={Math.PI / 4}
-        map={texChecker2}
-      />
-
-      <Controls />
+      <ambientLight intensity={0} />
+          <primitive object={spotLight} />
+          <primitive object={spotLight.target} />
+      <PresentationControls
+        global
+        cursor
+        speed={2}
+        rotation={[0, -Math.PI / 4, 0]}
+        polar={[0, 0]}
+        // azimuth={[-Infinity, Infinity]}
+      >
+        <group position={[0, 0, 0]} scale={0.7}>
+         
+          <BorderBox
+            size={[2, 0.2, 2]}
+            position={[0, -0.1, 0]}
+            backgroundColor="#ffffff"
+            borderColor="#e8e4d8"
+            receiveShadow
+          />
+          <BorderBox
+            size={[2, 1, 0.2]}
+            position={[0, 0.501, -0.9]}
+            borderColor="#e8e4d8"
+            backgroundColor="#ffffff"
+            receiveShadow
+          />
+          <BorderBox
+            size={[0.2, 1, 2]}
+            position={[-0.9, 0.501, 0]}
+            backgroundColor="#ffffff"
+            borderColor="#e8e4d8"
+            receiveShadow
+          />
+        </group>
+      </PresentationControls>
       <PixelationPipeline {...props} />
     </>
   )
@@ -281,7 +225,6 @@ export function PixelScene({
       <Canvas
         orthographic
         dpr={1}
-        shadows="basic"
         camera={{
           manual: true,
           position: [0, 2 * Math.tan(Math.PI / 6), 2],
@@ -296,7 +239,7 @@ export function PixelScene({
           )
         }
         onCreated={({ camera }) => {
-          camera.lookAt(0, 0, 0)
+          camera.lookAt(0, 0.2, 0)
         }}
         style={{ width: '100%', height: '100%', display: 'block' }}
       >
