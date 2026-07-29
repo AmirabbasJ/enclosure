@@ -1,284 +1,190 @@
-import { BorderBox } from '#/components/BorderBox'
-import { PresentationControls } from '@react-three/drei'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo } from 'react'
-import { pixelationPass } from 'three/addons/tsl/display/PixelationPassNode.js'
-import { uniform } from 'three/tsl'
-import * as THREE from 'three/webgpu'
+import { BorderBox } from '#/components/BorderBox';
+import { LightOrb } from '#/components/LightOrb';
+import { Wall, WALL_PATHS } from '#/components/Wall';
+import { palette } from '#/theme/palette';
+import { useFrame } from '@react-three/fiber';
+import { useEffect, useMemo, useRef } from 'react';
+import * as THREE from 'three/webgpu';
 
-type PixelSceneProps = {
-  pixelSize?: number
-  normalEdgeStrength?: number
-  depthEdgeStrength?: number
-  pixelAlignedPanning?: boolean
-  className?: string
-}
+export function SceneContent() {
+  const spotLight = useMemo(() => new THREE.SpotLight(palette.stone, 30), []);
+  const cols = 5;
+  const rows = 4;
+  const spacing = 0.8;
 
-function pixelAlignFrustum(
-  camera: THREE.OrthographicCamera,
-  aspectRatio: number,
-  pixelsPerScreenWidth: number,
-  pixelsPerScreenHeight: number,
-) {
-  const worldScreenWidth = (camera.right - camera.left) / camera.zoom
-  const worldScreenHeight = (camera.top - camera.bottom) / camera.zoom
-  const pixelWidth = worldScreenWidth / pixelsPerScreenWidth
-  const pixelHeight = worldScreenHeight / pixelsPerScreenHeight
-
-  const camPos = new THREE.Vector3()
-  camera.getWorldPosition(camPos)
-  const camRot = new THREE.Quaternion()
-  camera.getWorldQuaternion(camRot)
-  const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camRot)
-  const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camRot)
-
-  const fractX =
-    camPos.dot(camRight) / pixelWidth -
-    Math.round(camPos.dot(camRight) / pixelWidth)
-  const fractY =
-    camPos.dot(camUp) / pixelHeight -
-    Math.round(camPos.dot(camUp) / pixelHeight)
-
-  camera.left = -aspectRatio - fractX * pixelWidth
-  camera.right = aspectRatio - fractX * pixelWidth
-  camera.top = 1 - fractY * pixelHeight
-  camera.bottom = -1 - fractY * pixelHeight
-  camera.updateProjectionMatrix()
-}
-
-function PixelationPipeline({
-  pixelSize,
-  normalEdgeStrength,
-  depthEdgeStrength,
-  pixelAlignedPanning,
-}: Required<
-  Pick<
-    PixelSceneProps,
-    | 'pixelSize'
-    | 'normalEdgeStrength'
-    | 'depthEdgeStrength'
-    | 'pixelAlignedPanning'
-  >
->) {
-  const { gl, scene, camera, size } = useThree()
-  const sizeVec = useMemo(() => new THREE.Vector2(), [])
-
-  const uniforms = useMemo(
-    () => ({
-      pixelSize: uniform(pixelSize),
-      normalEdgeStrength: uniform(normalEdgeStrength),
-      depthEdgeStrength: uniform(depthEdgeStrength),
-    }),
-    [],
-  )
-
-  const pipeline = useMemo(() => {
-    const renderPipeline = new THREE.RenderPipeline(
-      gl as unknown as THREE.WebGPURenderer,
-    )
-    renderPipeline.outputNode = pixelationPass(
-      scene,
-      camera,
-      uniforms.pixelSize,
-      uniforms.normalEdgeStrength,
-      uniforms.depthEdgeStrength,
-    )
-    return renderPipeline
-  }, [gl, scene, camera, uniforms])
-
-  useEffect(() => {
-    const ortho = camera as THREE.OrthographicCamera
-    const aspect = size.width / Math.max(size.height, 1)
-    ortho.left = -aspect
-    ortho.right = aspect
-    ortho.top = 1
-    ortho.bottom = -1
-    ortho.updateProjectionMatrix()
-  }, [camera, size.width, size.height])
-
-  // Priority > 0 takes over rendering (skips R3F default gl.render).
-  useFrame(() => {
-    uniforms.pixelSize.value = pixelSize
-    uniforms.normalEdgeStrength.value = normalEdgeStrength
-    uniforms.depthEdgeStrength.value = depthEdgeStrength
-
-    const ortho = camera as THREE.OrthographicCamera
-    gl.getSize(sizeVec)
-    const aspect = sizeVec.x / Math.max(sizeVec.y, 1)
-
-    if (pixelAlignedPanning) {
-      pixelAlignFrustum(
-        ortho,
-        aspect,
-        Math.max(1, Math.floor(sizeVec.x / pixelSize)),
-        Math.max(1, Math.floor(sizeVec.y / pixelSize)),
-      )
-    } else if (ortho.left !== -aspect || ortho.top !== 1) {
-      ortho.left = -aspect
-      ortho.right = aspect
-      ortho.top = 1
-      ortho.bottom = -1
-      ortho.updateProjectionMatrix()
-    }
-
-    pipeline.render()
-  }, 1)
-
-  return null
-}
-
-function SceneContent(
-  props: Required<
-    Pick<
-      PixelSceneProps,
-      | 'pixelSize'
-      | 'normalEdgeStrength'
-      | 'depthEdgeStrength'
-      | 'pixelAlignedPanning'
-    >
-  >,
-  // ["#fffcf2","#ccc5b9","#403d39","#252422","#eb5e28"]
-) {
-  const spotLight = useMemo(() => new THREE.SpotLight(0xccc5b9, 30), [])
   const tilePositions = useMemo<[number, number, number][]>(() => {
-    const positions: [number, number, number][] = []
-    const cols = 5
-    const rows = 4
-    const spacing = 0.8
+    const positions: [number, number, number][] = [];
 
     for (let row = 0; row < rows; row += 1) {
       for (let col = 0; col < cols; col += 1) {
         const isCorner =
-          (row === 0 || row === rows - 1) && (col === 0 || col === cols - 1)
-        if (isCorner) continue
+          (row === 0 || row === rows - 1) && (col === 0 || col === cols - 1);
+        if (isCorner) continue;
 
-        positions.push([(col - (cols - 1) / 2) * spacing, 0, (row - (rows - 1) / 2) * spacing])
+        positions.push([
+          (col - (cols - 1) / 2) * spacing,
+          0,
+          (row - (rows - 1) / 2) * spacing,
+        ]);
       }
     }
 
-    return positions
-  }, [])
+    return positions;
+  }, []);
+
+  const orbSpawns = useMemo(
+    () =>
+      (
+        [
+          { col: 1, row: 1, kind: 'good' as const },
+          { col: 2, row: 1, kind: 'bad' as const },
+          { col: 1, row: 2, kind: 'bad' as const },
+          { col: 2, row: 2, kind: 'good' as const },
+        ] as const
+      ).map(({ col, row, kind }, i) => ({
+        kind,
+        floatPhase: i * 1.1,
+        position: [
+          (col - (cols - 1) / 2) * spacing,
+          0.35,
+          (row - (rows - 1) / 2) * spacing,
+        ] as [number, number, number],
+      })),
+    []
+  );
+
+  const boardRef = useRef<THREE.Group>(null);
+  const boardYaw = useRef(Math.PI / 4);
+  const boardYawTarget = useRef(Math.PI / 4);
 
   useEffect(() => {
-    spotLight.angle = Math.PI / 2
-    spotLight.penumbra = 0
-    spotLight.decay = 0
-    spotLight.distance = 0
-    spotLight.castShadow = false
-    spotLight.position.set(1.8, 0, 0)
-    spotLight.shadow.mapSize.width = 0
-    spotLight.shadow.mapSize.height = 0
-    spotLight.shadow.camera.near = 0.1
-    spotLight.shadow.camera.far = 10
-    spotLight.shadow.bias = -0.0001
-    spotLight.target.position.set(0, 0, 0)
-  }, [spotLight])
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        boardYawTarget.current += Math.PI / 4;
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        boardYawTarget.current -= Math.PI / 4;
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useFrame((_, delta) => {
+    const group = boardRef.current;
+    if (!group) return;
+    const t = 1 - Math.exp(-8 * delta);
+    boardYaw.current += (boardYawTarget.current - boardYaw.current) * t;
+    group.rotation.y = boardYaw.current;
+  });
+
+  useEffect(() => {
+    spotLight.angle = Math.PI / 2;
+    spotLight.penumbra = 0;
+    spotLight.decay = 0;
+    spotLight.distance = 0;
+    spotLight.castShadow = false;
+    spotLight.position.set(1.8, 0, 0);
+    spotLight.shadow.mapSize.width = 0;
+    spotLight.shadow.mapSize.height = 0;
+    spotLight.shadow.camera.near = 0.1;
+    spotLight.shadow.camera.far = 10;
+    spotLight.shadow.bias = -0.0001;
+    spotLight.target.position.set(0, 0, 0);
+  }, [spotLight]);
 
   return (
     <>
-      <color attach="background" args={[0x151729]} />
-      <ambientLight intensity={0} />
-          {/* <primitive object={spotLight} />
+      <color attach="background" args={[palette.void]} />
+      <ambientLight intensity={1.5} color={'#4895ef'} />
+
+      {/* <primitive object={spotLight} />
           <primitive object={spotLight.target} /> */}
-      <PresentationControls
+      {/* <PresentationControls
         global
         cursor
         speed={2}
         // enabled={false}
-        rotation={[0, (Math.PI / 4)   ,  0]}
+        rotation={[0, Math.PI / 4, 0]}
         polar={[0, 0]}
         azimuth={[-Infinity, Infinity]}
+      > */}
+      <group
+        ref={boardRef}
+        position={[0, 0, 0]}
+        rotation={[0, Math.PI / 4, 0]}
+        scale={0.4}
       >
-        <group position={[0, 0, 0]} scale={0.5}>
-          <BorderBox
-            size={[5.2 - 0.5, 0.08, 4.4 - 0.5]}
-            position={[0, -0.1, 0]}
-            backgroundColor="#2a2d45"
-            borderColor="#e8e4d8"
-            receiveShadow
-          />
-          {tilePositions.map((position, index) => (
-            <BorderBox
-              key={index}
-              size={[0.72 + 0.1, 0.1, 0.72 + 0.1]}
-              position={position}
-              backgroundColor="#ffffff"
-              borderColor="#e8e4d8"
-              receiveShadow
-            />
-          ))}
-          {/* <BorderBox
-            size={[2, 1, 0.2]}
-            position={[0, 0.501, -0.9]}
-            borderColor="#e8e4d8"
-            backgroundColor="#ffffff"
-            receiveShadow
-          />
-          <BorderBox
-            size={[0.2, 1, 2]}
-            position={[-0.9, 0.501, 0]}
-            backgroundColor="#ffffff"
-            borderColor="#e8e4d8"
-            receiveShadow
-          /> */}
-        </group>
-      </PresentationControls>
-      <PixelationPipeline {...props} />
-    </>
-  )
-}
-
-async function createWebGPURenderer(
-  props: THREE.WebGPURendererParameters & { canvas: HTMLCanvasElement },
-) {
-  const renderer = new THREE.WebGPURenderer({ ...props, antialias: false })
-  await renderer.init()
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.BasicShadowMap
-  return renderer
-}
-
-/**
- * Port of three.js `webgpu_postprocessing_pixel` via React Three Fiber.
- * https://github.com/mrdoob/three.js/blob/master/examples/webgpu_postprocessing_pixel.html
- */
-export function PixelScene({
-  pixelSize = 6,
-  normalEdgeStrength = 0.3,
-  depthEdgeStrength = 0.4,
-  pixelAlignedPanning = true,
-  className,
-}: PixelSceneProps) {
-  return (
-    <div className={className}>
-      <Canvas
-        orthographic
-        dpr={1}
-        camera={{
-          manual: true,
-          position: [0, 2 * Math.tan(Math.PI / 6), 2],
-          near: 0.1,
-          far: 10,
-        }}
-        gl={async (props) =>
-          createWebGPURenderer(
-            props as THREE.WebGPURendererParameters & {
-              canvas: HTMLCanvasElement
-            },
-          )
-        }
-        onCreated={({ camera }) => {
-          camera.lookAt(0, 0.2, 0)
-        }}
-        style={{ width: '100%', height: '100%', display: 'block' }}
-      >
-        <SceneContent
-          pixelSize={pixelSize}
-          normalEdgeStrength={normalEdgeStrength}
-          depthEdgeStrength={depthEdgeStrength}
-          pixelAlignedPanning={pixelAlignedPanning}
+        <BorderBox
+          size={[5.2 - 0.5, 0.08, 4.4 - 0.5]}
+          position={[0, -0.1, 0]}
+          backgroundColor={palette.ink}
+          borderColor={palette.cream}
+          receiveShadow
         />
-      </Canvas>
-    </div>
-  )
+        {tilePositions.map((position, index) => (
+          <BorderBox
+            key={index}
+            size={[0.72, 0.1, 0.72]}
+            position={position}
+            backgroundColor={palette.white}
+            borderColor={palette.cream}
+            receiveShadow
+          />
+        ))}
+        {orbSpawns.map((orb, index) => (
+          <LightOrb
+            key={index}
+            kind={orb.kind}
+            position={orb.position}
+            floatPhase={orb.floatPhase}
+          />
+        ))}
+      </group>
+      {/* </PresentationControls> */}
+
+      {/* Floating wall pieces — own orbit, screen corners */}
+      <Wall
+        path={WALL_PATHS.u}
+        position={[-1.6, 0.45, -0.55]}
+        cellSize={0.28}
+        wallHeight={0.22}
+        thickness={0.06}
+        orbitSpeed={0.55}
+        floatAmplitude={0.04}
+        floatPhase={0}
+      />
+      <Wall
+        path={WALL_PATHS.zigzagTall}
+        position={[1.4, 0.45, -0.55]}
+        cellSize={0.28}
+        wallHeight={0.22}
+        thickness={0.06}
+        orbitSpeed={-0.45}
+        floatAmplitude={0.04}
+        floatPhase={1.2}
+      />
+      <Wall
+        path={WALL_PATHS.snake}
+        position={[-1.4, -0.3, 0.7]}
+        cellSize={0.28}
+        wallHeight={0.22}
+        thickness={0.06}
+        orbitSpeed={0.4}
+        floatAmplitude={0.04}
+        floatPhase={2.4}
+      />
+      <Wall
+        path={WALL_PATHS.steps}
+        position={[1.4, -0.3, 0.7]}
+        cellSize={0.28}
+        wallHeight={0.22}
+        thickness={0.06}
+        orbitSpeed={-0.5}
+        floatAmplitude={0.04}
+        floatPhase={3.6}
+      />
+    </>
+  );
 }

@@ -27,6 +27,7 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@fullstacksjs/eslint-config": "^14.8.1",
     "@tanstack/devtools-vite": "latest",
     "@tanstack/eslint-config": "latest",
     "@tanstack/router-cli": "^1.132.0",

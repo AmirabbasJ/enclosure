@@ -1,5 +1,15 @@
 @import 'tailwindcss';
 
+:root {
+  --color-void: #0c1926;
+  --color-cream: #0d1b2a;
+  --color-ink: #1b263b;
+  --color-white: #415a77;
+  --color-stone: #778da9;
+  --color-good: #5fa8d3;
+  --color-bad: #e83151;
+}
+
 * {
   box-sizing: border-box;
   image-rendering: pixelated;
@@ -13,4 +23,6 @@ body,
 
 body {
   margin: 0;
+  background: var(--color-void);
+  color: var(--color-cream);
 }

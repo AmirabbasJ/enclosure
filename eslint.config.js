@@ -1,20 +1,16 @@
-//  @ts-check
+import { defineConfig } from '@fullstacksjs/eslint-config';
 
-import { tanstackConfig } from '@tanstack/eslint-config'
-
-export default [
-  ...tanstackConfig,
-  {
-    rules: {
-      'import/no-cycle': 'off',
-      'import/order': 'off',
-      'sort-imports': 'off',
-      '@typescript-eslint/array-type': 'off',
-      '@typescript-eslint/require-await': 'off',
-      'pnpm/json-enforce-catalog': 'off',
-    },
+export default defineConfig({
+  typescript: {
+    tsconfigRootDir: import.meta.dirname,
   },
-  {
-    ignores: ['eslint.config.js', 'prettier.config.js'],
+  rules: {
+    'no-fallthrough': ['error', { allowEmptyCase: true }],
+    'max-lines-per-function': 'off',
+    'max-statements': 'off',
+    complexity: 'off',
+    '@typescript-eslint/no-floating-promises': 'off',
+    'react-hooks/incompatible-library': 'off',
   },
-]
+  ignores: ['./src/database.types.ts', './eslint.config.mjs'],
+});

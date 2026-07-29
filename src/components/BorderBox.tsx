@@ -9,6 +9,8 @@ type BorderBoxProps = {
   rotationY?: number
   rotation?: [number, number, number]
   borderColor: string | number
+  /** When false, skip EdgesGeometry (fill only). Default true. */
+  showBorder?: boolean
   /** Omit for transparent fill (border only). */
   backgroundColor?: string | number
   castShadow?: boolean
@@ -28,6 +30,7 @@ export function BorderBox({
   rotationY = 0,
   rotation,
   borderColor,
+  showBorder = true,
   backgroundColor,
   castShadow = false,
   receiveShadow = false,
@@ -36,12 +39,15 @@ export function BorderBox({
   const rot = rotation ?? [0, rotationY, 0]
 
   const boxGeo = useMemo(() => new THREE.BoxGeometry(w, h, d), [w, h, d])
-  const edgesGeo = useMemo(() => new THREE.EdgesGeometry(boxGeo), [boxGeo])
+  const edgesGeo = useMemo(
+    () => (showBorder ? new THREE.EdgesGeometry(boxGeo) : null),
+    [boxGeo, showBorder],
+  )
 
   useEffect(() => {
     return () => {
       boxGeo.dispose()
-      edgesGeo.dispose()
+      edgesGeo?.dispose()
     }
   }, [boxGeo, edgesGeo])
 
@@ -56,7 +62,8 @@ export function BorderBox({
         {hasFill ? (
           <meshStandardMaterial
             color={backgroundColor}
-            flatShading
+            roughness={0.55}
+            metalness={0.05}
             polygonOffset
             polygonOffsetFactor={1}
             polygonOffsetUnits={1}
@@ -65,15 +72,17 @@ export function BorderBox({
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         )}
       </mesh>
-      <lineSegments geometry={edgesGeo} renderOrder={2}>
-        <lineBasicMaterial
-          color={borderColor}
-          depthWrite={false}
-          polygonOffset
-          polygonOffsetFactor={-2}
-          polygonOffsetUnits={-2}
-        />
-      </lineSegments>
+      {showBorder && edgesGeo ? (
+        <lineSegments geometry={edgesGeo} renderOrder={2}>
+          <lineBasicMaterial
+            color={borderColor}
+            depthWrite={false}
+            polygonOffset
+            polygonOffsetFactor={-2}
+            polygonOffsetUnits={-2}
+          />
+        </lineSegments>
+      ) : null}
     </group>
   )
 }
