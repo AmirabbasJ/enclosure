@@ -6,8 +6,8 @@ import type { Group, Object3D, SpotLight } from 'three';
 export type OrbKind = 'good' | 'bad';
 
 const ORB_COLOR: Record<OrbKind, string> = {
-  good: palette.good,
-  bad: palette.bad,
+  good: palette.goodOrb,
+  bad: palette.badCone,
 };
 
 /** Fill light + downward tile spot (marks which tile owns this orb). */

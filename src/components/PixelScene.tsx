@@ -7,7 +7,6 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three/webgpu';
 
 export function SceneContent() {
-  const spotLight = useMemo(() => new THREE.SpotLight(palette.stone, 30), []);
   const cols = 5;
   const rows = 4;
   const spacing = 0.8;
@@ -79,28 +78,15 @@ export function SceneContent() {
     group.rotation.y = boardYaw.current;
   });
 
-  useEffect(() => {
-    spotLight.angle = Math.PI / 2;
-    spotLight.penumbra = 0;
-    spotLight.decay = 0;
-    spotLight.distance = 0;
-    spotLight.castShadow = false;
-    spotLight.position.set(1.8, 0, 0);
-    spotLight.shadow.mapSize.width = 0;
-    spotLight.shadow.mapSize.height = 0;
-    spotLight.shadow.camera.near = 0.1;
-    spotLight.shadow.camera.far = 10;
-    spotLight.shadow.bias = -0.0001;
-    spotLight.target.position.set(0, 0, 0);
-  }, [spotLight]);
+  const groundSize: [number, number, number] = [100, 0.1, 100];
+  const groundY = -0.5;
+  const groundTop = groundY + groundSize[1] / 2;
 
   return (
     <>
-      <color attach="background" args={[palette.void]} />
-      <ambientLight intensity={0.65} color={'#4895ef'} />
+      <color attach="background" args={[palette.bg]} />
+      <ambientLight intensity={1} color={'#4895ef'} />
 
-      {/* <primitive object={spotLight} />
-          <primitive object={spotLight.target} /> */}
       {/* <PresentationControls
         global
         cursor
@@ -116,11 +102,20 @@ export function SceneContent() {
         rotation={[0, Math.PI / 4, 0]}
         scale={0.4}
       >
+        {/* Ground plane — walls + board sit on this. */}
+        <BorderBox
+          size={groundSize}
+          position={[0, groundY, 0]}
+          backgroundColor={palette.board}
+          borderColor={palette.border}
+          showBorder={false}
+          receiveShadow
+        />
         <BorderBox
           size={[5.2 - 0.5, 0.08, 4.4 - 0.5]}
           position={[0, -0.1, 0]}
-          backgroundColor={palette.ink}
-          borderColor={palette.cream}
+          backgroundColor={palette.board}
+          borderColor={palette.border}
           receiveShadow
         />
         {tilePositions.map((position, index) => (
@@ -128,8 +123,8 @@ export function SceneContent() {
             key={index}
             size={[0.72, 0.1, 0.72]}
             position={position}
-            backgroundColor={palette.white}
-            borderColor={palette.cream}
+            backgroundColor={palette.tiles}
+            borderColor={palette.border}
             receiveShadow
           />
         ))}
@@ -141,50 +136,38 @@ export function SceneContent() {
             floatPhase={orb.floatPhase}
           />
         ))}
+
+        {/* Wall pieces rest on ground plane around board. */}
+        <Wall
+          path={WALL_PATHS.u}
+          position={[-3.2, groundTop, -2.6]}
+          cellSize={0.8}
+          wallHeight={0.55}
+          thickness={0.12}
+        />
+        <Wall
+          path={WALL_PATHS.zigzagTall}
+          position={[3.2, groundTop, -2.6]}
+          cellSize={0.8}
+          wallHeight={0.55}
+          thickness={0.12}
+        />
+        <Wall
+          path={WALL_PATHS.snake}
+          position={[-3.2, groundTop, 2.6]}
+          cellSize={0.8}
+          wallHeight={0.55}
+          thickness={0.12}
+        />
+        <Wall
+          path={WALL_PATHS.steps}
+          position={[3.2, groundTop, 2.6]}
+          cellSize={0.8}
+          wallHeight={0.55}
+          thickness={0.12}
+        />
       </group>
       {/* </PresentationControls> */}
-
-      {/* Floating wall pieces — own orbit, screen corners */}
-      <Wall
-        path={WALL_PATHS.u}
-        position={[-1.6, 0.45, -0.55]}
-        cellSize={0.28}
-        wallHeight={0.22}
-        thickness={0.06}
-        orbitSpeed={0.55}
-        floatAmplitude={0.04}
-        floatPhase={0}
-      />
-      <Wall
-        path={WALL_PATHS.zigzagTall}
-        position={[1.4, 0.45, -0.55]}
-        cellSize={0.28}
-        wallHeight={0.22}
-        thickness={0.06}
-        orbitSpeed={-0.45}
-        floatAmplitude={0.04}
-        floatPhase={1.2}
-      />
-      <Wall
-        path={WALL_PATHS.snake}
-        position={[-1.4, -0.3, 0.7]}
-        cellSize={0.28}
-        wallHeight={0.22}
-        thickness={0.06}
-        orbitSpeed={0.4}
-        floatAmplitude={0.04}
-        floatPhase={2.4}
-      />
-      <Wall
-        path={WALL_PATHS.steps}
-        position={[1.4, -0.3, 0.7]}
-        cellSize={0.28}
-        wallHeight={0.22}
-        thickness={0.06}
-        orbitSpeed={-0.5}
-        floatAmplitude={0.04}
-        floatPhase={3.6}
-      />
     </>
   );
 }
