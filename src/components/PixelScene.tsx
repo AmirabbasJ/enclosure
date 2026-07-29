@@ -97,7 +97,7 @@ export function SceneContent() {
   return (
     <>
       <color attach="background" args={[palette.void]} />
-      <ambientLight intensity={1.5} color={'#4895ef'} />
+      <ambientLight intensity={0.65} color={'#4895ef'} />
 
       {/* <primitive object={spotLight} />
           <primitive object={spotLight.target} /> */}

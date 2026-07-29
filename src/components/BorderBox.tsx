@@ -1,24 +1,27 @@
-import { useEffect, useMemo } from 'react'
-import * as THREE from 'three/webgpu'
+import { toonGradient } from '#/theme/toonGradient';
+import { useEffect, useMemo } from 'react';
+import * as THREE from 'three/webgpu';
 
 type BorderBoxProps = {
   /** Uniform edge length, or [width, height, depth]. */
-  size: number | [number, number, number]
-  position?: [number, number, number]
+  size: number | [number, number, number];
+  position?: [number, number, number];
   /** Y-axis rotation in radians. */
-  rotationY?: number
-  rotation?: [number, number, number]
-  borderColor: string | number
+  rotationY?: number;
+  rotation?: [number, number, number];
+  borderColor: string | number;
   /** When false, skip EdgesGeometry (fill only). Default true. */
-  showBorder?: boolean
+  showBorder?: boolean;
   /** Omit for transparent fill (border only). */
-  backgroundColor?: string | number
-  castShadow?: boolean
-  receiveShadow?: boolean
-}
+  backgroundColor?: string | number;
+  castShadow?: boolean;
+  receiveShadow?: boolean;
+};
 
-function toSize(size: number | [number, number, number]): [number, number, number] {
-  return typeof size === 'number' ? [size, size, size] : size
+function toSize(
+  size: number | [number, number, number]
+): [number, number, number] {
+  return typeof size === 'number' ? [size, size, size] : size;
 }
 
 /**
@@ -35,23 +38,23 @@ export function BorderBox({
   castShadow = false,
   receiveShadow = false,
 }: BorderBoxProps) {
-  const [w, h, d] = toSize(size)
-  const rot = rotation ?? [0, rotationY, 0]
+  const [w, h, d] = toSize(size);
+  const rot = rotation ?? [0, rotationY, 0];
 
-  const boxGeo = useMemo(() => new THREE.BoxGeometry(w, h, d), [w, h, d])
+  const boxGeo = useMemo(() => new THREE.BoxGeometry(w, h, d), [w, h, d]);
   const edgesGeo = useMemo(
     () => (showBorder ? new THREE.EdgesGeometry(boxGeo) : null),
-    [boxGeo, showBorder],
-  )
+    [boxGeo, showBorder]
+  );
 
   useEffect(() => {
     return () => {
-      boxGeo.dispose()
-      edgesGeo?.dispose()
-    }
-  }, [boxGeo, edgesGeo])
+      boxGeo.dispose();
+      edgesGeo?.dispose();
+    };
+  }, [boxGeo, edgesGeo]);
 
-  const hasFill = backgroundColor !== undefined
+  const hasFill = backgroundColor !== undefined;
   return (
     <group position={position} rotation={rot}>
       <mesh
@@ -60,10 +63,9 @@ export function BorderBox({
         geometry={boxGeo}
       >
         {hasFill ? (
-          <meshStandardMaterial
+          <meshToonMaterial
             color={backgroundColor}
-            roughness={0.55}
-            metalness={0.05}
+            gradientMap={toonGradient}
             polygonOffset
             polygonOffsetFactor={1}
             polygonOffsetUnits={1}
@@ -84,5 +86,5 @@ export function BorderBox({
         </lineSegments>
       ) : null}
     </group>
-  )
+  );
 }
