@@ -93,7 +93,13 @@ export function SceneContent() {
   return (
     <>
       <color attach="background" args={[palette.bg]} />
-      <ambientLight intensity={1} color={'#4895ef'} />
+      <ambientLight intensity={0.55} color={'#4895ef'} />
+      {/* Soft fill from above — whole board readable. */}
+      <directionalLight
+        intensity={0.85}
+        color="#c8d6e5"
+        position={[0.4, 4, 0.6]}
+      />
 
       <group
         ref={boardRef}
