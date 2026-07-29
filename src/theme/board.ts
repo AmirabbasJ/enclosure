@@ -34,9 +34,9 @@ export const BOARD_BASE_SIZE: [number, number, number] = [
 ]
 export const BOARD_BASE_Y = -0.1
 
-export const GROUND_SIZE: [number, number, number] = [100, 0.1, 100]
+export const GROUND_SIZE: [number, number, number] = [20, 0.1, 20]
 export const GROUND_Y = -0.5
-export const GROUND_TOP = GROUND_Y + GROUND_SIZE[1] / 2
+export const GROUND_TOP = GROUND_Y 
 
 export const ORB_HEIGHT = 0.35
 

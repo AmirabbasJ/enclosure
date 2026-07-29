@@ -75,7 +75,12 @@ export function BorderBox({
         )}
       </mesh>
       {showBorder && edgesGeo ? (
-        <lineSegments geometry={edgesGeo} renderOrder={2}>
+        <lineSegments
+          geometry={edgesGeo}
+          renderOrder={2}
+          // Edges use a fat Line threshold — would steal hits around the box.
+          raycast={() => undefined}
+        >
           <lineBasicMaterial
             color={borderColor}
             depthWrite={false}

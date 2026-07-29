@@ -1,6 +1,6 @@
 import { BorderBox } from '#/components/BorderBox';
 import { LightOrb } from '#/components/LightOrb';
-import { Wall, WALL_PATHS } from '#/components/Wall';
+import { Wall, WALL_PATHS, type WallDir } from '#/components/Wall';
 import {
   BOARD_BASE_SIZE,
   BOARD_BASE_Y,
@@ -18,8 +18,37 @@ import {
 } from '#/theme/board';
 import { palette } from '#/theme/palette';
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three/webgpu';
+
+type WallPiece = {
+  id: string;
+  path: ReadonlyArray<WallDir>;
+  position: [number, number, number];
+};
+
+const INITIAL_WALLS: WallPiece[] = [
+  {
+    id: 'u',
+    path: WALL_PATHS.u,
+    position: [-WALL_OFFSET_X, GROUND_TOP, -WALL_OFFSET_Z],
+  },
+  {
+    id: 'zigzagTall',
+    path: WALL_PATHS.zigzagTall,
+    position: [WALL_OFFSET_X, GROUND_TOP, -WALL_OFFSET_Z],
+  },
+  {
+    id: 'snake',
+    path: WALL_PATHS.snake,
+    position: [-WALL_OFFSET_X, GROUND_TOP, WALL_OFFSET_Z],
+  },
+  {
+    id: 'steps',
+    path: WALL_PATHS.steps,
+    position: [WALL_OFFSET_X, GROUND_TOP, WALL_OFFSET_Z],
+  },
+];
 
 export function SceneContent() {
   const tilePositions = useMemo<[number, number, number][]>(() => {
@@ -39,7 +68,6 @@ export function SceneContent() {
         ]);
       }
     }
-    console.log(positions);
     return positions;
   }, []);
 
@@ -63,6 +91,14 @@ export function SceneContent() {
       })),
     []
   );
+
+  const [walls, setWalls] = useState(INITIAL_WALLS);
+
+  const moveWall = (id: string, position: [number, number, number]) => {
+    setWalls((prev) =>
+      prev.map((wall) => (wall.id === id ? { ...wall, position } : wall))
+    );
+  };
 
   const boardRef = useRef<THREE.Group>(null);
   const boardYaw = useRef(Math.PI / 4);
@@ -94,7 +130,6 @@ export function SceneContent() {
     <>
       <color attach="background" args={[palette.bg]} />
       <ambientLight intensity={0.55} color={'#4895ef'} />
-      {/* Soft fill from above — whole board readable. */}
       <directionalLight
         intensity={0.85}
         color="#c8d6e5"
@@ -141,23 +176,15 @@ export function SceneContent() {
           />
         ))}
 
-        {/* One wall sits in tile gaps (thickness = TILE_THICKNESS via Wall default). */}
-        <Wall
-          path={WALL_PATHS.u}
-          position={[-WALL_OFFSET_X, GROUND_TOP, -WALL_OFFSET_Z]}
-        />
-        <Wall
-          path={WALL_PATHS.zigzagTall}
-          position={[WALL_OFFSET_X, GROUND_TOP, -WALL_OFFSET_Z]}
-        />
-        <Wall
-          path={WALL_PATHS.snake}
-          position={[-WALL_OFFSET_X, GROUND_TOP, WALL_OFFSET_Z]}
-        />
-        <Wall
-          path={WALL_PATHS.steps}
-          position={[WALL_OFFSET_X, GROUND_TOP, WALL_OFFSET_Z]}
-        />
+        {walls.map((wall) => (
+          <Wall
+            key={wall.id}
+            path={wall.path}
+            position={wall.position}
+            draggable
+            onPositionChange={(position) => moveWall(wall.id, position)}
+          />
+        ))}
       </group>
     </>
   );
