@@ -90,8 +90,11 @@ function snap(value: number, step: number) {
   return Math.round(value / step) * step;
 }
 
+const HALF_PI = Math.PI / 2;
+
 const GRAB_LIFT = 0.42;
 const LIFT_LERP = 14;
+const YAW_LERP = 16;
 const GRAVITY = -28;
 const BOUNCE = 0.28;
 const BOUNCE_CUTOFF = 1.2;
@@ -99,8 +102,6 @@ const MAX_THROW = 14;
 const AIR_DRAG = 0.8;
 const GROUND_FRICTION = 7;
 const THROW_UP = 0.18;
-const SPIN_FACTOR = 0.55;
-const SPIN_DAMP = 4;
 const EDGE_BOUNCE = 0.85;
 const VIEWPORT_PAD = 0.08;
 
@@ -176,9 +177,12 @@ export function Wall({
   const velY = useRef(0);
   const velX = useRef(0);
   const velZ = useRef(0);
-  const spinVel = useRef(0);
+  /** Visual yaw; lerps toward yawTarget (space + grab snap). */
+  const yawRef = useRef(rotation[1]);
+  const yawTargetRef = useRef(rotation[1]);
   const throwSample = useRef({ x: 0, z: 0, t: 0 });
   const liftMode = useRef<LiftMode>('idle');
+  const baseExtent = useRef({ x: 0.4, z: 0.4 });
   const wallExtent = useRef({ x: 0.4, z: 0.4 });
   const boundsScratch = useRef<ViewportBounds>({
     minX: -1,
@@ -189,6 +193,12 @@ export function Wall({
   positionRef.current = position;
   onPositionChangeRef.current = onPositionChange;
   snapStepRef.current = snapStep;
+
+  const syncExtentToYaw = (yaw: number) => {
+    const odd = Math.abs(Math.round(yaw / HALF_PI)) % 2 === 1;
+    const b = baseExtent.current;
+    wallExtent.current = odd ? { x: b.z, z: b.x } : { x: b.x, z: b.z };
+  };
 
   const { camera, gl } = useThree();
 
@@ -210,10 +220,11 @@ export function Wall({
       minZ = Math.min(minZ, pz - sz / 2);
       maxZ = Math.max(maxZ, pz + sz / 2);
     }
-    wallExtent.current = {
+    baseExtent.current = {
       x: (maxX - minX) / 2,
       z: (maxZ - minZ) / 2,
     };
+    syncExtentToYaw(yawTargetRef.current);
     return {
       x: (minX + maxX) / 2,
       z: (minZ + maxZ) / 2,
@@ -281,20 +292,16 @@ export function Wall({
     if (nx < b.minX) {
       nx = b.minX;
       velX.current = Math.abs(velX.current) * EDGE_BOUNCE;
-      spinVel.current *= -0.6;
     } else if (nx > b.maxX) {
       nx = b.maxX;
       velX.current = -Math.abs(velX.current) * EDGE_BOUNCE;
-      spinVel.current *= -0.6;
     }
     if (nz < b.minZ) {
       nz = b.minZ;
       velZ.current = Math.abs(velZ.current) * EDGE_BOUNCE;
-      spinVel.current *= -0.6;
     } else if (nz > b.maxZ) {
       nz = b.maxZ;
       velZ.current = -Math.abs(velZ.current) * EDGE_BOUNCE;
-      spinVel.current *= -0.6;
     }
     return { x: nx, z: nz };
   };
@@ -310,10 +317,16 @@ export function Wall({
 
     if (spinRef.current) {
       if (orbitSpeed !== 0 && mode === 'idle') {
-        spinRef.current.rotation.y = rotation[1] + t * orbitSpeed;
-      } else if (Math.abs(spinVel.current) > 0.01) {
-        spinRef.current.rotation.y += spinVel.current * dt;
-        spinVel.current *= Math.exp(-SPIN_DAMP * dt);
+        spinRef.current.rotation.y = yawRef.current + t * orbitSpeed;
+      } else {
+        // Lerp to π/2-grid target (space / grab).
+        const yawErr = yawTargetRef.current - yawRef.current;
+        if (Math.abs(yawErr) > 0.0005) {
+          yawRef.current += yawErr * (1 - Math.exp(-YAW_LERP * dt));
+        } else {
+          yawRef.current = yawTargetRef.current;
+        }
+        spinRef.current.rotation.y = yawRef.current;
       }
     }
 
@@ -359,6 +372,8 @@ export function Wall({
           if (speed < 0.08) {
             velX.current = 0;
             velZ.current = 0;
+            yawRef.current = yawTargetRef.current;
+            syncExtentToYaw(yawTargetRef.current);
             liftMode.current = 'idle';
           }
         }
@@ -439,14 +454,12 @@ export function Wall({
       velX.current = vx;
       velZ.current = vz;
       velY.current = Math.min(speed * THROW_UP, 5);
-      spinVel.current = (vx - vz) * SPIN_FACTOR;
 
       // Stale sample → soft drop, no throw.
       if (performance.now() / 1000 - throwSample.current.t > 0.08) {
         velX.current = 0;
         velZ.current = 0;
         velY.current = 0;
-        spinVel.current = 0;
       }
 
       setDragging(false);
@@ -454,13 +467,23 @@ export function Wall({
       document.body.style.cursor = '';
     };
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat) return;
+      e.preventDefault();
+      // Target +π/2; useFrame lerps yaw about bbox center.
+      yawTargetRef.current += HALF_PI;
+      syncExtentToYaw(yawTargetRef.current);
+    };
+
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
+    window.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
+      window.removeEventListener('keydown', onKeyDown);
     };
   }, [dragging, camera, gl]);
 
@@ -489,7 +512,9 @@ export function Wall({
     velX.current = 0;
     velZ.current = 0;
     velY.current = 0;
-    spinVel.current = 0;
+    // Grab → nearest π/2 (lerp via yawTarget).
+    yawTargetRef.current = snap(yawRef.current, HALF_PI);
+    syncExtentToYaw(yawTargetRef.current);
     throwSample.current = {
       x: position[0],
       z: position[2],
@@ -521,7 +546,7 @@ export function Wall({
           : undefined
       }
     >
-      <group ref={spinRef} rotation={[0, rotation[1], 0]}>
+      <group ref={spinRef} rotation={[0, yawRef.current, 0]}>
         <group position={[-centerOffset.x, 0, -centerOffset.z]}>
           {segments.map((seg, i) => (
             <BorderBox
