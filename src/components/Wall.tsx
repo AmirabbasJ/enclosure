@@ -1,4 +1,10 @@
 import { BorderBox } from '#/components/BorderBox';
+import {
+  CELL_SIZE,
+  TILE_THICKNESS,
+  WALL_HEIGHT,
+  WALL_THICKNESS,
+} from '#/theme/board';
 import { palette } from '#/theme/palette';
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
@@ -65,11 +71,11 @@ function buildSegments(
     // Horizontal (L/R) → long on X; vertical (U/D) → long on Z.
     const horizontal = dx !== 0;
     const size: [number, number, number] = horizontal
-      ? [cellSize, wallHeight, thickness]
-      : [thickness, wallHeight, cellSize];
+      ? [cellSize - TILE_THICKNESS, wallHeight, TILE_THICKNESS]
+      : [TILE_THICKNESS, wallHeight, cellSize - TILE_THICKNESS];
 
     segments.push({
-      position: [cx, wallHeight / 2, cz],
+      position: [cx, wallHeight / 2 - TILE_THICKNESS / 2, cz],
       size,
     });
 
@@ -104,9 +110,9 @@ export function Wall({
   path,
   position = [0, 0, 0],
   rotation = [0, 0, 0],
-  cellSize = 0.8,
-  wallHeight = 0.55,
-  thickness = 0.12,
+  cellSize = CELL_SIZE,
+  wallHeight = WALL_HEIGHT,
+  thickness = WALL_THICKNESS,
   backgroundColor = palette.walls,
   borderColor = palette.border,
   showBorder = true,

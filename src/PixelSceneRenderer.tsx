@@ -4,7 +4,7 @@ import { pixelationPass } from 'three/addons/tsl/display/PixelationPassNode.js';
 import { uniform } from 'three/tsl';
 import * as THREE from 'three/webgpu';
 
-export const PIXEL_SIZE = 3;
+export const PIXEL_SIZE = 1;
 export const NORMAL_EDGE = 0.3;
 export const DEPTH_EDGE = 0;
 export const PIXEL_ALIGNED_PANNING = true;

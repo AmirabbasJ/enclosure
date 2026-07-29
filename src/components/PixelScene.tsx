@@ -1,33 +1,45 @@
 import { BorderBox } from '#/components/BorderBox';
 import { LightOrb } from '#/components/LightOrb';
 import { Wall, WALL_PATHS } from '#/components/Wall';
+import {
+  BOARD_BASE_SIZE,
+  BOARD_BASE_Y,
+  BOARD_COLS,
+  BOARD_ROWS,
+  BOARD_SCALE,
+  GROUND_SIZE,
+  GROUND_TOP,
+  GROUND_Y,
+  ORB_HEIGHT,
+  TILE_SIZE,
+  TILE_SPACING,
+  WALL_OFFSET_X,
+  WALL_OFFSET_Z,
+} from '#/theme/board';
 import { palette } from '#/theme/palette';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three/webgpu';
 
 export function SceneContent() {
-  const cols = 5;
-  const rows = 4;
-  const spacing = 0.8;
-
   const tilePositions = useMemo<[number, number, number][]>(() => {
     const positions: [number, number, number][] = [];
 
-    for (let row = 0; row < rows; row += 1) {
-      for (let col = 0; col < cols; col += 1) {
+    for (let row = 0; row < BOARD_ROWS; row += 1) {
+      for (let col = 0; col < BOARD_COLS; col += 1) {
         const isCorner =
-          (row === 0 || row === rows - 1) && (col === 0 || col === cols - 1);
+          (row === 0 || row === BOARD_ROWS - 1) &&
+          (col === 0 || col === BOARD_COLS - 1);
         if (isCorner) continue;
 
         positions.push([
-          (col - (cols - 1) / 2) * spacing,
+          (col - (BOARD_COLS - 1) / 2) * TILE_SPACING,
           0,
-          (row - (rows - 1) / 2) * spacing,
+          (row - (BOARD_ROWS - 1) / 2) * TILE_SPACING,
         ]);
       }
     }
-
+    console.log(positions);
     return positions;
   }, []);
 
@@ -44,9 +56,9 @@ export function SceneContent() {
         kind,
         floatPhase: i * 1.1,
         position: [
-          (col - (cols - 1) / 2) * spacing,
-          0.35,
-          (row - (rows - 1) / 2) * spacing,
+          (col - (BOARD_COLS - 1) / 2) * TILE_SPACING,
+          ORB_HEIGHT,
+          (row - (BOARD_ROWS - 1) / 2) * TILE_SPACING,
         ] as [number, number, number],
       })),
     []
@@ -78,42 +90,28 @@ export function SceneContent() {
     group.rotation.y = boardYaw.current;
   });
 
-  const groundSize: [number, number, number] = [100, 0.1, 100];
-  const groundY = -0.5;
-  const groundTop = groundY + groundSize[1] / 2;
-
   return (
     <>
       <color attach="background" args={[palette.bg]} />
       <ambientLight intensity={1} color={'#4895ef'} />
 
-      {/* <PresentationControls
-        global
-        cursor
-        speed={2}
-        // enabled={false}
-        rotation={[0, Math.PI / 4, 0]}
-        polar={[0, 0]}
-        azimuth={[-Infinity, Infinity]}
-      > */}
       <group
         ref={boardRef}
         position={[0, 0, 0]}
         rotation={[0, Math.PI / 4, 0]}
-        scale={0.4}
+        scale={BOARD_SCALE}
       >
-        {/* Ground plane — walls + board sit on this. */}
         <BorderBox
-          size={groundSize}
-          position={[0, groundY, 0]}
+          size={GROUND_SIZE}
+          position={[0, GROUND_Y, 0]}
           backgroundColor={palette.board}
           borderColor={palette.border}
           showBorder={false}
           receiveShadow
         />
         <BorderBox
-          size={[5.2 - 0.5, 0.08, 4.4 - 0.5]}
-          position={[0, -0.1, 0]}
+          size={BOARD_BASE_SIZE}
+          position={[0, BOARD_BASE_Y, 0]}
           backgroundColor={palette.board}
           borderColor={palette.border}
           receiveShadow
@@ -121,7 +119,7 @@ export function SceneContent() {
         {tilePositions.map((position, index) => (
           <BorderBox
             key={index}
-            size={[0.72, 0.1, 0.72]}
+            size={TILE_SIZE}
             position={position}
             backgroundColor={palette.tiles}
             borderColor={palette.border}
@@ -137,37 +135,24 @@ export function SceneContent() {
           />
         ))}
 
-        {/* Wall pieces rest on ground plane around board. */}
+        {/* One wall sits in tile gaps (thickness = TILE_THICKNESS via Wall default). */}
         <Wall
           path={WALL_PATHS.u}
-          position={[-3.2, groundTop, -2.6]}
-          cellSize={0.8}
-          wallHeight={0.55}
-          thickness={0.12}
+          position={[-WALL_OFFSET_X, GROUND_TOP, -WALL_OFFSET_Z]}
         />
         <Wall
           path={WALL_PATHS.zigzagTall}
-          position={[3.2, groundTop, -2.6]}
-          cellSize={0.8}
-          wallHeight={0.55}
-          thickness={0.12}
+          position={[WALL_OFFSET_X, GROUND_TOP, -WALL_OFFSET_Z]}
         />
         <Wall
           path={WALL_PATHS.snake}
-          position={[-3.2, groundTop, 2.6]}
-          cellSize={0.8}
-          wallHeight={0.55}
-          thickness={0.12}
+          position={[-WALL_OFFSET_X, GROUND_TOP, WALL_OFFSET_Z]}
         />
         <Wall
           path={WALL_PATHS.steps}
-          position={[3.2, groundTop, 2.6]}
-          cellSize={0.8}
-          wallHeight={0.55}
-          thickness={0.12}
+          position={[WALL_OFFSET_X, GROUND_TOP, WALL_OFFSET_Z]}
         />
       </group>
-      {/* </PresentationControls> */}
     </>
   );
 }
