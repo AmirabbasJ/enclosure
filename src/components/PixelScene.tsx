@@ -202,7 +202,12 @@ export function SceneContent() {
     };
 
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    const onBlur = () => setSelectedWallId(null);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('blur', onBlur);
+    };
   }, []);
 
   useFrame((_, delta) => {
