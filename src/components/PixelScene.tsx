@@ -14,6 +14,7 @@ import {
   WALL_PATHS,
   wallOriginFromCenter,
 } from '#/components/Wall';
+import { useGame } from '#/context/GameContext';
 import {
   BOARD_BASE_SIZE,
   BOARD_BASE_Y,
@@ -71,6 +72,7 @@ const INITIAL_WALLS: WallPiece[] = [
 ];
 
 export function SceneContent() {
+  const { started } = useGame();
   const [walls, setWalls] = useState(INITIAL_WALLS);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [playHit, { stop: stopHit }] = useSound('/hit.mp3', {
@@ -151,6 +153,13 @@ export function SceneContent() {
   }, [playHit, stopHit]);
 
   useEffect(() => {
+    if (!started) return;
+
+    if (!musicStartedRef.current) {
+      musicStartedRef.current = true;
+      playMusic();
+    }
+
     const wallKeys: Record<string, string> = {
       '1': INITIAL_WALLS[0].id,
       '2': INITIAL_WALLS[3].id,
@@ -158,15 +167,7 @@ export function SceneContent() {
       '4': INITIAL_WALLS[1].id,
     };
 
-    const startMusic = () => {
-      if (musicStartedRef.current) return;
-      musicStartedRef.current = true;
-      playMusic();
-    };
-
     const onKeyDown = (e: KeyboardEvent) => {
-      startMusic();
-
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         boardYawTarget.current += Math.PI / 4;
@@ -183,21 +184,17 @@ export function SceneContent() {
       }
     };
 
-    const onPointerDown = () => startMusic();
-
     window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('pointerdown', onPointerDown);
     const onBlur = () => setSelectedWallId(null);
     window.addEventListener('blur', onBlur);
 
     return () => {
       window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('blur', onBlur);
       stopMusic();
       musicStartedRef.current = false;
     };
-  }, [playMusic, stopMusic]);
+  }, [started, playMusic, stopMusic]);
 
   useFrame((_, delta) => {
     const group = boardRef.current;
@@ -206,37 +203,37 @@ export function SceneContent() {
     boardYaw.current += (boardYawTarget.current - boardYaw.current) * t;
     group.rotation.y = boardYaw.current;
 
-    if (!introDoneRef.current) {
-      introElapsedRef.current = Math.min(
-        INTRO_DURATION,
-        introElapsedRef.current + delta
-      );
-      const u = easeInOutCubic(introElapsedRef.current / INTRO_DURATION);
+    if (!started || introDoneRef.current) return;
 
-      const pieces = introRef.current;
+    introElapsedRef.current = Math.min(
+      INTRO_DURATION,
+      introElapsedRef.current + delta
+    );
+    const u = easeInOutCubic(introElapsedRef.current / INTRO_DURATION);
 
-      if (pieces) {
-        pieces.position.y = INTRO_START_Y + (PLAY_Y - INTRO_START_Y) * u;
-      }
+    const pieces = introRef.current;
 
-      const outward = (INTRO_WALL_SPREAD - 1) * (1 - u);
+    if (pieces) {
+      pieces.position.y = INTRO_START_Y + (PLAY_Y - INTRO_START_Y) * u;
+    }
+
+    const outward = (INTRO_WALL_SPREAD - 1) * (1 - u);
+
+    for (let i = 0; i < INITIAL_WALLS.length; i += 1) {
+      const slot = wallIntroRefs.current[i];
+      const rest = INITIAL_WALLS[i].position;
+      if (!slot) continue;
+      slot.position.set(rest[0] * outward, 0, rest[2] * outward);
+    }
+
+    if (introElapsedRef.current >= INTRO_DURATION) {
+      if (pieces) pieces.position.y = PLAY_Y;
 
       for (let i = 0; i < INITIAL_WALLS.length; i += 1) {
-        const slot = wallIntroRefs.current[i];
-        const rest = INITIAL_WALLS[i].position;
-        if (!slot) continue;
-        slot.position.set(rest[0] * outward, 0, rest[2] * outward);
+        wallIntroRefs.current[i]?.position.set(0, 0, 0);
       }
 
-      if (introElapsedRef.current >= INTRO_DURATION) {
-        if (pieces) pieces.position.y = PLAY_Y;
-
-        for (let i = 0; i < INITIAL_WALLS.length; i += 1) {
-          wallIntroRefs.current[i]?.position.set(0, 0, 0);
-        }
-
-        introDoneRef.current = true;
-      }
+      introDoneRef.current = true;
     }
   });
 
@@ -281,7 +278,7 @@ export function SceneContent() {
                 rotation={[0, wall.yaw, 0]}
                 blockedKeys={blockedKeysByWall[wall.id]}
                 selected={selectedWallId === wall.id}
-                draggable
+                draggable={started}
                 onPositionChange={(position) => moveWall(wall.id, position)}
                 onYawChange={(yaw) => rotateWall(wall.id, yaw)}
                 onGroundHit={handleWallGroundHit}

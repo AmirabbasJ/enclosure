@@ -32,6 +32,9 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.8(react@19.2.8)
+      tailwind-variants:
+        specifier: ^3.3.0
+        version: 3.3.0(tailwindcss@4.3.3)
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
@@ -3253,6 +3256,18 @@ packages:
       '@eslint/css': '>=1.0.0'
     peerDependenciesMeta:
       '@eslint/css':
+        optional: true
+
+  tailwind-variants@3.3.0:
+    resolution: {integrity: sha512-t1QsB42dcwUdaCEArO0tRZcP0nbCcAmJKRYCs7jmwYSFOCXlGqgO8c0TrCYm9OranYmT6i9YOi8LFo2gxmxnow==}
+    engines: {node: '>=16.9.x', pnpm: '>=7.x'}
+    peerDependencies:
+      tailwind-merge: '>=3.0.0'
+      tailwindcss: '*'
+    peerDependenciesMeta:
+      tailwind-merge:
+        optional: true
+      tailwindcss:
         optional: true
 
   tailwindcss@4.3.3:
@@ -6892,6 +6907,10 @@ snapshots:
       '@pkgr/core': 0.3.6
 
   tailwind-csstree@0.3.3: {}
+
+  tailwind-variants@3.3.0(tailwindcss@4.3.3):
+    optionalDependencies:
+      tailwindcss: 4.3.3
 
   tailwindcss@4.3.3: {}
 

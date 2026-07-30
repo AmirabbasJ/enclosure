@@ -1,5 +1,17 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('/PressStart2P-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-pixel: 'Press Start 2P', monospace;
+}
+
 :root {
   --color-void: #0c1926;
   --color-cream: #0d1b2a;
@@ -10,19 +22,18 @@
   --color-bad: #e83151;
 }
 
-* {
-  box-sizing: border-box;
-  image-rendering: pixelated;
-}
+@layer base {
+  * {
+    @apply box-border [image-rendering:pixelated];
+  }
 
-html,
-body,
-#app {
-  min-height: 100%;
-}
+  html,
+  body,
+  #app {
+    @apply min-h-full;
+  }
 
-body {
-  margin: 0;
-  background: var(--color-void);
-  color: var(--color-cream);
+  body {
+    @apply m-0 bg-(--color-void) font-pixel text-(--color-cream);
+  }
 }
