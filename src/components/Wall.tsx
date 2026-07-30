@@ -148,6 +148,7 @@ const HALF_PI = Math.PI / 2;
 const GRAB_LIFT = 0.42;
 const LIFT_LERP = 14;
 const YAW_LERP = 16;
+const MOVE_LERP = 14;
 const GRAVITY = -28;
 const BOUNCE = 0.12;
 const BOUNCE_CUTOFF = 1.2;
@@ -268,6 +269,7 @@ export function Wall({
   const raycaster = useRef(new THREE.Raycaster());
   const up = useRef(new THREE.Vector3(0, 1, 0));
   const positionRef = useRef(position);
+  const displayPosRef = useRef({ x: position[0], z: position[2] });
   const onPositionChangeRef = useRef(onPositionChange);
   const onYawChangeRef = useRef(onYawChange);
   const onGroundHitRef = useRef(onGroundHit);
@@ -534,7 +536,23 @@ export function Wall({
     }
 
     const [px, py, pz] = positionRef.current;
-    group.position.set(px, py + liftY.current, pz);
+    const k = 1 - Math.exp(-MOVE_LERP * dt);
+    displayPosRef.current.x += (px - displayPosRef.current.x) * k;
+    displayPosRef.current.z += (pz - displayPosRef.current.z) * k;
+
+    if (
+      Math.hypot(px - displayPosRef.current.x, pz - displayPosRef.current.z) <
+      0.0005
+    ) {
+      displayPosRef.current.x = px;
+      displayPosRef.current.z = pz;
+    }
+
+    group.position.set(
+      displayPosRef.current.x,
+      py + liftY.current,
+      displayPosRef.current.z
+    );
   });
 
   useEffect(() => {
@@ -714,7 +732,7 @@ export function Wall({
   return (
     <group
       ref={groupRef}
-      position={position}
+      position={[displayPosRef.current.x, position[1], displayPosRef.current.z]}
       rotation={[rotation[0], 0, rotation[2]]}
       onPointerDown={handlePointerDown}
       onPointerOver={
