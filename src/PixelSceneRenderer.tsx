@@ -1,20 +1,28 @@
+/* eslint-disable @eslint-react/immutability */
+import type { PropsWithChildren } from 'react';
+
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, type PropsWithChildren } from 'react';
+import { useEffect, useMemo } from 'react';
 import { pixelationPass } from 'three/addons/tsl/display/PixelationPassNode.js';
 import { uniform } from 'three/tsl';
 import * as THREE from 'three/webgpu';
 
-export const PIXEL_SIZE = 3;
+export const PIXEL_SIZE = 2.5;
 export const NORMAL_EDGE = 0.3;
 export const DEPTH_EDGE = 0;
 export const PIXEL_ALIGNED_PANNING = true;
 
-function pixelAlignFrustum(
-  camera: THREE.OrthographicCamera,
-  aspectRatio: number,
-  pixelsPerScreenWidth: number,
-  pixelsPerScreenHeight: number
-) {
+function pixelAlignFrustum({
+  camera,
+  aspectRatio,
+  pixelsPerScreenWidth,
+  pixelsPerScreenHeight,
+}: {
+  camera: THREE.OrthographicCamera;
+  aspectRatio: number;
+  pixelsPerScreenWidth: number;
+  pixelsPerScreenHeight: number;
+}) {
   const worldScreenWidth = (camera.right - camera.left) / camera.zoom;
   const worldScreenHeight = (camera.top - camera.bottom) / camera.zoom;
   const pixelWidth = worldScreenWidth / pixelsPerScreenWidth;
@@ -41,12 +49,12 @@ function pixelAlignFrustum(
   camera.updateProjectionMatrix();
 }
 
-type PixelationPipelineProps = {
+interface PixelationPipelineProps {
   pixelSize: number;
   normalEdgeStrength: number;
   depthEdgeStrength: number;
   pixelAlignedPanning: boolean;
-};
+}
 
 export function PixelationPipeline({
   pixelSize,
@@ -63,6 +71,7 @@ export function PixelationPipeline({
       normalEdgeStrength: uniform(normalEdgeStrength),
       depthEdgeStrength: uniform(depthEdgeStrength),
     }),
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
     []
   );
 
@@ -100,12 +109,12 @@ export function PixelationPipeline({
     const aspect = sizeVec.x / Math.max(sizeVec.y, 1);
 
     if (pixelAlignedPanning) {
-      pixelAlignFrustum(
-        ortho,
-        aspect,
-        Math.max(1, Math.floor(sizeVec.x / pixelSize)),
-        Math.max(1, Math.floor(sizeVec.y / pixelSize))
-      );
+      pixelAlignFrustum({
+        camera: ortho,
+        aspectRatio: aspect,
+        pixelsPerScreenWidth: Math.max(1, Math.floor(sizeVec.x / pixelSize)),
+        pixelsPerScreenHeight: Math.max(1, Math.floor(sizeVec.y / pixelSize)),
+      });
     } else if (ortho.left !== -aspect || ortho.top !== 1) {
       ortho.left = -aspect;
       ortho.right = aspect;

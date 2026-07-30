@@ -12,6 +12,8 @@ import {
   isOverTileField,
   snapWallOriginToGrooves,
   TILE_THICKNESS,
+  WALL_DRAG_HALF_X,
+  WALL_DRAG_HALF_Z,
   WALL_HEIGHT,
   WALL_THICKNESS,
 } from '#/theme/board';
@@ -83,25 +85,15 @@ const GRAB_LIFT = 0.42;
 const LIFT_LERP = 14;
 const YAW_LERP = 16;
 const GRAVITY = -28;
-const BOUNCE = 0.28;
+const BOUNCE = 0.12;
 const BOUNCE_CUTOFF = 1.2;
-const VIEWPORT_PAD = 0.08;
+const MAX_THROW = 14;
+const AIR_DRAG = 0.8;
+const GROUND_FRICTION = 7;
+const THROW_UP = 0.18;
+const EDGE_BOUNCE = 0.15;
 
 type LiftMode = 'falling' | 'held' | 'idle' | 'lifting';
-
-interface ViewportBounds {
-  minX: number;
-  maxX: number;
-  minZ: number;
-  maxZ: number;
-}
-
-const NDC_CORNERS: readonly (readonly [number, number])[] = [
-  [-1, -1],
-  [1, -1],
-  [-1, 1],
-  [1, 1],
-];
 
 interface WallProps {
   path: readonly WallDir[];
@@ -156,30 +148,19 @@ export function Wall({
   const snapStepRef = useRef(snapStep);
   const liftY = useRef(0);
   const velY = useRef(0);
+  const velX = useRef(0);
+  const velZ = useRef(0);
+  const throwSample = useRef({ x: 0, z: 0, t: 0 });
   const yawRef = useRef(rotation[1]);
   const yawTargetRef = useRef(rotation[1]);
   const liftMode = useRef<LiftMode>('idle');
-  const baseExtent = useRef({ x: 0.4, z: 0.4 });
-  const wallExtent = useRef({ x: 0.4, z: 0.4 });
   const centerOffsetRef = useRef({ x: 0, z: 0 });
   const segFootprintsRef = useRef<
     { x: number; z: number; horizontal: boolean }[]
   >([]);
-  const boundsScratch = useRef<ViewportBounds>({
-    minX: -1,
-    maxX: 1,
-    minZ: -1,
-    maxZ: 1,
-  });
   positionRef.current = position;
   onPositionChangeRef.current = onPositionChange;
   snapStepRef.current = snapStep;
-
-  const syncExtentToYaw = (yaw: number) => {
-    const odd = Math.abs(Math.round(yaw / HALF_PI)) % 2 === 1;
-    const b = baseExtent.current;
-    wallExtent.current = odd ? { x: b.z, z: b.x } : { x: b.x, z: b.z };
-  };
 
   const rotateYaw = (ox: number, oz: number, yaw: number) => {
     const c = Math.cos(yaw);
@@ -233,11 +214,6 @@ export function Wall({
       maxZ = Math.max(maxZ, pz + sz / 2);
     }
 
-    baseExtent.current = {
-      x: (maxX - minX) / 2,
-      z: (maxZ - minZ) / 2,
-    };
-    syncExtentToYaw(yawTargetRef.current);
     const offset = {
       x: (minX + maxX) / 2,
       z: (minZ + maxZ) / 2,
@@ -246,52 +222,31 @@ export function Wall({
     return offset;
   }, [segments]);
 
-  const fillViewportBounds = (
-    parent: THREE.Object3D,
-    groundLocalY: number,
-    out: ViewportBounds
-  ) => {
-    const groundWorld = hit.current.set(0, groundLocalY, 0);
-    parent.localToWorld(groundWorld);
-    plane.current.setFromNormalAndCoplanarPoint(up.current, groundWorld);
+  const clampToDragBounds = (x: number, z: number) => ({
+    x: Math.min(WALL_DRAG_HALF_X, Math.max(-WALL_DRAG_HALF_X, x)),
+    z: Math.min(WALL_DRAG_HALF_Z, Math.max(-WALL_DRAG_HALF_Z, z)),
+  });
 
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minZ = Infinity;
-    let maxZ = -Infinity;
+  const bounceInsideBounds = (x: number, z: number) => {
+    let nx = x;
+    let nz = z;
 
-    for (const [nx, ny] of NDC_CORNERS) {
-      ndc.current.set(nx, ny);
-      raycaster.current.setFromCamera(ndc.current, camera);
-
-      if (!raycaster.current.ray.intersectPlane(plane.current, hit.current)) {
-        continue;
-      }
-
-      parent.worldToLocal(local.current.copy(hit.current));
-      minX = Math.min(minX, local.current.x);
-      maxX = Math.max(maxX, local.current.x);
-      minZ = Math.min(minZ, local.current.z);
-      maxZ = Math.max(maxZ, local.current.z);
+    if (nx < -WALL_DRAG_HALF_X) {
+      nx = -WALL_DRAG_HALF_X;
+      velX.current = Math.abs(velX.current) * EDGE_BOUNCE;
+    } else if (nx > WALL_DRAG_HALF_X) {
+      nx = WALL_DRAG_HALF_X;
+      velX.current = -Math.abs(velX.current) * EDGE_BOUNCE;
+    }
+    if (nz < -WALL_DRAG_HALF_Z) {
+      nz = -WALL_DRAG_HALF_Z;
+      velZ.current = Math.abs(velZ.current) * EDGE_BOUNCE;
+    } else if (nz > WALL_DRAG_HALF_Z) {
+      nz = WALL_DRAG_HALF_Z;
+      velZ.current = -Math.abs(velZ.current) * EDGE_BOUNCE;
     }
 
-    const ex = wallExtent.current.x + VIEWPORT_PAD;
-    const ez = wallExtent.current.z + VIEWPORT_PAD;
-    out.minX = minX + ex;
-    out.maxX = maxX - ex;
-    out.minZ = minZ + ez;
-    out.maxZ = maxZ - ez;
-
-    if (out.minX > out.maxX) {
-      const mid = (minX + maxX) / 2;
-      out.minX = mid;
-      out.maxX = mid;
-    }
-    if (out.minZ > out.maxZ) {
-      const mid = (minZ + maxZ) / 2;
-      out.minZ = mid;
-      out.maxZ = mid;
-    }
+    return { x: nx, z: nz };
   };
 
   useFrame(({ clock }, delta) => {
@@ -301,6 +256,7 @@ export function Wall({
     const t = clock.getElapsedTime();
     const dt = Math.min(delta, 0.05);
     const mode = liftMode.current;
+    const onChange = onPositionChangeRef.current;
 
     if (spinRef.current) {
       if (orbitSpeed !== 0 && mode === 'idle') {
@@ -332,16 +288,41 @@ export function Wall({
       velY.current += GRAVITY * dt;
       liftY.current += velY.current * dt;
 
+      const [px, py, pz] = positionRef.current;
+      let nx = px + velX.current * dt;
+      let nz = pz + velZ.current * dt;
+      const bounced = bounceInsideBounds(nx, nz);
+      nx = bounced.x;
+      nz = bounced.z;
+
+      if (onChange && (nx !== px || nz !== pz)) {
+        onChange([nx, py, nz]);
+        positionRef.current = [nx, py, nz];
+      }
+
+      const grounded = liftY.current <= 0;
+      const drag = grounded ? GROUND_FRICTION : AIR_DRAG;
+      const damp = Math.exp(-drag * dt);
+      velX.current *= damp;
+      velZ.current *= damp;
+
       if (liftY.current <= 0) {
         liftY.current = 0;
 
         if (Math.abs(velY.current) > BOUNCE_CUTOFF) {
           velY.current *= -BOUNCE;
+          velX.current *= 0.85;
+          velZ.current *= 0.85;
         } else {
           velY.current = 0;
-          yawRef.current = yawTargetRef.current;
-          syncExtentToYaw(yawTargetRef.current);
-          liftMode.current = 'idle';
+          const speed = Math.hypot(velX.current, velZ.current);
+
+          if (speed < 0.08) {
+            velX.current = 0;
+            velZ.current = 0;
+            yawRef.current = yawTargetRef.current;
+            liftMode.current = 'idle';
+          }
         }
       }
     } else if (floatAmplitude !== 0) {
@@ -386,28 +367,71 @@ export function Wall({
         z = snap(z, step);
       }
 
-      const b = boundsScratch.current;
-      fillViewportBounds(parent, base[1], b);
-      x = Math.min(b.maxX, Math.max(b.minX, x));
-      z = Math.min(b.maxZ, Math.max(b.minZ, z));
-
-      const pinned = pinToBoardGrid(x, z);
+      const { x: cx, z: cz } = clampToDragBounds(x, z);
+      const pinned = pinToBoardGrid(cx, cz);
       x = pinned.x;
       z = pinned.z;
+
+      const now = performance.now() / 1000;
+      const sample = throwSample.current;
+      const sampleDt = now - sample.t;
+
+      if (sample.t > 0 && sampleDt > 0.001 && sampleDt < 0.12) {
+        const vx = (x - sample.x) / sampleDt;
+        const vz = (z - sample.z) / sampleDt;
+        velX.current = velX.current * 0.25 + vx * 0.75;
+        velZ.current = velZ.current * 0.25 + vz * 0.75;
+      }
+
+      sample.x = x;
+      sample.z = z;
+      sample.t = now;
 
       onChange([x, base[1], z]);
     };
 
     const onUp = () => {
-      const [px, py, pz] = positionRef.current;
-      const pinned = pinToBoardGrid(px, pz);
+      let vx = velX.current;
+      let vz = velZ.current;
+      const speed = Math.hypot(vx, vz);
 
-      if (pinned.x !== px || pinned.z !== pz) {
-        onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
-        positionRef.current = [pinned.x, py, pinned.z];
+      if (speed > MAX_THROW) {
+        const s = MAX_THROW / speed;
+        vx *= s;
+        vz *= s;
       }
 
-      velY.current = 0;
+      velX.current = vx;
+      velZ.current = vz;
+      velY.current = Math.min(speed * THROW_UP, 5);
+
+      if (performance.now() / 1000 - throwSample.current.t > 0.08) {
+        velX.current = 0;
+        velZ.current = 0;
+        velY.current = 0;
+      }
+
+      const [px, py, pz] = positionRef.current;
+
+      if (isOverTileField(px, pz)) {
+        velX.current = 0;
+        velZ.current = 0;
+        velY.current = 0;
+        const pinned = pinToBoardGrid(px, pz);
+
+        if (pinned.x !== px || pinned.z !== pz) {
+          onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
+          positionRef.current = [pinned.x, py, pinned.z];
+        }
+      } else if (velX.current === 0 && velZ.current === 0) {
+        const pinned = pinToBoardGrid(px, pz);
+
+        if (pinned.x !== px || pinned.z !== pz) {
+          onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
+          positionRef.current = [pinned.x, py, pinned.z];
+        }
+      }
+
       setDragging(false);
       liftMode.current = 'falling';
       document.body.style.cursor = '';
@@ -417,7 +441,6 @@ export function Wall({
       if (e.code !== 'Space' || e.repeat) return;
       e.preventDefault();
       yawTargetRef.current += HALF_PI;
-      syncExtentToYaw(yawTargetRef.current);
 
       const [px, py, pz] = positionRef.current;
       const pinned = pinToBoardGrid(px, pz);
@@ -463,9 +486,15 @@ export function Wall({
       local.current.z - position[2]
     );
 
+    velX.current = 0;
+    velZ.current = 0;
     velY.current = 0;
     yawTargetRef.current = snap(yawRef.current, HALF_PI);
-    syncExtentToYaw(yawTargetRef.current);
+    throwSample.current = {
+      x: position[0],
+      z: position[2],
+      t: performance.now() / 1000,
+    };
     liftMode.current = 'lifting';
     setDragging(true);
     document.body.style.cursor = 'grabbing';

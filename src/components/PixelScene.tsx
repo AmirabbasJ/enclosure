@@ -1,6 +1,13 @@
+import type * as THREE from 'three/webgpu';
+
+import { useFrame } from '@react-three/fiber';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+import type { WallDir } from '#/components/Wall';
+
 import { BorderBox } from '#/components/BorderBox';
 import { LightOrb } from '#/components/LightOrb';
-import { Wall, WALL_PATHS, type WallDir } from '#/components/Wall';
+import { Wall, WALL_PATHS } from '#/components/Wall';
 import {
   BOARD_BASE_SIZE,
   BOARD_BASE_Y,
@@ -16,15 +23,12 @@ import {
   WALL_OFFSET_Z,
 } from '#/theme/board';
 import { palette } from '#/theme/palette';
-import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import * as THREE from 'three/webgpu';
 
-type WallPiece = {
+interface WallPiece {
   id: string;
-  path: ReadonlyArray<WallDir>;
+  path: readonly WallDir[];
   position: [number, number, number];
-};
+}
 
 const INITIAL_WALLS: WallPiece[] = [
   {
@@ -67,6 +71,7 @@ export function SceneContent() {
         ]);
       }
     }
+
     return positions;
   }, []);
 
@@ -113,6 +118,7 @@ export function SceneContent() {
         boardYawTarget.current -= Math.PI / 4;
       }
     };
+
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
@@ -128,7 +134,7 @@ export function SceneContent() {
   return (
     <>
       <color attach="background" args={[palette.bg]} />
-      <ambientLight intensity={0.55} color={'#4895ef'} />
+      <ambientLight intensity={0.55} color="#4895ef" />
       <directionalLight
         intensity={0.85}
         color="#c8d6e5"
