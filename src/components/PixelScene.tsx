@@ -82,6 +82,11 @@ export function SceneContent() {
       4: [6380, 250],
     },
   });
+  const [playMusic, { stop: stopMusic }] = useSound('/music.mp3', {
+    volume: 0.35,
+    loop: true,
+  });
+  const musicStartedRef = useRef(false);
 
   const blockedKeysByWall = useMemo(() => {
     const occupiedById: Record<string, string[]> = {};
@@ -148,12 +153,20 @@ export function SceneContent() {
   useEffect(() => {
     const wallKeys: Record<string, string> = {
       '1': INITIAL_WALLS[0].id,
-      '2': INITIAL_WALLS[1].id,
+      '2': INITIAL_WALLS[3].id,
       '3': INITIAL_WALLS[2].id,
-      '4': INITIAL_WALLS[3].id,
+      '4': INITIAL_WALLS[1].id,
+    };
+
+    const startMusic = () => {
+      if (musicStartedRef.current) return;
+      musicStartedRef.current = true;
+      playMusic();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      startMusic();
+
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         boardYawTarget.current += Math.PI / 4;
@@ -170,15 +183,21 @@ export function SceneContent() {
       }
     };
 
+    const onPointerDown = () => startMusic();
+
     window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('pointerdown', onPointerDown);
     const onBlur = () => setSelectedWallId(null);
     window.addEventListener('blur', onBlur);
 
     return () => {
       window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('blur', onBlur);
+      stopMusic();
+      musicStartedRef.current = false;
     };
-  }, []);
+  }, [playMusic, stopMusic]);
 
   useFrame((_, delta) => {
     const group = boardRef.current;
@@ -195,11 +214,13 @@ export function SceneContent() {
       const u = easeInOutCubic(introElapsedRef.current / INTRO_DURATION);
 
       const pieces = introRef.current;
+
       if (pieces) {
         pieces.position.y = INTRO_START_Y + (PLAY_Y - INTRO_START_Y) * u;
       }
 
       const outward = (INTRO_WALL_SPREAD - 1) * (1 - u);
+
       for (let i = 0; i < INITIAL_WALLS.length; i += 1) {
         const slot = wallIntroRefs.current[i];
         const rest = INITIAL_WALLS[i].position;
@@ -209,9 +230,11 @@ export function SceneContent() {
 
       if (introElapsedRef.current >= INTRO_DURATION) {
         if (pieces) pieces.position.y = PLAY_Y;
+
         for (let i = 0; i < INITIAL_WALLS.length; i += 1) {
           wallIntroRefs.current[i]?.position.set(0, 0, 0);
         }
+
         introDoneRef.current = true;
       }
     }
