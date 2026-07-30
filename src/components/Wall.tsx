@@ -8,8 +8,10 @@ import * as THREE from 'three/webgpu';
 import { BorderBox } from '#/components/BorderBox';
 import {
   CELL_SIZE,
+  enumerateValidWallCenters,
   GROOVE_SNAP_DIST,
   isOverTileField,
+  pickWallCenterInDirection,
   snapWallOriginToGrooves,
   TILE_THICKNESS,
   WALL_DRAG_HALF_X,
@@ -156,6 +158,51 @@ const EDGE_BOUNCE = 0.15;
 
 type LiftMode = 'falling' | 'held' | 'idle' | 'lifting';
 
+function quantizeBoardDir(x: number, z: number): [number, number] {
+  if (Math.abs(x) >= Math.abs(z)) {
+    return [x >= 0 ? 1 : -1, 0];
+  }
+  return [0, z >= 0 ? 1 : -1];
+}
+
+/** Map WASD to board-local step using camera view + board yaw. */
+function wasdBoardStep(
+  code: string,
+  camera: THREE.Camera,
+  boardYaw: number
+): [number, number] | null {
+  const camX = camera.position.x;
+  const camZ = camera.position.z;
+  const len = Math.hypot(camX, camZ);
+  if (len < 1e-6) return null;
+
+  // World XZ: away from camera = screen-up on ground plane
+  const worldUpX = -camX / len;
+  const worldUpZ = -camZ / len;
+
+  const c = Math.cos(boardYaw);
+  const s = Math.sin(boardYaw);
+  // World → board local (inverse of Three.js Y rotation)
+  const localUpX = worldUpX * c - worldUpZ * s;
+  const localUpZ = worldUpX * s + worldUpZ * c;
+  const [fwdX, fwdZ] = quantizeBoardDir(localUpX, localUpZ);
+  const rightX = -fwdZ;
+  const rightZ = fwdX;
+
+  switch (code) {
+    case 'KeyW':
+      return [fwdX, fwdZ];
+    case 'KeyS':
+      return [-fwdX, -fwdZ];
+    case 'KeyD':
+      return [rightX, rightZ];
+    case 'KeyA':
+      return [-rightX, -rightZ];
+    default:
+      return null;
+  }
+}
+
 interface WallProps {
   path: readonly WallDir[];
   position?: [number, number, number];
@@ -176,6 +223,7 @@ interface WallProps {
   onPositionChange?: (position: [number, number, number]) => void;
   onYawChange?: (yaw: number) => void;
   onGroundHit?: (impact: number) => void;
+  onDeselect?: () => void;
 }
 
 const defaultPosition = [0, 0, 0] as [number, number, number];
@@ -201,6 +249,7 @@ export function Wall({
   onPositionChange,
   onYawChange,
   onGroundHit,
+  onDeselect,
 }: WallProps) {
   const groupRef = useRef<Group>(null);
   const spinRef = useRef<Group>(null);
@@ -278,30 +327,57 @@ export function Wall({
     }
   }, [selected, dragging]);
 
+  const { camera, gl } = useThree();
+
   useEffect(() => {
     if (!selected || dragging) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || e.repeat) return;
-      e.preventDefault();
-      yawTargetRef.current += HALF_PI;
-      onYawChangeRef.current?.(yawTargetRef.current);
+      if (e.code === 'Space') {
+        if (e.repeat) return;
+        e.preventDefault();
+        yawTargetRef.current += HALF_PI;
+        onYawChangeRef.current?.(yawTargetRef.current);
 
-      const [px, py, pz] = positionRef.current;
-      const pinned = pinToBoardGrid(px, pz);
+        const [px, py, pz] = positionRef.current;
+        const pinned = pinToBoardGrid(px, pz);
 
-      if (pinned.x !== px || pinned.z !== pz) {
-        onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
-        positionRef.current = [pinned.x, py, pinned.z];
+        if (pinned.x !== px || pinned.z !== pz) {
+          onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
+          positionRef.current = [pinned.x, py, pinned.z];
+        }
+        return;
       }
+
+      const boardYaw = groupRef.current?.parent?.rotation.y ?? 0;
+      const step = wasdBoardStep(e.code, camera, boardYaw);
+      if (!step) return;
+      e.preventDefault();
+
+      const [dx, dz] = step;
+      const [px, py, pz] = positionRef.current;
+      const next = pickWallCenterInDirection({
+        cx: px,
+        cz: pz,
+        dx,
+        dz,
+        candidates: enumerateValidWallCenters({
+          segments: segFootprintsRef.current,
+          centerOffset: centerOffsetRef.current,
+          yaw: yawTargetRef.current,
+          blockedKeys: blockedKeysRef.current,
+        }),
+      });
+      if (!next) return;
+
+      onPositionChangeRef.current?.([next.x, py, next.z]);
+      positionRef.current = [next.x, py, next.z];
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
     // eslint-disable-next-line @eslint-react/exhaustive-deps
-  }, [selected, dragging]);
-
-  const { camera, gl } = useThree();
+  }, [selected, dragging, camera]);
 
   const segments = useMemo(
     () => buildSegments(path, cellSize, wallHeight),
@@ -591,6 +667,11 @@ export function Wall({
     if (!draggable) return;
     if (!(e.object instanceof THREE.Mesh)) return;
     e.stopPropagation();
+
+    if (selected) {
+      onDeselect?.();
+      return;
+    }
 
     const group = groupRef.current;
     const parent = group?.parent;

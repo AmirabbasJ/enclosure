@@ -244,3 +244,131 @@ export function snapWallOriginToGrooves({
 
   return best;
 }
+
+export function enumerateValidWallCenters({
+  segments,
+  centerOffset,
+  yaw,
+  blockedKeys,
+}: {
+  segments: readonly WallSegFootprint[];
+  centerOffset: { x: number; z: number };
+  yaw: number;
+  blockedKeys?: ReadonlySet<string>;
+}): { x: number; z: number }[] {
+  if (segments.length === 0) return [];
+
+  const odd = yawParityOdd(yaw);
+  const results: { x: number; z: number }[] = [];
+  const seen = new Set<string>();
+
+  for (const seg of segments) {
+    const horizontal = odd ? !seg.horizontal : seg.horizontal;
+    const r = rotateYawXZ(seg.x, seg.z, yaw);
+
+    for (const slot of TILE_GROOVE_SLOTS) {
+      if (slot.horizontal !== horizontal) continue;
+
+      const ox = slot.x - r.x;
+      const oz = slot.z - r.z;
+
+      if (
+        !wallPlacementFitsGrooves({
+          originX: ox,
+          originZ: oz,
+          yaw,
+          segments,
+          blockedKeys,
+        })
+      ) {
+        continue;
+      }
+
+      const cr = rotateYawXZ(centerOffset.x, centerOffset.z, yaw);
+      const cx = ox + cr.x;
+      const cz = oz + cr.z;
+      const key = `${cx.toFixed(4)}:${cz.toFixed(4)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push({ x: cx, z: cz });
+    }
+  }
+
+  return results;
+}
+
+export function pickWallCenterInDirection({
+  cx,
+  cz,
+  dx,
+  dz,
+  candidates,
+  step = CELL_SIZE,
+}: {
+  cx: number;
+  cz: number;
+  dx: number;
+  dz: number;
+  candidates: readonly { x: number; z: number }[];
+  step?: number;
+}): { x: number; z: number } | null {
+  const onEps = step * 0.35;
+  const onGrid = candidates.some(
+    (c) => Math.hypot(c.x - cx, c.z - cz) <= onEps
+  );
+
+  let best: { x: number; z: number } | null = null;
+  let bestScore = Infinity;
+
+  for (const c of candidates) {
+    const mx = c.x - cx;
+    const mz = c.z - cz;
+    const dist = Math.hypot(mx, mz);
+    if (dist < 1e-6) continue;
+
+    const along = mx * dx + mz * dz;
+    if (along <= step * 0.15) continue;
+
+    if (onGrid) {
+      const lateral = Math.abs(mx * -dz + mz * dx);
+      if (along > step * 1.6 || lateral > step * 0.6) continue;
+      const score = Math.hypot(along - step, lateral);
+
+      if (score < bestScore) {
+        bestScore = score;
+        best = c;
+      }
+    } else if (dist < bestScore) {
+      bestScore = dist;
+      best = c;
+    }
+  }
+
+  if (best !== null) return best;
+  if (!onGrid) return null;
+
+  // Wrap: no forward step → jump to first tile from opposite edge
+  // Prefer same lateral lane, then furthest back along move dir.
+  const curLat = cx * -dz + cz * dx;
+  let wrap: { x: number; z: number } | null = null;
+  let wrapAlong = Infinity;
+  let wrapLatDelta = Infinity;
+
+  for (const c of candidates) {
+    if (Math.hypot(c.x - cx, c.z - cz) < 1e-6) continue;
+
+    const along = c.x * dx + c.z * dz;
+    const latDelta = Math.abs(c.x * -dz + c.z * dx - curLat);
+
+    if (
+      latDelta < wrapLatDelta - 1e-6 ||
+      (Math.abs(latDelta - wrapLatDelta) <= 1e-6 && along < wrapAlong)
+    ) {
+      wrapLatDelta = latDelta;
+      wrapAlong = along;
+      wrap = c;
+    }
+  }
+
+  return wrap;
+}

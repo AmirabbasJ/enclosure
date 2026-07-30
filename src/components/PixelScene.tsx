@@ -274,6 +274,7 @@ export function SceneContent() {
             onPositionChange={(position) => moveWall(wall.id, position)}
             onYawChange={(yaw) => rotateWall(wall.id, yaw)}
             onGroundHit={handleWallGroundHit}
+            onDeselect={() => setSelectedWallId(null)}
           />
         ))}
       </group>
