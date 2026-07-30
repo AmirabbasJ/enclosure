@@ -2,7 +2,7 @@
 import type { PropsWithChildren } from 'react';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { pixelationPass } from 'three/addons/tsl/display/PixelationPassNode.js';
 import { uniform } from 'three/tsl';
 import * as THREE from 'three/webgpu';
@@ -11,6 +11,46 @@ export const PIXEL_SIZE = 2.5;
 export const NORMAL_EDGE = 0.3;
 export const DEPTH_EDGE = 0;
 export const PIXEL_ALIGNED_PANNING = true;
+
+const PLAY_ZOOM = 1;
+const INTRO_START_ZOOM = 0.8;
+const INTRO_DURATION = 1.8;
+
+function easeInOutCubic(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
+
+function IntroCameraZoom() {
+  const { camera } = useThree();
+  const elapsedRef = useRef(0);
+  const doneRef = useRef(false);
+
+  useEffect(() => {
+    const ortho = camera as THREE.OrthographicCamera;
+    ortho.zoom = INTRO_START_ZOOM;
+    ortho.updateProjectionMatrix();
+  }, [camera]);
+
+  useFrame((_, delta) => {
+    if (doneRef.current) return;
+
+    elapsedRef.current = Math.min(INTRO_DURATION, elapsedRef.current + delta);
+    const t = easeInOutCubic(elapsedRef.current / INTRO_DURATION);
+    const zoom = INTRO_START_ZOOM + (PLAY_ZOOM - INTRO_START_ZOOM) * t;
+
+    const ortho = camera as THREE.OrthographicCamera;
+    ortho.zoom = zoom;
+    ortho.updateProjectionMatrix();
+
+    if (elapsedRef.current >= INTRO_DURATION) {
+      ortho.zoom = PLAY_ZOOM;
+      ortho.updateProjectionMatrix();
+      doneRef.current = true;
+    }
+  });
+
+  return null;
+}
 
 function pixelAlignFrustum({
   camera,
@@ -146,6 +186,7 @@ export function PixelSceneRenderer({ children }: PropsWithChildren) {
       dpr={1}
       camera={{
         manual: true,
+        zoom: INTRO_START_ZOOM,
         position: [0, 2 * Math.tan(Math.PI / 6), 2],
         near: 0.1,
         far: 10,
@@ -164,6 +205,7 @@ export function PixelSceneRenderer({ children }: PropsWithChildren) {
       style={{ width: '100%', height: '100%', display: 'block' }}
     >
       {children}
+      <IntroCameraZoom />
       <PixelationPipeline
         pixelSize={PIXEL_SIZE}
         normalEdgeStrength={NORMAL_EDGE}

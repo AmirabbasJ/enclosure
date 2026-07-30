@@ -34,6 +34,15 @@ interface WallPiece {
   yaw: number;
 }
 
+const INTRO_DURATION = 1.8;
+const INTRO_START_Y = 8;
+const PLAY_Y = 0;
+const INTRO_WALL_SPREAD = 2.8;
+
+function easeInOutCubic(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
+
 const INITIAL_WALLS: WallPiece[] = [
   {
     id: 'u',
@@ -122,8 +131,12 @@ export function SceneContent() {
   };
 
   const boardRef = useRef<THREE.Group>(null);
+  const introRef = useRef<THREE.Group>(null);
+  const wallIntroRefs = useRef<(THREE.Group | null)[]>([]);
   const boardYaw = useRef(Math.PI / 4);
   const boardYawTarget = useRef(Math.PI / 4);
+  const introElapsedRef = useRef(0);
+  const introDoneRef = useRef(false);
 
   const handleWallGroundHit = useCallback(() => {
     console.log('handleWallGroundHit');
@@ -173,6 +186,35 @@ export function SceneContent() {
     const t = 1 - Math.exp(-8 * delta);
     boardYaw.current += (boardYawTarget.current - boardYaw.current) * t;
     group.rotation.y = boardYaw.current;
+
+    if (!introDoneRef.current) {
+      introElapsedRef.current = Math.min(
+        INTRO_DURATION,
+        introElapsedRef.current + delta
+      );
+      const u = easeInOutCubic(introElapsedRef.current / INTRO_DURATION);
+
+      const pieces = introRef.current;
+      if (pieces) {
+        pieces.position.y = INTRO_START_Y + (PLAY_Y - INTRO_START_Y) * u;
+      }
+
+      const outward = (INTRO_WALL_SPREAD - 1) * (1 - u);
+      for (let i = 0; i < INITIAL_WALLS.length; i += 1) {
+        const slot = wallIntroRefs.current[i];
+        const rest = INITIAL_WALLS[i].position;
+        if (!slot) continue;
+        slot.position.set(rest[0] * outward, 0, rest[2] * outward);
+      }
+
+      if (introElapsedRef.current >= INTRO_DURATION) {
+        if (pieces) pieces.position.y = PLAY_Y;
+        for (let i = 0; i < INITIAL_WALLS.length; i += 1) {
+          wallIntroRefs.current[i]?.position.set(0, 0, 0);
+        }
+        introDoneRef.current = true;
+      }
+    }
   });
 
   return (
@@ -199,47 +241,59 @@ export function SceneContent() {
           showBorder={false}
           receiveShadow
         />
-        <BorderBox
-          size={BOARD_BASE_SIZE}
-          position={[0, BOARD_BASE_Y, 0]}
-          backgroundColor={palette.board}
-          borderColor={palette.border}
-          receiveShadow
-        />
-        {TILE_POSITIONS.map((position, index) => (
+        {walls.map((wall, index) => {
+          const rest = INITIAL_WALLS[index]?.position ?? wall.position;
+          const startOutward = INTRO_WALL_SPREAD - 1;
+          return (
+            <group
+              key={wall.id}
+              ref={(node) => {
+                wallIntroRefs.current[index] = node;
+              }}
+              position={[rest[0] * startOutward, 0, rest[2] * startOutward]}
+            >
+              <Wall
+                path={wall.path}
+                position={wall.position}
+                rotation={[0, wall.yaw, 0]}
+                blockedKeys={blockedKeysByWall[wall.id]}
+                selected={selectedWallId === wall.id}
+                draggable
+                onPositionChange={(position) => moveWall(wall.id, position)}
+                onYawChange={(yaw) => rotateWall(wall.id, yaw)}
+                onGroundHit={handleWallGroundHit}
+                onDeselect={() => setSelectedWallId(null)}
+              />
+            </group>
+          );
+        })}
+        <group ref={introRef} position={[0, INTRO_START_Y, 0]}>
           <BorderBox
-            key={index}
-            size={TILE_SIZE}
-            position={position}
-            backgroundColor={palette.tiles}
+            size={BOARD_BASE_SIZE}
+            position={[0, BOARD_BASE_Y, 0]}
+            backgroundColor={palette.board}
             borderColor={palette.border}
             receiveShadow
           />
-        ))}
-        {ORB_SPAWNS.map((orb, index) => (
-          <LightOrb
-            key={index}
-            kind={orb.kind}
-            position={orb.position}
-            floatPhase={orb.floatPhase}
-          />
-        ))}
-
-        {walls.map((wall) => (
-          <Wall
-            key={wall.id}
-            path={wall.path}
-            position={wall.position}
-            rotation={[0, wall.yaw, 0]}
-            blockedKeys={blockedKeysByWall[wall.id]}
-            selected={selectedWallId === wall.id}
-            draggable
-            onPositionChange={(position) => moveWall(wall.id, position)}
-            onYawChange={(yaw) => rotateWall(wall.id, yaw)}
-            onGroundHit={handleWallGroundHit}
-            onDeselect={() => setSelectedWallId(null)}
-          />
-        ))}
+          {TILE_POSITIONS.map((position, index) => (
+            <BorderBox
+              key={index}
+              size={TILE_SIZE}
+              position={position}
+              backgroundColor={palette.tiles}
+              borderColor={palette.border}
+              receiveShadow
+            />
+          ))}
+          {ORB_SPAWNS.map((orb, index) => (
+            <LightOrb
+              key={index}
+              kind={orb.kind}
+              position={orb.position}
+              floatPhase={orb.floatPhase}
+            />
+          ))}
+        </group>
       </group>
     </>
   );

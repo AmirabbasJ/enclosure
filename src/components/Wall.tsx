@@ -358,7 +358,10 @@ export function Wall({
         return;
       }
 
-      const boardYaw = groupRef.current?.parent?.rotation.y ?? 0;
+      const boardYaw =
+        groupRef.current?.parent?.parent?.rotation.y ??
+        groupRef.current?.parent?.rotation.y ??
+        0;
       const step = wasdBoardStep(e.code, camera, boardYaw);
       if (!step) return;
       e.preventDefault();
