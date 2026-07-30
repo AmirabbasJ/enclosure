@@ -195,7 +195,8 @@ export function SceneContent() {
         e.preventDefault();
         const id = wallKeys[e.key];
         setSelectedWallId((prev) => (prev === id ? null : id));
-      } else if (e.key === 'Escape') {
+      } else if (e.key === 'Escape' || e.key === 'Enter') {
+        e.preventDefault();
         setSelectedWallId(null);
       }
     };
