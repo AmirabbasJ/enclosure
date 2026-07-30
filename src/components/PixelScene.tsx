@@ -17,18 +17,14 @@ import {
 import {
   BOARD_BASE_SIZE,
   BOARD_BASE_Y,
-  BOARD_COLS,
-  BOARD_ROWS,
   BOARD_SCALE,
   GROUND_SIZE,
   GROUND_Y,
-  ORB_HEIGHT,
-  TILE_SIZE,
-  TILE_SPACING,
-  WALL_OFFSET_X,
-  WALL_OFFSET_Z,
   wallOccupiedSlotKeys,
-} from '#/theme/board';
+} from '#/domain/board';
+import { ORB_SPAWNS } from '#/domain/orb';
+import { TILE_POSITIONS, TILE_SIZE } from '#/domain/tiles';
+import { WALL_OFFSET_X, WALL_OFFSET_Z } from '#/domain/walls';
 import { palette } from '#/theme/palette';
 
 interface WallPiece {
@@ -66,48 +62,6 @@ const INITIAL_WALLS: WallPiece[] = [
 ];
 
 export function SceneContent() {
-  const tilePositions = useMemo<[number, number, number][]>(() => {
-    const positions: [number, number, number][] = [];
-
-    for (let row = 0; row < BOARD_ROWS; row += 1) {
-      for (let col = 0; col < BOARD_COLS; col += 1) {
-        const isCorner =
-          (row === 0 || row === BOARD_ROWS - 1) &&
-          (col === 0 || col === BOARD_COLS - 1);
-        if (isCorner) continue;
-
-        positions.push([
-          (col - (BOARD_COLS - 1) / 2) * TILE_SPACING,
-          0,
-          (row - (BOARD_ROWS - 1) / 2) * TILE_SPACING,
-        ]);
-      }
-    }
-
-    return positions;
-  }, []);
-
-  const orbSpawns = useMemo(
-    () =>
-      (
-        [
-          { col: 1, row: 1, kind: 'good' as const },
-          { col: 2, row: 1, kind: 'bad' as const },
-          { col: 1, row: 2, kind: 'bad' as const },
-          { col: 2, row: 2, kind: 'good' as const },
-        ] as const
-      ).map(({ col, row, kind }, i) => ({
-        kind,
-        floatPhase: i * 1.1,
-        position: [
-          (col - (BOARD_COLS - 1) / 2) * TILE_SPACING,
-          ORB_HEIGHT,
-          (row - (BOARD_ROWS - 1) / 2) * TILE_SPACING,
-        ] as [number, number, number],
-      })),
-    []
-  );
-
   const [walls, setWalls] = useState(INITIAL_WALLS);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [playHit, { stop: stopHit }] = useSound('/hit.mp3', {
@@ -143,10 +97,12 @@ export function SceneContent() {
 
     for (const wall of walls) {
       const blocked = new Set<string>();
+
       for (const other of walls) {
         if (other.id === wall.id) continue;
         for (const key of occupiedById[other.id] ?? []) blocked.add(key);
       }
+
       result[wall.id] = blocked;
     }
 
@@ -204,6 +160,7 @@ export function SceneContent() {
     window.addEventListener('keydown', onKeyDown);
     const onBlur = () => setSelectedWallId(null);
     window.addEventListener('blur', onBlur);
+
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('blur', onBlur);
@@ -249,7 +206,7 @@ export function SceneContent() {
           borderColor={palette.border}
           receiveShadow
         />
-        {tilePositions.map((position, index) => (
+        {TILE_POSITIONS.map((position, index) => (
           <BorderBox
             key={index}
             size={TILE_SIZE}
@@ -259,7 +216,7 @@ export function SceneContent() {
             receiveShadow
           />
         ))}
-        {orbSpawns.map((orb, index) => (
+        {ORB_SPAWNS.map((orb, index) => (
           <LightOrb
             key={index}
             kind={orb.kind}

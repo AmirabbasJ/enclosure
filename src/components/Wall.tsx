@@ -7,18 +7,19 @@ import * as THREE from 'three/webgpu';
 
 import { BorderBox } from '#/components/BorderBox';
 import {
-  CELL_SIZE,
   enumerateValidWallCenters,
-  GROOVE_SNAP_DIST,
   isOverTileField,
   pickWallCenterInDirection,
   snapWallOriginToGrooves,
-  TILE_THICKNESS,
+} from '#/domain/board';
+import { CELL_SIZE, TILE_THICKNESS } from '#/domain/tiles';
+import {
+  GROOVE_SNAP_DIST,
   WALL_DRAG_HALF_X,
   WALL_DRAG_HALF_Z,
   WALL_HEIGHT,
   WALL_THICKNESS,
-} from '#/theme/board';
+} from '#/domain/walls';
 import { palette } from '#/theme/palette';
 
 export type WallDir = 'D' | 'L' | 'R' | 'U';
@@ -162,6 +163,7 @@ function quantizeBoardDir(x: number, z: number): [number, number] {
   if (Math.abs(x) >= Math.abs(z)) {
     return [x >= 0 ? 1 : -1, 0];
   }
+
   return [0, z >= 0 ? 1 : -1];
 }
 
@@ -192,12 +194,16 @@ function wasdBoardStep(
   switch (code) {
     case 'KeyW':
       return [fwdX, fwdZ];
+
     case 'KeyS':
       return [-fwdX, -fwdZ];
+
     case 'KeyD':
       return [rightX, rightZ];
+
     case 'KeyA':
       return [-rightX, -rightZ];
+
     default:
       return null;
   }
@@ -346,6 +352,7 @@ export function Wall({
           onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
           positionRef.current = [pinned.x, py, pinned.z];
         }
+
         return;
       }
 
@@ -500,6 +507,7 @@ export function Wall({
 
       if (liftY.current <= 0) {
         liftY.current = 0;
+
         if (prevLift > 0 && !groundHitFired.current) {
           groundHitFired.current = true;
           onGroundHitRef.current?.(Math.abs(velY.current));

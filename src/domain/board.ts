@@ -1,21 +1,9 @@
+import { BOARD_COLS, BOARD_ROWS } from '#/domain/cells';
+import { CELL_SIZE, TILE_SPACING, TILE_THICKNESS } from '#/domain/tiles';
+
+export { BOARD_COLS, BOARD_ROWS };
+
 export const BOARD_SCALE = 0.3;
-export const BOARD_COLS = 5;
-export const BOARD_ROWS = 4;
-
-export const TILE_LENGTH = 0.72;
-export const TILE_THICKNESS = 0.1;
-export const TILE_SIZE: [number, number, number] = [
-  TILE_LENGTH,
-  TILE_THICKNESS,
-  TILE_LENGTH,
-];
-
-export const TILE_SPACING = TILE_LENGTH + TILE_THICKNESS;
-
-export const CELL_SIZE = TILE_SPACING;
-
-export const WALL_HEIGHT = 0.55;
-export const WALL_THICKNESS = 0.12;
 
 export const BOARD_BASE_HEIGHT = 0.08;
 
@@ -30,14 +18,6 @@ export const BOARD_BASE_Y = -0.1;
 export const GROUND_SIZE: [number, number, number] = [20, 0.1, 20];
 export const GROUND_Y = -0.5;
 export const GROUND_TOP = GROUND_Y;
-
-export const ORB_HEIGHT = 0.35;
-
-export const WALL_OFFSET_X = BOARD_BASE_SIZE[0] / 2 + TILE_SPACING + 0.3;
-export const WALL_OFFSET_Z = BOARD_BASE_SIZE[2] / 2 + TILE_SPACING + 0.3;
-
-export const WALL_DRAG_HALF_X = WALL_OFFSET_X;
-export const WALL_DRAG_HALF_Z = WALL_OFFSET_Z;
 
 export interface GrooveSlot {
   x: number;
@@ -87,8 +67,6 @@ export function buildTileGrooveSlots(): GrooveSlot[] {
 
 const TILE_GROOVE_SLOTS = buildTileGrooveSlots();
 const SLOT_EPS = TILE_THICKNESS * 0.75;
-
-export const GROOVE_SNAP_DIST = TILE_SPACING * 0.4;
 
 export function isOverTileField(x: number, z: number, pad = 0): boolean {
   const halfW = (BOARD_COLS / 2) * TILE_SPACING + pad;
