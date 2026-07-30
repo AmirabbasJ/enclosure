@@ -106,7 +106,11 @@ function rotateYawXZ(x: number, z: number, yaw: number) {
   return { x: x * c + z * s, z: -x * s + z * c };
 }
 
-function segmentMatchesSlot({
+export function grooveSlotKey(slot: GrooveSlot): string {
+  return `${slot.horizontal ? 'h' : 'v'}:${slot.x.toFixed(4)}:${slot.z.toFixed(4)}`;
+}
+
+function findMatchingSlot({
   wx,
   wz,
   horizontal,
@@ -116,21 +120,21 @@ function segmentMatchesSlot({
   wz: number;
   horizontal: boolean;
   slots: readonly GrooveSlot[];
-}) {
+}): GrooveSlot | null {
   for (const slot of slots) {
     if (slot.horizontal !== horizontal) continue;
     if (
       Math.abs(slot.x - wx) <= SLOT_EPS &&
       Math.abs(slot.z - wz) <= SLOT_EPS
     ) {
-      return true;
+      return slot;
     }
   }
 
-  return false;
+  return null;
 }
 
-export function wallPlacementFitsGrooves({
+export function wallOccupiedSlotKeys({
   originX,
   originZ,
   yaw,
@@ -140,23 +144,52 @@ export function wallPlacementFitsGrooves({
   originZ: number;
   yaw: number;
   segments: readonly WallSegFootprint[];
+}): string[] {
+  const odd = yawParityOdd(yaw);
+  const keys: string[] = [];
+
+  for (const seg of segments) {
+    const r = rotateYawXZ(seg.x, seg.z, yaw);
+    const horizontal = odd ? !seg.horizontal : seg.horizontal;
+    const slot = findMatchingSlot({
+      wx: originX + r.x,
+      wz: originZ + r.z,
+      horizontal,
+      slots: TILE_GROOVE_SLOTS,
+    });
+    if (slot) keys.push(grooveSlotKey(slot));
+  }
+
+  return keys;
+}
+
+export function wallPlacementFitsGrooves({
+  originX,
+  originZ,
+  yaw,
+  segments,
+  blockedKeys,
+}: {
+  originX: number;
+  originZ: number;
+  yaw: number;
+  segments: readonly WallSegFootprint[];
+  blockedKeys?: ReadonlySet<string>;
 }): boolean {
   const odd = yawParityOdd(yaw);
 
   for (const seg of segments) {
     const r = rotateYawXZ(seg.x, seg.z, yaw);
     const horizontal = odd ? !seg.horizontal : seg.horizontal;
+    const slot = findMatchingSlot({
+      wx: originX + r.x,
+      wz: originZ + r.z,
+      horizontal,
+      slots: TILE_GROOVE_SLOTS,
+    });
 
-    if (
-      !segmentMatchesSlot({
-        wx: originX + r.x,
-        wz: originZ + r.z,
-        horizontal,
-        slots: TILE_GROOVE_SLOTS,
-      })
-    ) {
-      return false;
-    }
+    if (!slot) return false;
+    if (blockedKeys?.has(grooveSlotKey(slot))) return false;
   }
 
   return true;
@@ -168,12 +201,14 @@ export function snapWallOriginToGrooves({
   yaw,
   segments,
   maxDist,
+  blockedKeys,
 }: {
   originX: number;
   originZ: number;
   yaw: number;
   segments: readonly WallSegFootprint[];
   maxDist: number;
+  blockedKeys?: ReadonlySet<string>;
 }): [number, number] | null {
   if (segments.length === 0) return null;
 
@@ -193,7 +228,13 @@ export function snapWallOriginToGrooves({
       const d = Math.hypot(ox - originX, oz - originZ);
       if (d > bestD) continue;
       if (
-        !wallPlacementFitsGrooves({ originX: ox, originZ: oz, yaw, segments })
+        !wallPlacementFitsGrooves({
+          originX: ox,
+          originZ: oz,
+          yaw,
+          segments,
+          blockedKeys,
+        })
       )
         continue;
       bestD = d;

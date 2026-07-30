@@ -8,7 +8,12 @@ import type { WallDir } from '#/components/Wall';
 
 import { BorderBox } from '#/components/BorderBox';
 import { LightOrb } from '#/components/LightOrb';
-import { Wall, WALL_PATHS } from '#/components/Wall';
+import {
+  getWallFootprints,
+  Wall,
+  WALL_PATHS,
+  wallOriginFromCenter,
+} from '#/components/Wall';
 import {
   BOARD_BASE_SIZE,
   BOARD_BASE_Y,
@@ -22,6 +27,7 @@ import {
   TILE_SPACING,
   WALL_OFFSET_X,
   WALL_OFFSET_Z,
+  wallOccupiedSlotKeys,
 } from '#/theme/board';
 import { palette } from '#/theme/palette';
 
@@ -29,6 +35,7 @@ interface WallPiece {
   id: string;
   path: readonly WallDir[];
   position: [number, number, number];
+  yaw: number;
 }
 
 const INITIAL_WALLS: WallPiece[] = [
@@ -36,21 +43,25 @@ const INITIAL_WALLS: WallPiece[] = [
     id: 'u',
     path: WALL_PATHS.u,
     position: [-WALL_OFFSET_X, 0, -WALL_OFFSET_Z],
+    yaw: 0,
   },
   {
     id: 'zigzagTall',
     path: WALL_PATHS.zigzagTall,
     position: [WALL_OFFSET_X, 0, -WALL_OFFSET_Z],
+    yaw: 0,
   },
   {
     id: 'snake',
     path: WALL_PATHS.snake,
     position: [-WALL_OFFSET_X, 0, WALL_OFFSET_Z],
+    yaw: 0,
   },
   {
     id: 'steps',
     path: WALL_PATHS.steps,
     position: [WALL_OFFSET_X, 0, WALL_OFFSET_Z],
+    yaw: 0,
   },
 ];
 
@@ -108,9 +119,48 @@ export function SceneContent() {
     },
   });
 
+  const blockedKeysByWall = useMemo(() => {
+    const occupiedById: Record<string, string[]> = {};
+
+    for (const wall of walls) {
+      const { footprints, centerOffset } = getWallFootprints(wall.path);
+      const { originX, originZ } = wallOriginFromCenter({
+        cx: wall.position[0],
+        cz: wall.position[2],
+        yaw: wall.yaw,
+        centerOffset,
+      });
+      occupiedById[wall.id] = wallOccupiedSlotKeys({
+        originX,
+        originZ,
+        yaw: wall.yaw,
+        segments: footprints,
+      });
+    }
+
+    const result: Record<string, ReadonlySet<string>> = {};
+
+    for (const wall of walls) {
+      const blocked = new Set<string>();
+      for (const other of walls) {
+        if (other.id === wall.id) continue;
+        for (const key of occupiedById[other.id] ?? []) blocked.add(key);
+      }
+      result[wall.id] = blocked;
+    }
+
+    return result;
+  }, [walls]);
+
   const moveWall = (id: string, position: [number, number, number]) => {
     setWalls((prev) =>
       prev.map((wall) => (wall.id === id ? { ...wall, position } : wall))
+    );
+  };
+
+  const rotateWall = (id: string, yaw: number) => {
+    setWalls((prev) =>
+      prev.map((wall) => (wall.id === id ? { ...wall, yaw } : wall))
     );
   };
 
@@ -203,8 +253,11 @@ export function SceneContent() {
             key={wall.id}
             path={wall.path}
             position={wall.position}
+            rotation={[0, wall.yaw, 0]}
+            blockedKeys={blockedKeysByWall[wall.id]}
             draggable
             onPositionChange={(position) => moveWall(wall.id, position)}
+            onYawChange={(yaw) => rotateWall(wall.id, yaw)}
             onGroundHit={handleWallGroundHit}
           />
         ))}
