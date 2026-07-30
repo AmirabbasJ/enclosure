@@ -169,6 +169,7 @@ interface WallProps {
   orbitSpeed?: number;
   floatAmplitude?: number;
   floatPhase?: number;
+  selected?: boolean;
   draggable?: boolean;
   snapStep?: number;
   blockedKeys?: ReadonlySet<string>;
@@ -193,6 +194,7 @@ export function Wall({
   orbitSpeed = 0,
   floatAmplitude = 0,
   floatPhase = 0,
+  selected = false,
   draggable = false,
   snapStep = 0,
   blockedKeys,
@@ -258,6 +260,46 @@ export function Wall({
     if (!snapped) return { x, z };
     return { x: snapped[0] + r.x, z: snapped[1] + r.z };
   };
+
+  useEffect(() => {
+    if (dragging) return;
+
+    if (selected) {
+      velX.current = 0;
+      velZ.current = 0;
+      velY.current = 0;
+      liftMode.current = 'lifting';
+      return;
+    }
+
+    if (liftMode.current === 'lifting' || liftMode.current === 'held') {
+      groundHitFired.current = false;
+      liftMode.current = 'falling';
+    }
+  }, [selected, dragging]);
+
+  useEffect(() => {
+    if (!selected || dragging) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat) return;
+      e.preventDefault();
+      yawTargetRef.current += HALF_PI;
+      onYawChangeRef.current?.(yawTargetRef.current);
+
+      const [px, py, pz] = positionRef.current;
+      const pinned = pinToBoardGrid(px, pz);
+
+      if (pinned.x !== px || pinned.z !== pz) {
+        onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
+        positionRef.current = [pinned.x, py, pinned.z];
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
+  }, [selected, dragging]);
 
   const { camera, gl } = useThree();
 

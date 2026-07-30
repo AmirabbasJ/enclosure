@@ -109,6 +109,7 @@ export function SceneContent() {
   );
 
   const [walls, setWalls] = useState(INITIAL_WALLS);
+  const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [playHit, { stop: stopHit }] = useSound('/hit.mp3', {
     volume: 0.3,
     sprite: {
@@ -176,6 +177,13 @@ export function SceneContent() {
   }, [playHit, stopHit]);
 
   useEffect(() => {
+    const wallKeys: Record<string, string> = {
+      '1': INITIAL_WALLS[0].id,
+      '2': INITIAL_WALLS[1].id,
+      '3': INITIAL_WALLS[2].id,
+      '4': INITIAL_WALLS[3].id,
+    };
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') {
         e.preventDefault();
@@ -183,6 +191,12 @@ export function SceneContent() {
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         boardYawTarget.current -= Math.PI / 4;
+      } else if (wallKeys[e.key]) {
+        e.preventDefault();
+        const id = wallKeys[e.key];
+        setSelectedWallId((prev) => (prev === id ? null : id));
+      } else if (e.key === 'Escape') {
+        setSelectedWallId(null);
       }
     };
 
@@ -255,6 +269,7 @@ export function SceneContent() {
             position={wall.position}
             rotation={[0, wall.yaw, 0]}
             blockedKeys={blockedKeysByWall[wall.id]}
+            selected={selectedWallId === wall.id}
             draggable
             onPositionChange={(position) => moveWall(wall.id, position)}
             onYawChange={(yaw) => rotateWall(wall.id, yaw)}
