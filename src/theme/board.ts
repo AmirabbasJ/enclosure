@@ -33,8 +33,8 @@ export const GROUND_TOP = GROUND_Y;
 
 export const ORB_HEIGHT = 0.35;
 
-export const WALL_OFFSET_X = BOARD_BASE_SIZE[0] / 2 + TILE_SPACING;
-export const WALL_OFFSET_Z = BOARD_BASE_SIZE[2] / 2 + TILE_SPACING;
+export const WALL_OFFSET_X = BOARD_BASE_SIZE[0] / 2 + TILE_SPACING + 0.3;
+export const WALL_OFFSET_Z = BOARD_BASE_SIZE[2] / 2 + TILE_SPACING + 0.3;
 
 export const WALL_DRAG_HALF_X = WALL_OFFSET_X;
 export const WALL_DRAG_HALF_Z = WALL_OFFSET_Z;

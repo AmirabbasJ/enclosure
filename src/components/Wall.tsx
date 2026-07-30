@@ -111,6 +111,7 @@ interface WallProps {
   draggable?: boolean;
   snapStep?: number;
   onPositionChange?: (position: [number, number, number]) => void;
+  onGroundHit?: (impact: number) => void;
 }
 
 const defaultPosition = [0, 0, 0] as [number, number, number];
@@ -132,6 +133,7 @@ export function Wall({
   draggable = false,
   snapStep = 0,
   onPositionChange,
+  onGroundHit,
 }: WallProps) {
   const groupRef = useRef<Group>(null);
   const spinRef = useRef<Group>(null);
@@ -145,6 +147,7 @@ export function Wall({
   const up = useRef(new THREE.Vector3(0, 1, 0));
   const positionRef = useRef(position);
   const onPositionChangeRef = useRef(onPositionChange);
+  const onGroundHitRef = useRef(onGroundHit);
   const snapStepRef = useRef(snapStep);
   const liftY = useRef(0);
   const velY = useRef(0);
@@ -154,12 +157,14 @@ export function Wall({
   const yawRef = useRef(rotation[1]);
   const yawTargetRef = useRef(rotation[1]);
   const liftMode = useRef<LiftMode>('idle');
+  const groundHitFired = useRef(false);
   const centerOffsetRef = useRef({ x: 0, z: 0 });
   const segFootprintsRef = useRef<
     { x: number; z: number; horizontal: boolean }[]
   >([]);
   positionRef.current = position;
   onPositionChangeRef.current = onPositionChange;
+  onGroundHitRef.current = onGroundHit;
   snapStepRef.current = snapStep;
 
   const rotateYaw = (ox: number, oz: number, yaw: number) => {
@@ -285,6 +290,7 @@ export function Wall({
 
       velY.current = 0;
     } else if (mode === 'falling') {
+      const prevLift = liftY.current;
       velY.current += GRAVITY * dt;
       liftY.current += velY.current * dt;
 
@@ -308,6 +314,10 @@ export function Wall({
 
       if (liftY.current <= 0) {
         liftY.current = 0;
+        if (prevLift > 0 && !groundHitFired.current) {
+          groundHitFired.current = true;
+          onGroundHitRef.current?.(Math.abs(velY.current));
+        }
 
         if (Math.abs(velY.current) > BOUNCE_CUTOFF) {
           velY.current *= -BOUNCE;
@@ -433,6 +443,7 @@ export function Wall({
       }
 
       setDragging(false);
+      groundHitFired.current = false;
       liftMode.current = 'falling';
       document.body.style.cursor = '';
     };

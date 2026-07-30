@@ -1,7 +1,8 @@
 import type * as THREE from 'three/webgpu';
 
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useSound from 'use-sound';
 
 import type { WallDir } from '#/components/Wall';
 
@@ -97,6 +98,15 @@ export function SceneContent() {
   );
 
   const [walls, setWalls] = useState(INITIAL_WALLS);
+  const [playHit, { stop: stopHit }] = useSound('/hit.mp3', {
+    volume: 0.3,
+    sprite: {
+      1: [1550, 250],
+      2: [2300, 250],
+      3: [3010, 250],
+      4: [6380, 250],
+    },
+  });
 
   const moveWall = (id: string, position: [number, number, number]) => {
     setWalls((prev) =>
@@ -107,6 +117,13 @@ export function SceneContent() {
   const boardRef = useRef<THREE.Group>(null);
   const boardYaw = useRef(Math.PI / 4);
   const boardYawTarget = useRef(Math.PI / 4);
+
+  const handleWallGroundHit = useCallback(() => {
+    console.log('handleWallGroundHit');
+    stopHit();
+    const random = Math.floor(Math.random() * 4) + 1;
+    playHit({ id: random.toString() });
+  }, [playHit, stopHit]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -188,6 +205,7 @@ export function SceneContent() {
             position={wall.position}
             draggable
             onPositionChange={(position) => moveWall(wall.id, position)}
+            onGroundHit={handleWallGroundHit}
           />
         ))}
       </group>
