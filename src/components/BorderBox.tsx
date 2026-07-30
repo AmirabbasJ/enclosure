@@ -1,22 +1,19 @@
-import { toonGradient } from '#/theme/toonGradient';
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three/webgpu';
 
-type BorderBoxProps = {
-  /** Uniform edge length, or [width, height, depth]. */
+import { toonGradient } from '#/theme/toonGradient';
+
+interface BorderBoxProps {
   size: number | [number, number, number];
   position?: [number, number, number];
-  /** Y-axis rotation in radians. */
   rotationY?: number;
   rotation?: [number, number, number];
-  borderColor: string | number;
-  /** When false, skip EdgesGeometry (fill only). Default true. */
+  borderColor: number | string;
   showBorder?: boolean;
-  /** Omit for transparent fill (border only). */
-  backgroundColor?: string | number;
+  backgroundColor?: number | string;
   castShadow?: boolean;
   receiveShadow?: boolean;
-};
+}
 
 function toSize(
   size: number | [number, number, number]
@@ -24,12 +21,11 @@ function toSize(
   return typeof size === 'number' ? [size, size, size] : size;
 }
 
-/**
- * Box with colored edges. Optional solid fill; without `backgroundColor` only borders render.
- */
+const defaultPosition = [0, 0, 0] as [number, number, number];
+
 export function BorderBox({
   size,
-  position = [0, 0, 0],
+  position = defaultPosition,
   rotationY = 0,
   rotation,
   borderColor,

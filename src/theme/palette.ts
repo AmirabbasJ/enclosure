@@ -6,6 +6,6 @@ export const palette = {
   walls: '#778DA9',
   goodOrb: '#72ceff',
   badCone: '#E83151',
-} as const
+} as const;
 
-export type PaletteKey = keyof typeof palette
+export type PaletteKey = keyof typeof palette;

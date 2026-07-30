@@ -8,7 +8,6 @@ import {
   BOARD_ROWS,
   BOARD_SCALE,
   GROUND_SIZE,
-  GROUND_TOP,
   GROUND_Y,
   ORB_HEIGHT,
   TILE_SIZE,
@@ -31,22 +30,22 @@ const INITIAL_WALLS: WallPiece[] = [
   {
     id: 'u',
     path: WALL_PATHS.u,
-    position: [-WALL_OFFSET_X, GROUND_TOP, -WALL_OFFSET_Z],
+    position: [-WALL_OFFSET_X, 0, -WALL_OFFSET_Z],
   },
   {
     id: 'zigzagTall',
     path: WALL_PATHS.zigzagTall,
-    position: [WALL_OFFSET_X, GROUND_TOP, -WALL_OFFSET_Z],
+    position: [WALL_OFFSET_X, 0, -WALL_OFFSET_Z],
   },
   {
     id: 'snake',
     path: WALL_PATHS.snake,
-    position: [-WALL_OFFSET_X, GROUND_TOP, WALL_OFFSET_Z],
+    position: [-WALL_OFFSET_X, 0, WALL_OFFSET_Z],
   },
   {
     id: 'steps',
     path: WALL_PATHS.steps,
-    position: [WALL_OFFSET_X, GROUND_TOP, WALL_OFFSET_Z],
+    position: [WALL_OFFSET_X, 0, WALL_OFFSET_Z],
   },
 ];
 

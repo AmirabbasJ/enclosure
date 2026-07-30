@@ -11,6 +11,8 @@ export default defineConfig({
     complexity: 'off',
     '@typescript-eslint/no-floating-promises': 'off',
     'react-hooks/incompatible-library': 'off',
+    'react-refresh/only-export-components': 'off',
+    '@eslint-react/refs': 'off',
   },
   ignores: ['./src/database.types.ts', './eslint.config.mjs'],
 });

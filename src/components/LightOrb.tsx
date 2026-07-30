@@ -1,16 +1,17 @@
-import { palette } from '#/theme/palette';
-import { useFrame } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
 import type { Group, Object3D, SpotLight } from 'three';
 
-export type OrbKind = 'good' | 'bad';
+import { useFrame } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
+
+import { palette } from '#/theme/palette';
+
+export type OrbKind = 'bad' | 'good';
 
 const ORB_COLOR: Record<OrbKind, string> = {
   good: palette.goodOrb,
   bad: palette.badCone,
 };
 
-/** Fill light + downward tile spot (marks which tile owns this orb). */
 const ORB_LIGHT: Record<
   OrbKind,
   {
@@ -37,24 +38,23 @@ const ORB_LIGHT: Record<
   },
 };
 
-type LightOrbProps = {
+interface LightOrbProps {
   kind?: OrbKind;
   position?: [number, number, number];
-  /** Sphere / cone size scale. */
   radius?: number;
   floatAmplitude?: number;
   floatPhase?: number;
-};
+}
 
-/** Unlit self-glow — orb IS the bulb, not a surface lit by other lights. */
 function OrbMaterial({ color }: { color: string }) {
   return <meshBasicMaterial color={color} toneMapped={false} />;
 }
 
-/** Floating light marker — sphere (good) or pyramid (bad) + tile spotlight. */
+const defaultPosition = [0, 0, 0] as [number, number, number];
+
 export function LightOrb({
   kind = 'good',
-  position = [0, 0, 0],
+  position = defaultPosition,
   radius = 0.12,
   floatAmplitude = 0.06,
   floatPhase = 0,
@@ -65,7 +65,6 @@ export function LightOrb({
   const spotTargetRef = useRef<Object3D>(null);
   const color = ORB_COLOR[kind];
   const light = ORB_LIGHT[kind];
-  // Aim at tile top (tiles sit ~y=0; orb spawn y in `position[1]`).
   const tileY = -position[1];
 
   useEffect(() => {
@@ -83,6 +82,7 @@ export function LightOrb({
     const t = clock.getElapsedTime();
     root.position.y =
       position[1] + Math.sin(t * 1.4 + floatPhase) * floatAmplitude;
+
     if (kind === 'bad' && mesh) {
       mesh.rotation.y = t * 0.4;
     }
@@ -104,7 +104,6 @@ export function LightOrb({
         )}
       </group>
 
-      {/* Soft fill around orb */}
       <pointLight
         color={color}
         intensity={light.fillIntensity}
@@ -113,7 +112,6 @@ export function LightOrb({
         position={[0, 0.02, 0]}
       />
 
-      {/* Hard pool on tile under orb — stays aimed down (no mesh spin). */}
       <spotLight
         ref={spotRef}
         color={color}

@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { PixelSceneRenderer } from '../PixelSceneRenderer';
+
 import { SceneContent } from '../components/PixelScene';
+import { PixelSceneRenderer } from '../PixelSceneRenderer';
 
 export const Route = createFileRoute('/')({ component: Home });
 

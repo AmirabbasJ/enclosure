@@ -1,19 +1,24 @@
+import type { ThreeEvent } from '@react-three/fiber';
+import type { Group } from 'three/webgpu';
+
+import { useFrame, useThree } from '@react-three/fiber';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import * as THREE from 'three/webgpu';
+
 import { BorderBox } from '#/components/BorderBox';
 import {
   CELL_SIZE,
+  GROOVE_SNAP_DIST,
+  isOverTileField,
+  snapWallOriginToGrooves,
   TILE_THICKNESS,
   WALL_HEIGHT,
   WALL_THICKNESS,
 } from '#/theme/board';
 import { palette } from '#/theme/palette';
-import { type ThreeEvent, useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Group } from 'three/webgpu';
-import * as THREE from 'three/webgpu';
 
-export type WallDir = 'D' | 'L' | 'U' | 'R';
+export type WallDir = 'D' | 'L' | 'R' | 'U';
 
-/** Top-down dirs: D=+Z, L=-X, U=-Z, R=+X */
 const DIR_DELTA: Record<WallDir, readonly [number, number]> = {
   D: [0, 1],
   L: [-1, 0],
@@ -22,41 +27,23 @@ const DIR_DELTA: Record<WallDir, readonly [number, number]> = {
 };
 
 export const WALL_PATHS = {
-  /** D → L → U  (U-shape) */
-  u: ['D', 'L', 'U'] as const satisfies ReadonlyArray<WallDir>,
-  /** D → L → U → L → U */
-  zigzagTall: [
-    'D',
-    'L',
-    'U',
-    'L',
-    'U',
-  ] as const satisfies ReadonlyArray<WallDir>,
-  /** D → L → U → L → D → L */
-  snake: [
-    'D',
-    'L',
-    'U',
-    'L',
-    'D',
-    'L',
-  ] as const satisfies ReadonlyArray<WallDir>,
-  /** D → L → D → L */
-  steps: ['D', 'L', 'D', 'L'] as const satisfies ReadonlyArray<WallDir>,
+  u: ['D', 'L', 'U'] as const satisfies readonly WallDir[],
+  zigzagTall: ['D', 'L', 'U', 'L', 'U'] as const satisfies readonly WallDir[],
+  snake: ['D', 'L', 'U', 'L', 'D', 'L'] as const satisfies readonly WallDir[],
+  steps: ['D', 'L', 'D', 'L'] as const satisfies readonly WallDir[],
 } as const;
 
 export type WallPathKey = keyof typeof WALL_PATHS;
 
-type Segment = {
+interface Segment {
   position: [number, number, number];
   size: [number, number, number];
-};
+}
 
 function buildSegments(
-  path: ReadonlyArray<WallDir>,
+  path: readonly WallDir[],
   cellSize: number,
-  wallHeight: number,
-  _thickness: number
+  wallHeight: number
 ): Segment[] {
   let x = 0;
   let z = 0;
@@ -105,48 +92,47 @@ const THROW_UP = 0.18;
 const EDGE_BOUNCE = 0.85;
 const VIEWPORT_PAD = 0.08;
 
-type LiftMode = 'idle' | 'lifting' | 'held' | 'falling';
+type LiftMode = 'falling' | 'held' | 'idle' | 'lifting';
 
-type ViewportBounds = {
+interface ViewportBounds {
   minX: number;
   maxX: number;
   minZ: number;
   maxZ: number;
-};
+}
 
-const NDC_CORNERS: ReadonlyArray<readonly [number, number]> = [
+const NDC_CORNERS: readonly (readonly [number, number])[] = [
   [-1, -1],
   [1, -1],
   [-1, 1],
   [1, 1],
 ];
 
-type WallProps = {
-  path: ReadonlyArray<WallDir>;
+interface WallProps {
+  path: readonly WallDir[];
   position?: [number, number, number];
   rotation?: [number, number, number];
   cellSize?: number;
   wallHeight?: number;
   thickness?: number;
-  backgroundColor?: string | number;
-  borderColor?: string | number;
+  backgroundColor?: number | string;
+  borderColor?: number | string;
   showBorder?: boolean;
   orbitSpeed?: number;
   floatAmplitude?: number;
   floatPhase?: number;
-  /** Drag on XZ plane (parent-local). */
   draggable?: boolean;
-  /** Snap drag to this grid step. 0 = free drag. */
   snapStep?: number;
-  /** Called while / after drag with parent-local position. */
   onPositionChange?: (position: [number, number, number]) => void;
-};
+}
 
-/** Wall built from top-down path (D/L/U/R steps). */
+const defaultPosition = [0, 0, 0] as [number, number, number];
+const defaultRotation = [0, 0, 0] as [number, number, number];
+
 export function Wall({
   path,
-  position = [0, 0, 0],
-  rotation = [0, 0, 0],
+  position = defaultPosition,
+  rotation = defaultRotation,
   cellSize = CELL_SIZE,
   wallHeight = WALL_HEIGHT,
   thickness = WALL_THICKNESS,
@@ -177,13 +163,16 @@ export function Wall({
   const velY = useRef(0);
   const velX = useRef(0);
   const velZ = useRef(0);
-  /** Visual yaw; lerps toward yawTarget (space + grab snap). */
   const yawRef = useRef(rotation[1]);
   const yawTargetRef = useRef(rotation[1]);
   const throwSample = useRef({ x: 0, z: 0, t: 0 });
   const liftMode = useRef<LiftMode>('idle');
   const baseExtent = useRef({ x: 0.4, z: 0.4 });
   const wallExtent = useRef({ x: 0.4, z: 0.4 });
+  const centerOffsetRef = useRef({ x: 0, z: 0 });
+  const segFootprintsRef = useRef<
+    { x: number; z: number; horizontal: boolean }[]
+  >([]);
   const boundsScratch = useRef<ViewportBounds>({
     minX: -1,
     maxX: 1,
@@ -200,18 +189,49 @@ export function Wall({
     wallExtent.current = odd ? { x: b.z, z: b.x } : { x: b.x, z: b.z };
   };
 
+  const rotateYaw = (ox: number, oz: number, yaw: number) => {
+    const c = Math.cos(yaw);
+    const s = Math.sin(yaw);
+    return { x: ox * c + oz * s, z: -ox * s + oz * c };
+  };
+
+  const pinToBoardGrid = (x: number, z: number): { x: number; z: number } => {
+    const off = centerOffsetRef.current;
+    const yaw = yawTargetRef.current;
+    const r = rotateYaw(off.x, off.z, yaw);
+    const originX = x - r.x;
+    const originZ = z - r.z;
+    const overTiles = isOverTileField(x, z);
+    const snapped = snapWallOriginToGrooves({
+      originX,
+      originZ,
+      yaw,
+      segments: segFootprintsRef.current,
+      maxDist: overTiles ? Number.POSITIVE_INFINITY : GROOVE_SNAP_DIST,
+    });
+    if (!snapped) return { x, z };
+    return { x: snapped[0] + r.x, z: snapped[1] + r.z };
+  };
+
   const { camera, gl } = useThree();
 
   const segments = useMemo(
-    () => buildSegments(path, cellSize, wallHeight, thickness),
-    [path, cellSize, wallHeight, thickness]
+    () => buildSegments(path, cellSize, wallHeight),
+    [path, cellSize, wallHeight]
   );
+
+  segFootprintsRef.current = segments.map((seg) => ({
+    x: seg.position[0],
+    z: seg.position[2],
+    horizontal: seg.size[0] > seg.size[2],
+  }));
 
   const centerOffset = useMemo(() => {
     let minX = Infinity;
     let maxX = -Infinity;
     let minZ = Infinity;
     let maxZ = -Infinity;
+
     for (const seg of segments) {
       const [sx, , sz] = seg.size;
       const [px, , pz] = seg.position;
@@ -220,18 +240,20 @@ export function Wall({
       minZ = Math.min(minZ, pz - sz / 2);
       maxZ = Math.max(maxZ, pz + sz / 2);
     }
+
     baseExtent.current = {
       x: (maxX - minX) / 2,
       z: (maxZ - minZ) / 2,
     };
     syncExtentToYaw(yawTargetRef.current);
-    return {
+    const offset = {
       x: (minX + maxX) / 2,
       z: (minZ + maxZ) / 2,
     };
+    centerOffsetRef.current = offset;
+    return offset;
   }, [segments]);
 
-  /** Viewport footprint on ground → parent-local XZ playable box. */
   const fillViewportBounds = (
     parent: THREE.Object3D,
     groundLocalY: number,
@@ -249,9 +271,11 @@ export function Wall({
     for (const [nx, ny] of NDC_CORNERS) {
       ndc.current.set(nx, ny);
       raycaster.current.setFromCamera(ndc.current, camera);
+
       if (!raycaster.current.ray.intersectPlane(plane.current, hit.current)) {
         continue;
       }
+
       parent.worldToLocal(local.current.copy(hit.current));
       minX = Math.min(minX, local.current.x);
       maxX = Math.max(maxX, local.current.x);
@@ -266,7 +290,6 @@ export function Wall({
     out.minZ = minZ + ez;
     out.maxZ = maxZ - ez;
 
-    // Degenerate (tiny viewport) → pin near center.
     if (out.minX > out.maxX) {
       const mid = (minX + maxX) / 2;
       out.minX = mid;
@@ -279,7 +302,6 @@ export function Wall({
     }
   };
 
-  /** Keep inside viewport; flip throw vel on edge hit. */
   const bounceInsideViewport = (x: number, z: number, groundY: number) => {
     const parent = groupRef.current?.parent;
     if (!parent) return { x, z };
@@ -289,6 +311,7 @@ export function Wall({
 
     let nx = x;
     let nz = z;
+
     if (nx < b.minX) {
       nx = b.minX;
       velX.current = Math.abs(velX.current) * EDGE_BOUNCE;
@@ -303,6 +326,7 @@ export function Wall({
       nz = b.maxZ;
       velZ.current = -Math.abs(velZ.current) * EDGE_BOUNCE;
     }
+
     return { x: nx, z: nz };
   };
 
@@ -319,13 +343,14 @@ export function Wall({
       if (orbitSpeed !== 0 && mode === 'idle') {
         spinRef.current.rotation.y = yawRef.current + t * orbitSpeed;
       } else {
-        // Lerp to π/2-grid target (space / grab).
         const yawErr = yawTargetRef.current - yawRef.current;
+
         if (Math.abs(yawErr) > 0.0005) {
           yawRef.current += yawErr * (1 - Math.exp(-YAW_LERP * dt));
         } else {
           yawRef.current = yawTargetRef.current;
         }
+
         spinRef.current.rotation.y = yawRef.current;
       }
     }
@@ -333,10 +358,12 @@ export function Wall({
     if (mode === 'lifting' || mode === 'held') {
       const k = 1 - Math.exp(-LIFT_LERP * dt);
       liftY.current += (GRAB_LIFT - liftY.current) * k;
+
       if (Math.abs(GRAB_LIFT - liftY.current) < 0.002) {
         liftY.current = GRAB_LIFT;
         liftMode.current = 'held';
       }
+
       velY.current = 0;
     } else if (mode === 'falling') {
       velY.current += GRAVITY * dt;
@@ -362,6 +389,7 @@ export function Wall({
 
       if (liftY.current <= 0) {
         liftY.current = 0;
+
         if (Math.abs(velY.current) > BOUNCE_CUTOFF) {
           velY.current *= -BOUNCE;
           velX.current *= 0.85;
@@ -369,6 +397,7 @@ export function Wall({
         } else {
           velY.current = 0;
           const speed = Math.hypot(velX.current, velZ.current);
+
           if (speed < 0.08) {
             velX.current = 0;
             velZ.current = 0;
@@ -401,11 +430,11 @@ export function Wall({
       ndc.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.current.setFromCamera(ndc.current, camera);
 
-      // Drag on ground plane (base Y), not lifted mesh — keeps aim stable.
       const base = positionRef.current;
       hit.current.set(base[0], base[1], base[2]);
       parent.localToWorld(hit.current);
       plane.current.setFromNormalAndCoplanarPoint(up.current, hit.current);
+
       if (!raycaster.current.ray.intersectPlane(plane.current, hit.current)) {
         return;
       }
@@ -414,26 +443,32 @@ export function Wall({
       const step = snapStepRef.current;
       let x = local.current.x - grabOffset.current.x;
       let z = local.current.z - grabOffset.current.y;
+
       if (step > 0) {
         x = snap(x, step);
         z = snap(z, step);
       }
 
-      // Soft clamp while dragging (no bounce).
       const b = boundsScratch.current;
       fillViewportBounds(parent, base[1], b);
       x = Math.min(b.maxX, Math.max(b.minX, x));
       z = Math.min(b.maxZ, Math.max(b.minZ, z));
 
+      const pinned = pinToBoardGrid(x, z);
+      x = pinned.x;
+      z = pinned.z;
+
       const now = performance.now() / 1000;
       const sample = throwSample.current;
       const sampleDt = now - sample.t;
+
       if (sample.t > 0 && sampleDt > 0.001 && sampleDt < 0.12) {
         const vx = (x - sample.x) / sampleDt;
         const vz = (z - sample.z) / sampleDt;
         velX.current = velX.current * 0.25 + vx * 0.75;
         velZ.current = velZ.current * 0.25 + vz * 0.75;
       }
+
       sample.x = x;
       sample.z = z;
       sample.t = now;
@@ -442,24 +477,45 @@ export function Wall({
     };
 
     const onUp = () => {
-      // Clamp throw speed, fling up a bit from flick strength.
       let vx = velX.current;
       let vz = velZ.current;
       const speed = Math.hypot(vx, vz);
+
       if (speed > MAX_THROW) {
         const s = MAX_THROW / speed;
         vx *= s;
         vz *= s;
       }
+
       velX.current = vx;
       velZ.current = vz;
       velY.current = Math.min(speed * THROW_UP, 5);
 
-      // Stale sample → soft drop, no throw.
       if (performance.now() / 1000 - throwSample.current.t > 0.08) {
         velX.current = 0;
         velZ.current = 0;
         velY.current = 0;
+      }
+
+      const [px, py, pz] = positionRef.current;
+
+      if (isOverTileField(px, pz)) {
+        velX.current = 0;
+        velZ.current = 0;
+        velY.current = 0;
+        const pinned = pinToBoardGrid(px, pz);
+
+        if (pinned.x !== px || pinned.z !== pz) {
+          onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
+          positionRef.current = [pinned.x, py, pinned.z];
+        }
+      } else if (velX.current === 0 && velZ.current === 0) {
+        const pinned = pinToBoardGrid(px, pz);
+
+        if (pinned.x !== px || pinned.z !== pz) {
+          onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
+          positionRef.current = [pinned.x, py, pinned.z];
+        }
       }
 
       setDragging(false);
@@ -470,26 +526,34 @@ export function Wall({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || e.repeat) return;
       e.preventDefault();
-      // Target +π/2; useFrame lerps yaw about bbox center.
       yawTargetRef.current += HALF_PI;
       syncExtentToYaw(yawTargetRef.current);
+
+      const [px, py, pz] = positionRef.current;
+      const pinned = pinToBoardGrid(px, pz);
+
+      if (pinned.x !== px || pinned.z !== pz) {
+        onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
+        positionRef.current = [pinned.x, py, pinned.z];
+      }
     };
 
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
     window.addEventListener('keydown', onKeyDown);
+
     return () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
       window.removeEventListener('keydown', onKeyDown);
     };
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [dragging, camera, gl]);
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     if (!draggable) return;
-    // Only solid fill mesh — not edges / empty space around wall.
     if (!(e.object instanceof THREE.Mesh)) return;
     e.stopPropagation();
 
@@ -512,7 +576,6 @@ export function Wall({
     velX.current = 0;
     velZ.current = 0;
     velY.current = 0;
-    // Grab → nearest π/2 (lerp via yawTarget).
     yawTargetRef.current = snap(yawRef.current, HALF_PI);
     syncExtentToYaw(yawTargetRef.current);
     throwSample.current = {
@@ -546,6 +609,7 @@ export function Wall({
           : undefined
       }
     >
+      {}
       <group ref={spinRef} rotation={[0, yawRef.current, 0]}>
         <group position={[-centerOffset.x, 0, -centerOffset.z]}>
           {segments.map((seg, i) => (
