@@ -25,15 +25,12 @@ import { palette } from '#/theme/palette';
 
 import { useGameAudio } from '../context/GameAudioContext';
 import { WALLS, wallToNumberKeyMap } from '../domain/walls';
+import { easeInOutCubic } from '../utils/easeInOutCubic';
 
 const INTRO_DURATION = 1.8;
 const INTRO_START_Y = 8;
 const PLAY_Y = 0;
 const INTRO_WALL_SPREAD = 2.8;
-
-function easeInOutCubic(t: number) {
-  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-}
 
 export function SceneContent() {
   const { started } = useGame();
@@ -115,9 +112,9 @@ export function SceneContent() {
     }
   };
 
-  useEffect(() => {
-    console.log('here');
+  const onBlur = () => setSelectedWallId(null);
 
+  useEffect(() => {
     if (!started) return;
 
     if (!musicStartedRef.current) {
@@ -126,7 +123,6 @@ export function SceneContent() {
     }
 
     window.addEventListener('keydown', onKeyDown);
-    const onBlur = () => setSelectedWallId(null);
     window.addEventListener('blur', onBlur);
 
     return () => {
@@ -238,6 +234,7 @@ export function SceneContent() {
           />
           {TILE_POSITIONS.map((position, index) => (
             <BorderBox
+              // eslint-disable-next-line @eslint-react/no-array-index-key
               key={index}
               size={TILE_SIZE}
               position={position}
@@ -248,6 +245,7 @@ export function SceneContent() {
           ))}
           {ORB_SPAWNS.map((orb, index) => (
             <LightOrb
+              // eslint-disable-next-line @eslint-react/no-array-index-key
               key={index}
               kind={orb.kind}
               position={orb.position}
