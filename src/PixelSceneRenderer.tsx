@@ -41,13 +41,13 @@ function IntroCameraZoom() {
     const t = easeInOutCubic(elapsedRef.current / INTRO_DURATION);
     const zoom = INTRO_START_ZOOM + (PLAY_ZOOM - INTRO_START_ZOOM) * t;
 
-    const ortho = camera as THREE.OrthographicCamera;
-    ortho.zoom = zoom;
-    ortho.updateProjectionMatrix();
+    const orthoCam = camera as THREE.OrthographicCamera;
+    orthoCam.zoom = zoom;
+    orthoCam.updateProjectionMatrix();
 
     if (elapsedRef.current >= INTRO_DURATION) {
-      ortho.zoom = PLAY_ZOOM;
-      ortho.updateProjectionMatrix();
+      orthoCam.zoom = PLAY_ZOOM;
+      orthoCam.updateProjectionMatrix();
       doneRef.current = true;
     }
   });

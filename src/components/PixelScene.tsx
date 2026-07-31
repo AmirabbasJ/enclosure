@@ -4,14 +4,11 @@ import { useFrame } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSound from 'use-sound';
 
-import type { WallDir } from '#/components/Wall';
-
 import { BorderBox } from '#/components/BorderBox';
 import { LightOrb } from '#/components/LightOrb';
 import {
   getWallFootprints,
   Wall,
-  WALL_PATHS,
   wallOriginFromCenter,
 } from '#/components/Wall';
 import { useGame } from '#/context/GameContext';
@@ -25,15 +22,9 @@ import {
 } from '#/domain/board';
 import { ORB_SPAWNS } from '#/domain/orb';
 import { TILE_POSITIONS, TILE_SIZE } from '#/domain/tiles';
-import { WALL_OFFSET_X, WALL_OFFSET_Z } from '#/domain/walls';
 import { palette } from '#/theme/palette';
 
-interface WallPiece {
-  id: string;
-  path: readonly WallDir[];
-  position: [number, number, number];
-  yaw: number;
-}
+import { WALLS, wallToNumberKeyMap } from '../domain/walls';
 
 const INTRO_DURATION = 1.8;
 const INTRO_START_Y = 8;
@@ -44,36 +35,9 @@ function easeInOutCubic(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
-const INITIAL_WALLS: WallPiece[] = [
-  {
-    id: 'u',
-    path: WALL_PATHS.u,
-    position: [-WALL_OFFSET_X, 0, -WALL_OFFSET_Z],
-    yaw: 0,
-  },
-  {
-    id: 'zigzagTall',
-    path: WALL_PATHS.zigzagTall,
-    position: [WALL_OFFSET_X, 0, -WALL_OFFSET_Z],
-    yaw: 0,
-  },
-  {
-    id: 'snake',
-    path: WALL_PATHS.snake,
-    position: [-WALL_OFFSET_X, 0, WALL_OFFSET_Z],
-    yaw: 0,
-  },
-  {
-    id: 'steps',
-    path: WALL_PATHS.steps,
-    position: [WALL_OFFSET_X, 0, WALL_OFFSET_Z],
-    yaw: 0,
-  },
-];
-
 export function SceneContent() {
   const { started } = useGame();
-  const [walls, setWalls] = useState(INITIAL_WALLS);
+  const [walls, setWalls] = useState(WALLS);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [playHit, { stop: stopHit }] = useSound('/hit.mp3', {
     volume: 0.3,
@@ -84,6 +48,7 @@ export function SceneContent() {
       4: [6380, 250],
     },
   });
+
   const [playMusic, { stop: stopMusic }] = useSound('/music.mp3', {
     volume: 0.35,
     loop: true,
@@ -146,11 +111,27 @@ export function SceneContent() {
   const introDoneRef = useRef(false);
 
   const handleWallGroundHit = useCallback(() => {
-    console.log('handleWallGroundHit');
     stopHit();
     const random = Math.floor(Math.random() * 4) + 1;
     playHit({ id: random.toString() });
   }, [playHit, stopHit]);
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      boardYawTarget.current += Math.PI / 4;
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      boardYawTarget.current -= Math.PI / 4;
+    } else if (wallToNumberKeyMap[e.key]) {
+      e.preventDefault();
+      const id = wallToNumberKeyMap[e.key];
+      setSelectedWallId((prev) => (prev === id ? null : id));
+    } else if (e.key === 'Escape' || e.key === 'Enter') {
+      e.preventDefault();
+      setSelectedWallId(null);
+    }
+  };
 
   useEffect(() => {
     if (!started) return;
@@ -159,30 +140,6 @@ export function SceneContent() {
       musicStartedRef.current = true;
       playMusic();
     }
-
-    const wallKeys: Record<string, string> = {
-      '1': INITIAL_WALLS[0].id,
-      '2': INITIAL_WALLS[3].id,
-      '3': INITIAL_WALLS[2].id,
-      '4': INITIAL_WALLS[1].id,
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        boardYawTarget.current += Math.PI / 4;
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        boardYawTarget.current -= Math.PI / 4;
-      } else if (wallKeys[e.key]) {
-        e.preventDefault();
-        const id = wallKeys[e.key];
-        setSelectedWallId((prev) => (prev === id ? null : id));
-      } else if (e.key === 'Escape' || e.key === 'Enter') {
-        e.preventDefault();
-        setSelectedWallId(null);
-      }
-    };
 
     window.addEventListener('keydown', onKeyDown);
     const onBlur = () => setSelectedWallId(null);
@@ -219,9 +176,9 @@ export function SceneContent() {
 
     const outward = (INTRO_WALL_SPREAD - 1) * (1 - u);
 
-    for (let i = 0; i < INITIAL_WALLS.length; i += 1) {
+    for (let i = 0; i < WALLS.length; i += 1) {
       const slot = wallIntroRefs.current[i];
-      const rest = INITIAL_WALLS[i].position;
+      const rest = WALLS[i].position;
       if (!slot) continue;
       slot.position.set(rest[0] * outward, 0, rest[2] * outward);
     }
@@ -229,7 +186,7 @@ export function SceneContent() {
     if (introElapsedRef.current >= INTRO_DURATION) {
       if (pieces) pieces.position.y = PLAY_Y;
 
-      for (let i = 0; i < INITIAL_WALLS.length; i += 1) {
+      for (let i = 0; i < WALLS.length; i += 1) {
         wallIntroRefs.current[i]?.position.set(0, 0, 0);
       }
 
@@ -262,7 +219,7 @@ export function SceneContent() {
           receiveShadow
         />
         {walls.map((wall, index) => {
-          const rest = INITIAL_WALLS[index]?.position ?? wall.position;
+          const rest = WALLS[index]?.position ?? wall.position;
           const startOutward = INTRO_WALL_SPREAD - 1;
           return (
             <group

@@ -5,6 +5,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three/webgpu';
 
+import type { WallDir } from '#/domain/walls';
+
 import { BorderBox } from '#/components/BorderBox';
 import {
   enumerateValidWallCenters,
@@ -14,6 +16,7 @@ import {
 } from '#/domain/board';
 import { CELL_SIZE, TILE_THICKNESS } from '#/domain/tiles';
 import {
+  DIR_DELTA,
   GROOVE_SNAP_DIST,
   WALL_DRAG_HALF_X,
   WALL_DRAG_HALF_Z,
@@ -21,24 +24,6 @@ import {
   WALL_THICKNESS,
 } from '#/domain/walls';
 import { palette } from '#/theme/palette';
-
-export type WallDir = 'D' | 'L' | 'R' | 'U';
-
-const DIR_DELTA: Record<WallDir, readonly [number, number]> = {
-  D: [0, 1],
-  L: [-1, 0],
-  U: [0, -1],
-  R: [1, 0],
-};
-
-export const WALL_PATHS = {
-  u: ['D', 'L', 'U'] as const satisfies readonly WallDir[],
-  zigzagTall: ['D', 'L', 'U', 'L', 'U'] as const satisfies readonly WallDir[],
-  snake: ['D', 'L', 'U', 'L', 'D', 'L'] as const satisfies readonly WallDir[],
-  steps: ['D', 'L', 'D', 'L'] as const satisfies readonly WallDir[],
-} as const;
-
-export type WallPathKey = keyof typeof WALL_PATHS;
 
 interface Segment {
   position: [number, number, number];

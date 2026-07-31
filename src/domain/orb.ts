@@ -3,7 +3,7 @@ import { TILE_SPACING } from '#/domain/tiles';
 
 export const ORB_HEIGHT = 0.35;
 
-export type OrbKind = 'good' | 'bad';
+export type OrbKind = 'bad' | 'good';
 
 export interface OrbSpawn {
   kind: OrbKind;
