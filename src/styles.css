@@ -13,13 +13,16 @@
 }
 
 :root {
-  --color-void: #0c1926;
-  --color-cream: #0d1b2a;
-  --color-ink: #1b263b;
-  --color-white: #415a77;
-  --color-stone: #778da9;
-  --color-good: #5fa8d3;
-  --color-bad: #e83151;
+  --color-bg: #0d1b2a;
+  --color-panel: #1b263b;
+  --color-surface: #415a77;
+  --color-border: #778da9;
+  --color-text-light: #e0e1dd;
+  --color-text-muted: #778da9;
+  --color-accent: #72ceff;
+  --color-accent-hover: #bfe9ff;
+  --color-danger: #e83151;
+  --color-danger-hover: #ff8fa3;
 }
 
 @layer base {
@@ -34,6 +37,6 @@
   }
 
   body {
-    @apply m-0 bg-(--color-void) font-pixel text-(--color-cream);
+    @apply m-0 bg-(--color-bg) font-pixel text-(--color-text-light);
   }
 }

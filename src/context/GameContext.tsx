@@ -11,7 +11,7 @@ const GameContext = createContext<GameContextValue | null>(null);
 GameContext.displayName = 'GameContext';
 
 export function GameProvider({ children }: PropsWithChildren) {
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(true);
 
   const value = useMemo(
     () => ({

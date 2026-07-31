@@ -1,11 +1,13 @@
 export const palette = {
-  bg: '#011022',
-  border: '#0D1B2A',
-  board: '#415A77',
-  tiles: '#415A77',
-  walls: '#778DA9',
-  goodOrb: '#72ceff',
-  badCone: '#E83151',
+  bg: '#0D1B2A',
+  panel: '#1B263B',
+  surface: '#415A77',
+  textLight: '#E0E1DD',
+  textMuted: '#778DA9',
+  accent: '#72CEFF',
+  accentHover: '#BFE9FF',
+  danger: '#E83151',
+  dangerHover: '#FF8FA3',
 } as const;
 
 export type PaletteKey = keyof typeof palette;

@@ -8,8 +8,8 @@ import { palette } from '#/theme/palette';
 export type OrbKind = 'bad' | 'good';
 
 const ORB_COLOR: Record<OrbKind, string> = {
-  good: palette.goodOrb,
-  bad: palette.badCone,
+  good: palette.accent,
+  bad: palette.danger,
 };
 
 const ORB_LIGHT: Record<

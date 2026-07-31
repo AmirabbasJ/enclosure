@@ -176,7 +176,7 @@ export function SceneContent() {
 
   return (
     <>
-      <color attach="background" args={[palette.bg]} />
+      <color attach="background" args={[palette.surface]} />
       <ambientLight intensity={0.55} color="#4895ef" />
       <directionalLight
         intensity={0.85}
@@ -193,8 +193,8 @@ export function SceneContent() {
         <BorderBox
           size={GROUND_SIZE}
           position={[0, GROUND_Y, 0]}
-          backgroundColor={palette.board}
-          borderColor={palette.border}
+          backgroundColor={palette.surface}
+          borderColor={palette.bg}
           showBorder={false}
           receiveShadow
         />
@@ -228,8 +228,8 @@ export function SceneContent() {
           <BorderBox
             size={BOARD_BASE_SIZE}
             position={[0, BOARD_BASE_Y, 0]}
-            backgroundColor={palette.board}
-            borderColor={palette.border}
+            backgroundColor={palette.surface}
+            borderColor={palette.bg}
             receiveShadow
           />
           {TILE_POSITIONS.map((position, index) => (
@@ -238,8 +238,8 @@ export function SceneContent() {
               key={index}
               size={TILE_SIZE}
               position={position}
-              backgroundColor={palette.tiles}
-              borderColor={palette.border}
+              backgroundColor={palette.surface}
+              borderColor={palette.bg}
               receiveShadow
             />
           ))}
