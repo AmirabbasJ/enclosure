@@ -1,8 +1,7 @@
 import type * as THREE from 'three/webgpu';
 
 import { useFrame } from '@react-three/fiber';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSound from 'use-sound';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BorderBox } from '#/components/BorderBox';
 import { LightOrb } from '#/components/LightOrb';
@@ -24,6 +23,7 @@ import { ORB_SPAWNS } from '#/domain/orb';
 import { TILE_POSITIONS, TILE_SIZE } from '#/domain/tiles';
 import { palette } from '#/theme/palette';
 
+import { useGameAudio } from '../context/GameAudioContext';
 import { WALLS, wallToNumberKeyMap } from '../domain/walls';
 
 const INTRO_DURATION = 1.8;
@@ -39,20 +39,8 @@ export function SceneContent() {
   const { started } = useGame();
   const [walls, setWalls] = useState(WALLS);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
-  const [playHit, { stop: stopHit }] = useSound('/hit.mp3', {
-    volume: 0.3,
-    sprite: {
-      1: [1550, 250],
-      2: [2300, 250],
-      3: [3010, 250],
-      4: [6380, 250],
-    },
-  });
+  const { playWallGroundHit, playMusic, stopMusic } = useGameAudio();
 
-  const [playMusic, { stop: stopMusic }] = useSound('/music.mp3', {
-    volume: 0.35,
-    loop: true,
-  });
   const musicStartedRef = useRef(false);
 
   const blockedKeysByWall = useMemo(() => {
@@ -110,12 +98,6 @@ export function SceneContent() {
   const introElapsedRef = useRef(0);
   const introDoneRef = useRef(false);
 
-  const handleWallGroundHit = useCallback(() => {
-    stopHit();
-    const random = Math.floor(Math.random() * 4) + 1;
-    playHit({ id: random.toString() });
-  }, [playHit, stopHit]);
-
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'ArrowRight') {
       e.preventDefault();
@@ -134,6 +116,8 @@ export function SceneContent() {
   };
 
   useEffect(() => {
+    console.log('here');
+
     if (!started) return;
 
     if (!musicStartedRef.current) {
@@ -238,7 +222,7 @@ export function SceneContent() {
                 draggable={started}
                 onPositionChange={(position) => moveWall(wall.id, position)}
                 onYawChange={(yaw) => rotateWall(wall.id, yaw)}
-                onGroundHit={handleWallGroundHit}
+                onGroundHit={playWallGroundHit}
                 onDeselect={() => setSelectedWallId(null)}
               />
             </group>
