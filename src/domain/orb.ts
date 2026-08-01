@@ -1,9 +1,14 @@
-import { BOARD_COLS, BOARD_ROWS } from '#/domain/cells';
-import { TILE_SPACING } from '#/domain/tiles';
+import { cellToWorld } from '#/domain/coords';
 
 export const ORB_HEIGHT = 0.35;
 
 export type OrbKind = 'bad' | 'good';
+
+export interface OrbInput {
+  kind: OrbKind;
+  col: number;
+  row: number;
+}
 
 export interface OrbSpawn {
   kind: OrbKind;
@@ -11,22 +16,19 @@ export interface OrbSpawn {
   position: [number, number, number];
 }
 
-const ORB_SPAWN_CELLS = [
-  { col: 1, row: 1, kind: 'good' as const },
-  { col: 2, row: 1, kind: 'bad' as const },
-  { col: 1, row: 2, kind: 'bad' as const },
-  { col: 2, row: 2, kind: 'good' as const },
-] as const;
+export const DEFAULT_ORB_INPUTS: readonly OrbInput[] = [
+  { col: 1, row: 1, kind: 'good' },
+  { col: 2, row: 1, kind: 'bad' },
+  { col: 1, row: 2, kind: 'bad' },
+  { col: 2, row: 2, kind: 'good' },
+];
 
-export function buildOrbSpawns(): OrbSpawn[] {
-  return ORB_SPAWN_CELLS.map(({ col, row, kind }, i) => ({
+export function buildOrbSpawns(orbs?: OrbInput[]): OrbSpawn[] {
+  const cells = orbs ?? DEFAULT_ORB_INPUTS;
+  return cells.map(({ col, row, kind }, i) => ({
     kind,
     floatPhase: i * 1.1,
-    position: [
-      (col - (BOARD_COLS - 1) / 2) * TILE_SPACING,
-      ORB_HEIGHT,
-      (row - (BOARD_ROWS - 1) / 2) * TILE_SPACING,
-    ],
+    position: cellToWorld(col, row, ORB_HEIGHT),
   }));
 }
 

@@ -13,9 +13,9 @@ import {
   GROUND_Y,
   wallOccupiedSlotKeys,
 } from '#/domain/board';
-import { ORB_SPAWNS } from '#/domain/orb';
+import { resolveLevel, type LevelInput } from '#/domain/level';
 import { TILE_POSITIONS, TILE_SIZE } from '#/domain/tiles';
-import { WALLS, wallToNumberKeyMap } from '#/domain/walls';
+import { wallToNumberKeyMap } from '#/domain/walls';
 import { palette } from '#/theme/palette';
 import { easeInOutCubic } from '#/utils/easeInOutCubic';
 
@@ -32,11 +32,23 @@ const INTRO_START_Y = 8;
 const PLAY_Y = 0;
 const INTRO_WALL_SPREAD = 2.8;
 
-export function SceneContent() {
+interface SceneContentProps {
+  level?: LevelInput;
+}
+
+export function SceneContent({ level }: SceneContentProps) {
   const { isPlaying: started } = useGame();
-  const [walls, setWalls] = useState(WALLS);
+  const { orbs, walls: spawnWalls } = useMemo(
+    () => resolveLevel(level),
+    [level]
+  );
+  const [walls, setWalls] = useState(spawnWalls);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const { playWallGroundHit } = useGameAudio();
+
+  useEffect(() => {
+    setWalls(spawnWalls);
+  }, [spawnWalls]);
 
   const blockedKeysByWall = useMemo(() => {
     const occupiedById: Record<string, string[]> = {};
@@ -147,9 +159,9 @@ export function SceneContent() {
 
     const outward = (INTRO_WALL_SPREAD - 1) * (1 - u);
 
-    for (let i = 0; i < WALLS.length; i += 1) {
+    for (let i = 0; i < spawnWalls.length; i += 1) {
       const slot = wallIntroRefs.current[i];
-      const rest = WALLS[i].position;
+      const rest = spawnWalls[i].position;
       if (!slot) continue;
       slot.position.set(rest[0] * outward, 0, rest[2] * outward);
     }
@@ -157,7 +169,7 @@ export function SceneContent() {
     if (introElapsedRef.current >= INTRO_DURATION) {
       if (pieces) pieces.position.y = PLAY_Y;
 
-      for (let i = 0; i < WALLS.length; i += 1) {
+      for (let i = 0; i < spawnWalls.length; i += 1) {
         wallIntroRefs.current[i]?.position.set(0, 0, 0);
       }
 
@@ -190,7 +202,7 @@ export function SceneContent() {
           receiveShadow
         />
         {walls.map((wall, index) => {
-          const rest = WALLS[index]?.position ?? wall.position;
+          const rest = spawnWalls[index]?.position ?? wall.position;
           const startOutward = INTRO_WALL_SPREAD - 1;
           return (
             <group
@@ -234,7 +246,7 @@ export function SceneContent() {
               receiveShadow
             />
           ))}
-          {ORB_SPAWNS.map((orb, index) => (
+          {orbs.map((orb, index) => (
             <LightOrb
               // eslint-disable-next-line @eslint-react/no-array-index-key
               key={index}

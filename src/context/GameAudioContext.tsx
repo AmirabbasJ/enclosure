@@ -26,7 +26,7 @@ export function GameAudioProvider({ children }: PropsWithChildren) {
   });
 
   const [playMusic, { stop: stopMusic }] = useSound('/music.mp3', {
-    volume: 0.35,
+    volume: 0.25,
     loop: true,
   });
 
