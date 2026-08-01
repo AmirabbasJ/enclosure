@@ -5,7 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three/webgpu';
 
-import type { WallDir } from '#/domain/walls';
+import type { WallDir, WallSegFootprint } from '#/domain/walls';
 
 import {
   enumerateValidWallCenters,
@@ -16,25 +16,24 @@ import {
 import { CELL_SIZE, TILE_THICKNESS } from '#/domain/tiles';
 import {
   DIR_DELTA,
+  getWallFootprints,
   GROOVE_SNAP_DIST,
   WALL_DRAG_HALF_X,
   WALL_DRAG_HALF_Z,
   WALL_HEIGHT,
   WALL_THICKNESS,
+  wallOriginFromCenter,
 } from '#/domain/walls';
 import { palette } from '#/theme/palette';
 
 import { BorderBox } from './BorderBox';
 
+export type { WallSegFootprint } from '#/domain/walls';
+export { getWallFootprints, wallOriginFromCenter };
+
 interface Segment {
   position: [number, number, number];
   size: [number, number, number];
-}
-
-export interface WallSegFootprint {
-  x: number;
-  z: number;
-  horizontal: boolean;
 }
 
 function buildSegments(
@@ -68,61 +67,6 @@ function buildSegments(
   }
 
   return segments;
-}
-
-export function getWallFootprints(
-  path: readonly WallDir[],
-  cellSize = CELL_SIZE
-): {
-  footprints: WallSegFootprint[];
-  centerOffset: { x: number; z: number };
-} {
-  const segments = buildSegments(path, cellSize, WALL_HEIGHT);
-  const footprints = segments.map((seg) => ({
-    x: seg.position[0],
-    z: seg.position[2],
-    horizontal: seg.size[0] > seg.size[2],
-  }));
-
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minZ = Infinity;
-  let maxZ = -Infinity;
-
-  for (const seg of segments) {
-    const [sx, , sz] = seg.size;
-    const [px, , pz] = seg.position;
-    minX = Math.min(minX, px - sx / 2);
-    maxX = Math.max(maxX, px + sx / 2);
-    minZ = Math.min(minZ, pz - sz / 2);
-    maxZ = Math.max(maxZ, pz + sz / 2);
-  }
-
-  return {
-    footprints,
-    centerOffset: {
-      x: (minX + maxX) / 2,
-      z: (minZ + maxZ) / 2,
-    },
-  };
-}
-
-export function wallOriginFromCenter({
-  cx,
-  cz,
-  yaw,
-  centerOffset,
-}: {
-  cx: number;
-  cz: number;
-  yaw: number;
-  centerOffset: { x: number; z: number };
-}) {
-  const c = Math.cos(yaw);
-  const s = Math.sin(yaw);
-  const rx = centerOffset.x * c + centerOffset.z * s;
-  const rz = -centerOffset.x * s + centerOffset.z * c;
-  return { originX: cx - rx, originZ: cz - rz };
 }
 
 function snap(value: number, step: number) {

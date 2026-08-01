@@ -1,6 +1,6 @@
-import { BOARD_BASE_SIZE } from '#/domain/board';
+import { BOARD_BASE_SIZE, snapWallOriginToGrooves } from '#/domain/board';
 import { cellToWorld } from '#/domain/coords';
-import { TILE_SPACING } from '#/domain/tiles';
+import { CELL_SIZE, TILE_SPACING, TILE_THICKNESS } from '#/domain/tiles';
 
 export const WALL_HEIGHT = 0.55;
 export const WALL_THICKNESS = 0.12;
@@ -17,8 +17,11 @@ export type WallDir = 'D' | 'L' | 'R' | 'U';
 
 export type YawQuarters = 0 | 1 | 2 | 3;
 
+export type WallId = 'snake' | 'steps' | 'u' | 'zigzagTall';
+
 export interface WallInput {
-  id: string;
+  id: WallId;
+  /** Tile whose min-X/min-Z corner is the wall path origin. */
   col: number;
   row: number;
   yawQuarters: YawQuarters;
@@ -41,14 +44,120 @@ export const WALL_PATHS = {
 export type WallPathKey = keyof typeof WALL_PATHS;
 
 export interface WallPiece {
-  id: string;
+  id: WallId;
   path: readonly WallDir[];
   position: [number, number, number];
   yaw: number;
 }
 
+export interface WallSegFootprint {
+  x: number;
+  z: number;
+  horizontal: boolean;
+}
+
 export function yawFromQuarters(yawQuarters: YawQuarters): number {
   return yawQuarters * (Math.PI / 2);
+}
+
+export function getWallFootprints(
+  path: readonly WallDir[],
+  cellSize = CELL_SIZE
+): {
+  footprints: WallSegFootprint[];
+  centerOffset: { x: number; z: number };
+} {
+  let x = 0;
+  let z = 0;
+  const footprints: WallSegFootprint[] = [];
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+
+  for (const dir of path) {
+    const [dx, dz] = DIR_DELTA[dir];
+    const nx = x + dx * cellSize;
+    const nz = z + dz * cellSize;
+    const cx = (x + nx) / 2;
+    const cz = (z + nz) / 2;
+    const horizontal = dx !== 0;
+    const sx = horizontal ? cellSize - TILE_THICKNESS : TILE_THICKNESS;
+    const sz = horizontal ? TILE_THICKNESS : cellSize - TILE_THICKNESS;
+
+    footprints.push({ x: cx, z: cz, horizontal });
+    minX = Math.min(minX, cx - sx / 2);
+    maxX = Math.max(maxX, cx + sx / 2);
+    minZ = Math.min(minZ, cz - sz / 2);
+    maxZ = Math.max(maxZ, cz + sz / 2);
+
+    x = nx;
+    z = nz;
+  }
+
+  return {
+    footprints,
+    centerOffset: {
+      x: (minX + maxX) / 2,
+      z: (minZ + maxZ) / 2,
+    },
+  };
+}
+
+export function wallOriginFromCenter({
+  cx,
+  cz,
+  yaw,
+  centerOffset,
+}: {
+  cx: number;
+  cz: number;
+  yaw: number;
+  centerOffset: { x: number; z: number };
+}) {
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  const rx = centerOffset.x * c + centerOffset.z * s;
+  const rz = -centerOffset.x * s + centerOffset.z * c;
+  return { originX: cx - rx, originZ: cz - rz };
+}
+
+/** Path origin at min-X/min-Z corner of tile (col, row); position = wall center. */
+export function wallCenterFromCell({
+  path,
+  col,
+  row,
+  yaw,
+}: {
+  path: readonly WallDir[];
+  col: number;
+  row: number;
+  yaw: number;
+}): [number, number, number] {
+  const { footprints, centerOffset } = getWallFootprints(path);
+  const half = TILE_SPACING / 2;
+  const [tx, , tz] = cellToWorld(col, row);
+  const originX = tx - half;
+  const originZ = tz - half;
+
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  const rx = centerOffset.x * c + centerOffset.z * s;
+  const rz = -centerOffset.x * s + centerOffset.z * c;
+
+  const snapped = snapWallOriginToGrooves({
+    originX,
+    originZ,
+    yaw,
+    segments: footprints,
+    maxDist: Number.POSITIVE_INFINITY,
+  });
+
+  if (snapped) {
+    return [snapped[0] + rx, 0, snapped[1] + rz];
+  }
+
+  return [originX + rx, 0, originZ + rz];
 }
 
 export const WALLS: WallPiece[] = [
@@ -87,10 +196,16 @@ export function resolveWalls(input?: WallInput[]): WallPiece[] {
     const override = byId.get(wall.id);
     if (!override) return { ...wall };
 
+    const yaw = yawFromQuarters(override.yawQuarters);
     return {
       ...wall,
-      position: cellToWorld(override.col, override.row),
-      yaw: yawFromQuarters(override.yawQuarters),
+      position: wallCenterFromCell({
+        path: wall.path,
+        col: override.col,
+        row: override.row,
+        yaw,
+      }),
+      yaw,
     };
   });
 }

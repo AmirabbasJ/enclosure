@@ -3,6 +3,8 @@ import type * as THREE from 'three/webgpu';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import type { LevelInput } from '#/domain/level';
+
 import { useGameAudio } from '#/context/GameAudioContext';
 import { useGame } from '#/context/GameContext';
 import {
@@ -13,7 +15,7 @@ import {
   GROUND_Y,
   wallOccupiedSlotKeys,
 } from '#/domain/board';
-import { resolveLevel, type LevelInput } from '#/domain/level';
+import { resolveLevel } from '#/domain/level';
 import { TILE_POSITIONS, TILE_SIZE } from '#/domain/tiles';
 import { wallToNumberKeyMap } from '#/domain/walls';
 import { palette } from '#/theme/palette';
@@ -27,10 +29,26 @@ import {
   wallOriginFromCenter,
 } from './components/Wall';
 
-const INTRO_DURATION = 1.8;
+const INTRO_BOARD_DURATION = 1.8;
+const INTRO_WALL_DURATION = 1.4;
+const INTRO_WALL_STAGGER = 1.2;
+const INTRO_DURATION =
+  INTRO_BOARD_DURATION + INTRO_WALL_DURATION + INTRO_WALL_STAGGER;
 const INTRO_START_Y = 8;
 const PLAY_Y = 0;
-const INTRO_WALL_SPREAD = 2.8;
+
+/** Intro offset: wall drops from above onto play. */
+function wallIntroOffset(u = 0): [number, number, number] {
+  const k = 1 - u;
+  return [0, INTRO_START_Y * k, 0];
+}
+
+function randomWallDelays(count: number): number[] {
+  return Array.from(
+    { length: count },
+    () => Math.random() * INTRO_WALL_STAGGER
+  );
+}
 
 interface SceneContentProps {
   level?: LevelInput;
@@ -44,11 +62,36 @@ export function SceneContent({ level }: SceneContentProps) {
   );
   const [walls, setWalls] = useState(spawnWalls);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
+  const [introDone, setIntroDone] = useState(false);
   const { playWallGroundHit } = useGameAudio();
+
+  const boardRef = useRef<THREE.Group>(null);
+  const introRef = useRef<THREE.Group>(null);
+  const wallIntroRefs = useRef<(THREE.Group | null)[]>([]);
+  const boardYaw = useRef(Math.PI / 4);
+  const boardYawTarget = useRef(Math.PI / 4);
+  const introElapsedRef = useRef(0);
+  const introDoneRef = useRef(false);
+  const wallDelaysRef = useRef<number[]>([]);
 
   useEffect(() => {
     setWalls(spawnWalls);
+    setIntroDone(false);
+    introElapsedRef.current = 0;
+    introDoneRef.current = false;
+    wallDelaysRef.current = randomWallDelays(spawnWalls.length);
   }, [spawnWalls]);
+
+  useEffect(() => {
+    if (started) {
+      wallDelaysRef.current = randomWallDelays(spawnWalls.length);
+      return;
+    }
+
+    setIntroDone(false);
+    introElapsedRef.current = 0;
+    introDoneRef.current = false;
+  }, [started, spawnWalls.length]);
 
   const blockedKeysByWall = useMemo(() => {
     const occupiedById: Record<string, string[]> = {};
@@ -97,14 +140,6 @@ export function SceneContent({ level }: SceneContentProps) {
     );
   };
 
-  const boardRef = useRef<THREE.Group>(null);
-  const introRef = useRef<THREE.Group>(null);
-  const wallIntroRefs = useRef<(THREE.Group | null)[]>([]);
-  const boardYaw = useRef(Math.PI / 4);
-  const boardYawTarget = useRef(Math.PI / 4);
-  const introElapsedRef = useRef(0);
-  const introDoneRef = useRef(false);
-
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'ArrowRight') {
       e.preventDefault();
@@ -149,21 +184,27 @@ export function SceneContent({ level }: SceneContentProps) {
       INTRO_DURATION,
       introElapsedRef.current + delta
     );
-    const u = easeInOutCubic(introElapsedRef.current / INTRO_DURATION);
+    const elapsed = introElapsedRef.current;
+    const uBoard = easeInOutCubic(Math.min(1, elapsed / INTRO_BOARD_DURATION));
+    const wallPhaseT = elapsed - INTRO_BOARD_DURATION;
 
     const pieces = introRef.current;
 
     if (pieces) {
-      pieces.position.y = INTRO_START_Y + (PLAY_Y - INTRO_START_Y) * u;
+      pieces.position.y = INTRO_START_Y + (PLAY_Y - INTRO_START_Y) * uBoard;
     }
-
-    const outward = (INTRO_WALL_SPREAD - 1) * (1 - u);
 
     for (let i = 0; i < spawnWalls.length; i += 1) {
       const slot = wallIntroRefs.current[i];
-      const rest = spawnWalls[i].position;
       if (!slot) continue;
-      slot.position.set(rest[0] * outward, 0, rest[2] * outward);
+      const delay = wallDelaysRef.current[i] ?? 0;
+      const localT = wallPhaseT - delay;
+      const uWall =
+        localT <= 0
+          ? 0
+          : easeInOutCubic(Math.min(1, localT / INTRO_WALL_DURATION));
+      const [ox, oy, oz] = wallIntroOffset(uWall);
+      slot.position.set(ox, oy, oz);
     }
 
     if (introElapsedRef.current >= INTRO_DURATION) {
@@ -174,6 +215,7 @@ export function SceneContent({ level }: SceneContentProps) {
       }
 
       introDoneRef.current = true;
+      setIntroDone(true);
     }
   });
 
@@ -202,15 +244,18 @@ export function SceneContent({ level }: SceneContentProps) {
           receiveShadow
         />
         {walls.map((wall, index) => {
-          const rest = spawnWalls[index]?.position ?? wall.position;
-          const startOutward = INTRO_WALL_SPREAD - 1;
+          const introPosition = introDone
+            ? ([0, 0, 0] as [number, number, number])
+            : !started
+              ? wallIntroOffset()
+              : undefined;
           return (
             <group
               key={wall.id}
               ref={(node) => {
                 wallIntroRefs.current[index] = node;
               }}
-              position={[rest[0] * startOutward, 0, rest[2] * startOutward]}
+              position={introPosition}
             >
               <Wall
                 path={wall.path}
