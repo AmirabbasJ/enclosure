@@ -17,6 +17,9 @@ export const PIXEL_ALIGNED_PANNING = true;
 const PLAY_ZOOM = 1;
 const INTRO_START_ZOOM = 0.8;
 const INTRO_DURATION = 1.8;
+/** View distance — ortho size from zoom; distance only buys near/far headroom. */
+const CAM_DIST = 5;
+const CAM_Y = CAM_DIST * Math.tan(Math.PI / 6);
 
 function easeInOutCubic(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
@@ -190,9 +193,9 @@ export function PixelSceneRenderer({ children }: PropsWithChildren) {
       camera={{
         manual: true,
         zoom: INTRO_START_ZOOM,
-        position: [0, 2 * Math.tan(Math.PI / 6), 2],
+        position: [0, CAM_Y, CAM_DIST],
         near: 0.1,
-        far: 10,
+        far: 50,
       }}
       gl={async (props) => {
         return createWebGPURenderer(

@@ -34,7 +34,7 @@ const INTRO_WALL_DURATION = 1.4;
 const INTRO_WALL_STAGGER = 1.2;
 const INTRO_DURATION =
   INTRO_BOARD_DURATION + INTRO_WALL_DURATION + INTRO_WALL_STAGGER;
-const INTRO_START_Y = 8;
+const INTRO_START_Y = 14;
 const PLAY_Y = 0;
 
 /** Intro offset: wall drops from above onto play. */
