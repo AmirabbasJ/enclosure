@@ -33,7 +33,7 @@ const PLAY_Y = 0;
 const INTRO_WALL_SPREAD = 2.8;
 
 export function SceneContent() {
-  const { started } = useGame();
+  const { isPlaying: started } = useGame();
   const [walls, setWalls] = useState(WALLS);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const { playWallGroundHit, playMusic, stopMusic } = useGameAudio();

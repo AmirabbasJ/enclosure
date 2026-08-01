@@ -23,7 +23,7 @@ function easeInOutCubic(t: number) {
 }
 
 function IntroCameraZoom() {
-  const { started } = useGame();
+  const { isPlaying: started } = useGame();
   const { camera } = useThree();
   const elapsedRef = useRef(0);
   const doneRef = useRef(false);

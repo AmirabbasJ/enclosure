@@ -1,8 +1,15 @@
-import type { PropsWithChildren } from 'react';
+import type { ButtonHTMLAttributes, PropsWithChildren } from 'react';
 
-function Button({ children }: PropsWithChildren) {
+function Button({
+  children,
+  ...props
+}: PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement>>) {
   return (
-    <button className="cursor-pointer bg-bg text-text-light py-2 px-4 hover:bg-panel hover:text-border ">
+    <button
+      type="button"
+      className="cursor-pointer bg-bg px-4 py-2 text-text-light hover:bg-panel hover:text-border"
+      {...props}
+    >
       {children}
     </button>
   );

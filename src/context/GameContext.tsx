@@ -1,9 +1,19 @@
 import type { PropsWithChildren } from 'react';
+import type { SnapshotFrom } from 'xstate';
 
-import { createContext, use, useMemo, useState } from 'react';
+import { useMachine } from '@xstate/react';
+import { createContext, use, useMemo } from 'react';
+
+import type { GameEvent, GameMachineContext } from '#/machines/gameMachine';
+
+import { gameMachine } from '#/machines/gameMachine';
 
 interface GameContextValue {
-  started: boolean;
+  /** True while the player is in an active game session. */
+  isPlaying: boolean;
+  state: SnapshotFrom<typeof gameMachine>;
+  context: GameMachineContext;
+  send: (event: GameEvent) => void;
   start: () => void;
 }
 
@@ -11,14 +21,17 @@ const GameContext = createContext<GameContextValue | null>(null);
 GameContext.displayName = 'GameContext';
 
 export function GameProvider({ children }: PropsWithChildren) {
-  const [started, setStarted] = useState(false);
+  const [state, send] = useMachine(gameMachine);
 
-  const value = useMemo(
+  const value = useMemo<GameContextValue>(
     () => ({
-      started,
-      start: () => setStarted(true),
+      isPlaying: state.matches('playing'),
+      state,
+      context: state.context,
+      send,
+      start: () => send({ type: 'PLAY' }),
     }),
-    [started]
+    [state, send]
   );
 
   return <GameContext value={value}>{children}</GameContext>;
