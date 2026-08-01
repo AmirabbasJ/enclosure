@@ -181,7 +181,7 @@ export async function createWebGPURenderer(
   const renderer = new THREE.WebGPURenderer({ ...props, antialias: false });
   await renderer.init();
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.BasicShadowMap;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   return renderer;
 }
 
@@ -190,6 +190,7 @@ export function PixelSceneRenderer({ children }: PropsWithChildren) {
     <Canvas
       orthographic
       dpr={1}
+      shadows
       camera={{
         manual: true,
         zoom: INTRO_START_ZOOM,
@@ -206,6 +207,8 @@ export function PixelSceneRenderer({ children }: PropsWithChildren) {
       }}
       onCreated={({ camera, gl }) => {
         gl.toneMapping = THREE.NoToneMapping;
+        gl.shadowMap.enabled = true;
+        gl.shadowMap.type = THREE.PCFSoftShadowMap;
         camera.lookAt(0, 0, 0);
       }}
       style={{ width: '100%', height: '100%', display: 'block' }}

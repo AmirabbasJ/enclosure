@@ -1,4 +1,9 @@
-import { BOARD_BASE_SIZE, snapWallOriginToGrooves } from '#/domain/board';
+import {
+  BOARD_BASE_SIZE,
+  GROUND_WALL_Y,
+  snapWallOriginToGrooves,
+  wallRestY,
+} from '#/domain/board';
 import { cellToWorld } from '#/domain/coords';
 import { CELL_SIZE, TILE_SPACING, TILE_THICKNESS } from '#/domain/tiles';
 
@@ -12,6 +17,8 @@ export const WALL_DRAG_HALF_X = WALL_OFFSET_X;
 export const WALL_DRAG_HALF_Z = WALL_OFFSET_Z;
 
 export const GROOVE_SNAP_DIST = TILE_SPACING * 0.4;
+/** Keep snap engaged until pointer leaves this far (hysteresis vs GROOVE_SNAP_DIST). */
+export const GROOVE_SNAP_RELEASE = GROOVE_SNAP_DIST * 1.85;
 
 export type WallDir = 'D' | 'L' | 'R' | 'U';
 
@@ -154,35 +161,57 @@ export function wallCenterFromCell({
   });
 
   if (snapped) {
-    return [snapped[0] + rx, 0, snapped[1] + rz];
+    const x = snapped[0] + rx;
+    const z = snapped[1] + rz;
+    return [
+      x,
+      wallRestY({
+        originX: snapped[0],
+        originZ: snapped[1],
+        yaw,
+        segments: footprints,
+      }),
+      z,
+    ];
   }
 
-  return [originX + rx, 0, originZ + rz];
+  const x = originX + rx;
+  const z = originZ + rz;
+  return [
+    x,
+    wallRestY({
+      originX,
+      originZ,
+      yaw,
+      segments: footprints,
+    }),
+    z,
+  ];
 }
 
 export const WALLS: WallPiece[] = [
   {
     id: 'u',
     path: WALL_PATHS.u,
-    position: [-WALL_OFFSET_X, 0, -WALL_OFFSET_Z],
+    position: [-WALL_OFFSET_X, GROUND_WALL_Y, -WALL_OFFSET_Z],
     yaw: 0,
   },
   {
     id: 'zigzagTall',
     path: WALL_PATHS.zigzagTall,
-    position: [WALL_OFFSET_X, 0, -WALL_OFFSET_Z],
+    position: [WALL_OFFSET_X, GROUND_WALL_Y, -WALL_OFFSET_Z],
     yaw: 0,
   },
   {
     id: 'snake',
     path: WALL_PATHS.snake,
-    position: [-WALL_OFFSET_X, 0, WALL_OFFSET_Z],
+    position: [-WALL_OFFSET_X, GROUND_WALL_Y, WALL_OFFSET_Z],
     yaw: 0,
   },
   {
     id: 'steps',
     path: WALL_PATHS.steps,
-    position: [WALL_OFFSET_X, 0, WALL_OFFSET_Z],
+    position: [WALL_OFFSET_X, GROUND_WALL_Y, WALL_OFFSET_Z],
     yaw: 0,
   },
 ];

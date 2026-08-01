@@ -8,16 +8,19 @@ import * as THREE from 'three/webgpu';
 import type { WallDir, WallSegFootprint } from '#/domain/walls';
 
 import {
+  BOARD_WALL_Y,
   enumerateValidWallCenters,
   isOverTileField,
   pickWallCenterInDirection,
   snapWallOriginToGrooves,
+  wallRestYAtCenter,
 } from '#/domain/board';
 import { CELL_SIZE, TILE_THICKNESS } from '#/domain/tiles';
 import {
   DIR_DELTA,
   getWallFootprints,
   GROOVE_SNAP_DIST,
+  GROOVE_SNAP_RELEASE,
   WALL_DRAG_HALF_X,
   WALL_DRAG_HALF_Z,
   WALL_HEIGHT,
@@ -76,6 +79,9 @@ function snap(value: number, step: number) {
 const HALF_PI = Math.PI / 2;
 
 const GRAB_LIFT = 0.42;
+const HOVER_Y = BOARD_WALL_Y + GRAB_LIFT;
+/** No wall shadow cast above this world Y (intro / high drops). */
+const SHADOW_CAST_MAX_WORLD_Y = 0.35;
 const LIFT_LERP = 14;
 const YAW_LERP = 16;
 const MOVE_LERP = 14;
@@ -206,6 +212,7 @@ export function Wall({
   const snapStepRef = useRef(snapStep);
   const blockedKeysRef = useRef(blockedKeys);
   const liftY = useRef(0);
+  const hoverAbsY = useRef(HOVER_Y);
   const velY = useRef(0);
   const velX = useRef(0);
   const velZ = useRef(0);
@@ -214,6 +221,10 @@ export function Wall({
   const yawTargetRef = useRef(rotation[1]);
   const liftMode = useRef<LiftMode>('idle');
   const groundHitFired = useRef(false);
+  const castShadowRef = useRef(false);
+  const worldPos = useRef(new THREE.Vector3());
+  const snapEngagedRef = useRef(false);
+  const dragPlaneYRef = useRef(HOVER_Y);
   const centerOffsetRef = useRef({ x: 0, z: 0 });
   const segFootprintsRef = useRef<WallSegFootprint[]>([]);
   positionRef.current = position;
@@ -229,6 +240,28 @@ export function Wall({
     return { x: ox * c + oz * s, z: -ox * s + oz * c };
   };
 
+  const restYAt = (x: number, z: number) =>
+    wallRestYAtCenter({
+      cx: x,
+      cz: z,
+      yaw: yawTargetRef.current,
+      centerOffset: centerOffsetRef.current,
+      segments: segFootprintsRef.current,
+      blockedKeys: blockedKeysRef.current,
+    });
+
+  const wallPos = (x: number, z: number): [number, number, number] => [
+    x,
+    restYAt(x, z),
+    z,
+  ];
+
+  const wallPosXZ = (x: number, z: number): [number, number, number] => [
+    x,
+    positionRef.current[1],
+    z,
+  ];
+
   const pinToBoardGrid = (x: number, z: number): { x: number; z: number } => {
     const off = centerOffsetRef.current;
     const yaw = yawTargetRef.current;
@@ -236,15 +269,24 @@ export function Wall({
     const originX = x - r.x;
     const originZ = z - r.z;
     const overTiles = isOverTileField(x, z);
+    const maxDist = overTiles
+      ? Number.POSITIVE_INFINITY
+      : snapEngagedRef.current
+        ? GROOVE_SNAP_RELEASE
+        : GROOVE_SNAP_DIST;
     const snapped = snapWallOriginToGrooves({
       originX,
       originZ,
       yaw,
       segments: segFootprintsRef.current,
-      maxDist: overTiles ? Number.POSITIVE_INFINITY : GROOVE_SNAP_DIST,
+      maxDist,
       blockedKeys: blockedKeysRef.current,
     });
-    if (!snapped) return { x, z };
+    if (!snapped) {
+      snapEngagedRef.current = false;
+      return { x, z };
+    }
+    snapEngagedRef.current = true;
     return { x: snapped[0] + r.x, z: snapped[1] + r.z };
   };
 
@@ -255,6 +297,9 @@ export function Wall({
       velX.current = 0;
       velZ.current = 0;
       velY.current = 0;
+      hoverAbsY.current =
+        restYAt(displayPosRef.current.x, displayPosRef.current.z) +
+        liftY.current;
       liftMode.current = 'lifting';
       return;
     }
@@ -277,12 +322,13 @@ export function Wall({
         yawTargetRef.current += HALF_PI;
         onYawChangeRef.current?.(yawTargetRef.current);
 
-        const [px, py, pz] = positionRef.current;
+        const [px, , pz] = positionRef.current;
         const pinned = pinToBoardGrid(px, pz);
 
         if (pinned.x !== px || pinned.z !== pz) {
-          onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
-          positionRef.current = [pinned.x, py, pinned.z];
+          const next = wallPos(pinned.x, pinned.z);
+          onPositionChangeRef.current?.(next);
+          positionRef.current = next;
         }
 
         return;
@@ -297,7 +343,7 @@ export function Wall({
       e.preventDefault();
 
       const [dx, dz] = step;
-      const [px, py, pz] = positionRef.current;
+      const [px, , pz] = positionRef.current;
       const next = pickWallCenterInDirection({
         cx: px,
         cz: pz,
@@ -312,8 +358,9 @@ export function Wall({
       });
       if (!next) return;
 
-      onPositionChangeRef.current?.([next.x, py, next.z]);
-      positionRef.current = [next.x, py, next.z];
+      const pos = wallPos(next.x, next.z);
+      onPositionChangeRef.current?.(pos);
+      positionRef.current = pos;
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -409,20 +456,20 @@ export function Wall({
 
     if (mode === 'lifting' || mode === 'held') {
       const k = 1 - Math.exp(-LIFT_LERP * dt);
-      liftY.current += (GRAB_LIFT - liftY.current) * k;
+      hoverAbsY.current += (HOVER_Y - hoverAbsY.current) * k;
 
-      if (Math.abs(GRAB_LIFT - liftY.current) < 0.002) {
-        liftY.current = GRAB_LIFT;
+      if (Math.abs(HOVER_Y - hoverAbsY.current) < 0.002) {
+        hoverAbsY.current = HOVER_Y;
         liftMode.current = 'held';
       }
 
       velY.current = 0;
     } else if (mode === 'falling') {
-      const prevLift = liftY.current;
+      const prevY = hoverAbsY.current;
       velY.current += GRAVITY * dt;
-      liftY.current += velY.current * dt;
+      hoverAbsY.current += velY.current * dt;
 
-      const [px, py, pz] = positionRef.current;
+      const [px, , pz] = positionRef.current;
       let nx = px + velX.current * dt;
       let nz = pz + velZ.current * dt;
       const bounced = bounceInsideBounds(nx, nz);
@@ -430,20 +477,30 @@ export function Wall({
       nz = bounced.z;
 
       if (onChange && (nx !== px || nz !== pz)) {
-        onChange([nx, py, nz]);
-        positionRef.current = [nx, py, nz];
+        const next = wallPos(nx, nz);
+        onChange(next);
+        positionRef.current = next;
       }
 
-      const grounded = liftY.current <= 0;
+      const restY = restYAt(positionRef.current[0], positionRef.current[2]);
+      const grounded = hoverAbsY.current <= restY;
       const drag = grounded ? GROUND_FRICTION : AIR_DRAG;
       const damp = Math.exp(-drag * dt);
       velX.current *= damp;
       velZ.current *= damp;
 
-      if (liftY.current <= 0) {
+      if (hoverAbsY.current <= restY) {
+        hoverAbsY.current = restY;
         liftY.current = 0;
 
-        if (prevLift > 0 && !groundHitFired.current) {
+        const rest = wallPos(positionRef.current[0], positionRef.current[2]);
+
+        if (positionRef.current[1] !== rest[1]) {
+          onChange?.(rest);
+          positionRef.current = rest;
+        }
+
+        if (prevY > restY && !groundHitFired.current) {
           groundHitFired.current = true;
           onGroundHitRef.current?.(Math.abs(velY.current));
         }
@@ -468,7 +525,7 @@ export function Wall({
       liftY.current = Math.sin(t * 1.2 + floatPhase) * floatAmplitude;
     }
 
-    const [px, py, pz] = positionRef.current;
+    const [px, , pz] = positionRef.current;
     const k = 1 - Math.exp(-MOVE_LERP * dt);
     displayPosRef.current.x += (px - displayPosRef.current.x) * k;
     displayPosRef.current.z += (pz - displayPosRef.current.z) * k;
@@ -481,11 +538,28 @@ export function Wall({
       displayPosRef.current.z = pz;
     }
 
+    const displayY =
+      mode === 'lifting' || mode === 'held' || mode === 'falling'
+        ? hoverAbsY.current
+        : restYAt(displayPosRef.current.x, displayPosRef.current.z) +
+          liftY.current;
+
     group.position.set(
       displayPosRef.current.x,
-      py + liftY.current,
+      displayY,
       displayPosRef.current.z
     );
+
+    group.updateWorldMatrix(true, false);
+    group.getWorldPosition(worldPos.current);
+    const cast = worldPos.current.y < SHADOW_CAST_MAX_WORLD_Y;
+
+    if (cast !== castShadowRef.current) {
+      castShadowRef.current = cast;
+      group.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) obj.castShadow = cast;
+      });
+    }
   });
 
   useEffect(() => {
@@ -504,7 +578,7 @@ export function Wall({
       raycaster.current.setFromCamera(ndc.current, camera);
 
       const base = positionRef.current;
-      hit.current.set(base[0], base[1], base[2]);
+      hit.current.set(base[0], dragPlaneYRef.current, base[2]);
       parent.localToWorld(hit.current);
       plane.current.setFromNormalAndCoplanarPoint(up.current, hit.current);
 
@@ -542,7 +616,8 @@ export function Wall({
       sample.z = z;
       sample.t = now;
 
-      onChange([x, base[1], z]);
+      onChange(wallPosXZ(x, z));
+      positionRef.current = wallPosXZ(x, z);
     };
 
     const onUp = () => {
@@ -566,7 +641,7 @@ export function Wall({
         velY.current = 0;
       }
 
-      const [px, py, pz] = positionRef.current;
+      const [px, , pz] = positionRef.current;
 
       if (isOverTileField(px, pz)) {
         velX.current = 0;
@@ -575,15 +650,29 @@ export function Wall({
         const pinned = pinToBoardGrid(px, pz);
 
         if (pinned.x !== px || pinned.z !== pz) {
-          onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
-          positionRef.current = [pinned.x, py, pinned.z];
+          const next = wallPos(pinned.x, pinned.z);
+          onPositionChangeRef.current?.(next);
+          positionRef.current = next;
+        } else {
+          const next = wallPos(px, pz);
+
+          if (next[1] !== positionRef.current[1]) {
+            onPositionChangeRef.current?.(next);
+            positionRef.current = next;
+          }
         }
       } else if (velX.current === 0 && velZ.current === 0) {
         const pinned = pinToBoardGrid(px, pz);
 
         if (pinned.x !== px || pinned.z !== pz) {
-          onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
-          positionRef.current = [pinned.x, py, pinned.z];
+          const next = wallPos(pinned.x, pinned.z);
+          onPositionChangeRef.current?.(next);
+          positionRef.current = next;
+        } else {
+          const next = wallPos(px, pz);
+
+          onPositionChangeRef.current?.(next);
+          positionRef.current = next;
         }
       }
 
@@ -599,12 +688,13 @@ export function Wall({
       yawTargetRef.current += HALF_PI;
       onYawChangeRef.current?.(yawTargetRef.current);
 
-      const [px, py, pz] = positionRef.current;
+      const [px, , pz] = positionRef.current;
       const pinned = pinToBoardGrid(px, pz);
 
       if (pinned.x !== px || pinned.z !== pz) {
-        onPositionChangeRef.current?.([pinned.x, py, pinned.z]);
-        positionRef.current = [pinned.x, py, pinned.z];
+        const next = wallPos(pinned.x, pinned.z);
+        onPositionChangeRef.current?.(next);
+        positionRef.current = next;
       }
     };
 
@@ -637,7 +727,7 @@ export function Wall({
     if (!group || !parent) return;
 
     const base = positionRef.current;
-    hit.current.set(base[0], base[1], base[2]);
+    hit.current.set(base[0], HOVER_Y, base[2]);
     parent.localToWorld(hit.current);
     plane.current.setFromNormalAndCoplanarPoint(up.current, hit.current);
     if (!e.ray.intersectPlane(plane.current, hit.current)) return;
@@ -657,6 +747,10 @@ export function Wall({
       z: position[2],
       t: performance.now() / 1000,
     };
+    snapEngagedRef.current = false;
+    dragPlaneYRef.current = HOVER_Y;
+    hoverAbsY.current =
+      restYAt(displayPosRef.current.x, displayPosRef.current.z) + liftY.current;
     liftMode.current = 'lifting';
     setDragging(true);
     document.body.style.cursor = 'grabbing';
@@ -665,7 +759,11 @@ export function Wall({
   return (
     <group
       ref={groupRef}
-      position={[displayPosRef.current.x, position[1], displayPosRef.current.z]}
+      position={[
+        displayPosRef.current.x,
+        restYAt(displayPosRef.current.x, displayPosRef.current.z),
+        displayPosRef.current.z,
+      ]}
       rotation={[rotation[0], 0, rotation[2]]}
       onPointerDown={handlePointerDown}
       onPointerOver={
@@ -688,6 +786,7 @@ export function Wall({
           {segments.map((seg, i) => (
             <BorderBox
               key={i}
+              castShadow={false}
               size={seg.size}
               position={seg.position}
               backgroundColor={backgroundColor}

@@ -17,6 +17,12 @@ export const BOARD_BASE_Y = -0.1;
 
 export const GROUND_SIZE: [number, number, number] = [200, 0.1, 200];
 export const GROUND_Y = -0.5;
+/** Top face of ground slab. */
+export const GROUND_TOP_Y = GROUND_Y + GROUND_SIZE[1] / 2;
+/** Wall group Y on board (mesh bottom at −TILE_THICKNESS/2). */
+export const BOARD_WALL_Y = 0;
+/** Wall group Y resting on ground top. */
+export const GROUND_WALL_Y = GROUND_TOP_Y + TILE_THICKNESS / 2;
 
 export interface GrooveSlot {
   x: number;
@@ -71,6 +77,56 @@ export function isOverTileField(x: number, z: number, pad = 0): boolean {
   const halfW = (BOARD_COLS / 2) * TILE_SPACING + pad;
   const halfD = (BOARD_ROWS / 2) * TILE_SPACING + pad;
   return Math.abs(x) <= halfW && Math.abs(z) <= halfD;
+}
+
+/** Board seat Y only when every segment lands in a free groove. Else ground (clips board). */
+export function wallRestY({
+  originX,
+  originZ,
+  yaw,
+  segments,
+  blockedKeys,
+}: {
+  originX: number;
+  originZ: number;
+  yaw: number;
+  segments: readonly WallSegFootprint[];
+  blockedKeys?: ReadonlySet<string>;
+}): number {
+  return wallPlacementFitsGrooves({
+    originX,
+    originZ,
+    yaw,
+    segments,
+    blockedKeys,
+  })
+    ? BOARD_WALL_Y
+    : GROUND_WALL_Y;
+}
+
+export function wallRestYAtCenter({
+  cx,
+  cz,
+  yaw,
+  centerOffset,
+  segments,
+  blockedKeys,
+}: {
+  cx: number;
+  cz: number;
+  yaw: number;
+  centerOffset: { x: number; z: number };
+  segments: readonly WallSegFootprint[];
+  blockedKeys?: ReadonlySet<string>;
+}): number {
+  const r = rotateYawXZ(centerOffset.x, centerOffset.z, yaw);
+  return wallRestY({
+    originX: cx - r.x,
+    originZ: cz - r.z,
+    yaw,
+    segments,
+    blockedKeys,
+  });
 }
 
 function yawParityOdd(yaw: number) {

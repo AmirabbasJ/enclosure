@@ -222,11 +222,22 @@ export function SceneContent({ level }: SceneContentProps) {
   return (
     <>
       <color attach="background" args={[palette.surface]} />
-      <ambientLight intensity={0.55} color="#4895ef" />
+      <ambientLight intensity={0.72} color="#4895ef" />
       <directionalLight
-        intensity={0.85}
+        castShadow={started}
+        intensity={0.48}
         color="#c8d6e5"
-        position={[0.4, 4, 0.6]}
+        position={[4, 8, 5]}
+        shadow-mapSize={[2048, 2048]}
+        shadow-radius={12}
+        shadow-bias={-0.0002}
+        shadow-normalBias={0.04}
+        shadow-camera-near={0.5}
+        shadow-camera-far={40}
+        shadow-camera-left={-8}
+        shadow-camera-right={8}
+        shadow-camera-top={8}
+        shadow-camera-bottom={-8}
       />
 
       <group
