@@ -7,7 +7,6 @@ import * as THREE from 'three/webgpu';
 
 import type { WallDir } from '#/domain/walls';
 
-import { BorderBox } from '#/components/BorderBox';
 import {
   enumerateValidWallCenters,
   isOverTileField,
@@ -24,6 +23,8 @@ import {
   WALL_THICKNESS,
 } from '#/domain/walls';
 import { palette } from '#/theme/palette';
+
+import { BorderBox } from './BorderBox';
 
 interface Segment {
   position: [number, number, number];

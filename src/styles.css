@@ -10,9 +10,6 @@
 
 @theme {
   --font-pixel: 'Press Start 2P', monospace;
-}
-
-:root {
   --color-bg: #0d1b2a;
   --color-panel: #1b263b;
   --color-surface: #415a77;
@@ -39,4 +36,21 @@
   body {
     @apply m-0 bg-(--color-bg) font-pixel text-(--color-text-light);
   }
+}
+
+button {
+  clip-path: polygon(
+    0 8px,
+    8px 8px,
+    8px 0,
+    calc(100% - 8px) 0,
+    calc(100% - 8px) 8px,
+    100% 8px,
+    100% calc(100% - 8px),
+    calc(100% - 8px) calc(100% - 8px),
+    calc(100% - 8px) 100%,
+    8px 100%,
+    8px calc(100% - 8px),
+    0 calc(100% - 8px)
+  );
 }

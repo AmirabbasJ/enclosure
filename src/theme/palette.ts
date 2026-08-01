@@ -10,4 +10,15 @@ export const palette = {
   dangerHover: '#FF8FA3',
 } as const;
 
+// #080A1A
+// #0D1230
+// #3A4A8A
+// #232F5C
+// #EEF2FB
+// #7683B3
+// #414F85
+// #5FA4FF
+// #BFE0FF
+// #E2495C
+
 export type PaletteKey = keyof typeof palette;

@@ -3,13 +3,7 @@ import type * as THREE from 'three/webgpu';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { BorderBox } from '#/components/BorderBox';
-import { LightOrb } from '#/components/LightOrb';
-import {
-  getWallFootprints,
-  Wall,
-  wallOriginFromCenter,
-} from '#/components/Wall';
+import { useGameAudio } from '#/context/GameAudioContext';
 import { useGame } from '#/context/GameContext';
 import {
   BOARD_BASE_SIZE,
@@ -21,11 +15,17 @@ import {
 } from '#/domain/board';
 import { ORB_SPAWNS } from '#/domain/orb';
 import { TILE_POSITIONS, TILE_SIZE } from '#/domain/tiles';
+import { WALLS, wallToNumberKeyMap } from '#/domain/walls';
 import { palette } from '#/theme/palette';
+import { easeInOutCubic } from '#/utils/easeInOutCubic';
 
-import { useGameAudio } from '../context/GameAudioContext';
-import { WALLS, wallToNumberKeyMap } from '../domain/walls';
-import { easeInOutCubic } from '../utils/easeInOutCubic';
+import { BorderBox } from './components/BorderBox';
+import { LightOrb } from './components/LightOrb';
+import {
+  getWallFootprints,
+  Wall,
+  wallOriginFromCenter,
+} from './components/Wall';
 
 const INTRO_DURATION = 1.8;
 const INTRO_START_Y = 8;
