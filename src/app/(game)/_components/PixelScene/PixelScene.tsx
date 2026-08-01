@@ -36,9 +36,7 @@ export function SceneContent() {
   const { isPlaying: started } = useGame();
   const [walls, setWalls] = useState(WALLS);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
-  const { playWallGroundHit, playMusic, stopMusic } = useGameAudio();
-
-  const musicStartedRef = useRef(false);
+  const { playWallGroundHit } = useGameAudio();
 
   const blockedKeysByWall = useMemo(() => {
     const occupiedById: Record<string, string[]> = {};
@@ -117,21 +115,14 @@ export function SceneContent() {
   useEffect(() => {
     if (!started) return;
 
-    if (!musicStartedRef.current) {
-      musicStartedRef.current = true;
-      playMusic();
-    }
-
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('blur', onBlur);
 
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('blur', onBlur);
-      stopMusic();
-      musicStartedRef.current = false;
     };
-  }, [started, playMusic, stopMusic]);
+  }, [started]);
 
   useFrame((_, delta) => {
     const group = boardRef.current;
