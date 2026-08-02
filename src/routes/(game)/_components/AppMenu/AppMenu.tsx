@@ -1,9 +1,11 @@
+import { TUTORIAL_QUESTION } from '#/domain/tutorialLevel';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
 import Button from '@/ui/button';
+import { LevelShot } from '@/ui/LevelShot';
 
-import { LevelShot } from '../../../../ui/LevelShot';
 import { AuthForm } from './AuthForm';
+import { Tutorial } from './Tutorial';
 
 function MenuContent() {
   const { state, send } = useGame();
@@ -14,20 +16,7 @@ function MenuContent() {
   if (state.matches('mainMenu')) {
     return (
       <>
-        <LevelShot
-          level={{
-            orbs: [
-              { kind: 'good', col: 1, row: 0 },
-              { kind: 'good', col: 2, row: 1 },
-              { kind: 'good', col: 3, row: 0 },
-              { kind: 'bad', col: 1, row: 1 },
-            ],
-            walls: [
-              { id: 'u', col: 3, row: 1, yawQuarters: 2 },
-              { id: 'snake', col: 1, row: 1, yawQuarters: 1 },
-            ],
-          }}
-        />
+        <LevelShot level={TUTORIAL_QUESTION} />
         <Button onClick={() => send({ type: 'PLAY' })}>Play</Button>
         <Button onClick={() => send({ type: 'HELP' })}>Help</Button>
         <Button onClick={() => send({ type: 'PROFILE' })}>
@@ -43,13 +32,10 @@ function MenuContent() {
 
   if (state.matches('tutorial')) {
     return (
-      <>
-        <p className="mb-2 text-center text-sm opacity-80">Tutorial</p>
-        <Button onClick={() => send({ type: 'TUTORIAL_COMPLETE' })}>
-          Complete Tutorial
-        </Button>
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
-      </>
+      <Tutorial
+        onComplete={() => send({ type: 'TUTORIAL_COMPLETE' })}
+        onBack={() => send({ type: 'BACK' })}
+      />
     );
   }
 

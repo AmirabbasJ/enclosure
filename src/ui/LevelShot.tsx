@@ -1,9 +1,17 @@
 import type { LevelInput } from '#/domain/level';
-import type { WallDir, WallInput, YawQuarters } from '#/domain/walls';
+import type { WallDir, WallId, WallInput, YawQuarters } from '#/domain/walls';
 
 import { BOARD_COLS, BOARD_ROWS } from '#/domain/cells';
 import { DIR_DELTA, WALL_PATHS } from '#/domain/walls';
 import { palette } from '#/theme/palette';
+
+/** Light → dark per wall piece. */
+const WALL_FILL: Record<WallId, string> = {
+  u: '#E0E6ED',
+  steps: '#B8C5D4',
+  zigzagTall: '#96A8BC',
+  snake: '#6B8199',
+};
 
 const COLORS = {
   bg: palette.bg,
@@ -11,8 +19,7 @@ const COLORS = {
   tileStroke: palette.bg,
   good: palette.accent,
   bad: palette.danger,
-  wall: palette.textMuted,
-  wallStroke: palette.bg,
+  wallStroke: '#000000',
 } as const;
 
 function isPlayableTile(col: number, row: number): boolean {
@@ -54,7 +61,35 @@ export function wallPathPoints(wall: WallInput): [number, number][] {
     points.push([x, z]);
   }
 
-  return points;
+  return shortenPathEnds(points, WALL_END_INSET);
+}
+
+/** Pull first/last vertices inward so stroke ends don't merge at joints. */
+function shortenPathEnds(
+  points: readonly [number, number][],
+  inset: number
+): [number, number][] {
+  if (points.length < 2 || inset <= 0) return [...points];
+
+  const out = points.map(([px, pz]) => [px, pz] as [number, number]);
+  const insetPoint = (
+    from: [number, number],
+    toward: [number, number]
+  ): [number, number] => {
+    const dx = toward[0] - from[0];
+    const dz = toward[1] - from[1];
+    const len = Math.hypot(dx, dz);
+    if (len < 1e-6) return from;
+    const t = Math.min(inset, len * 0.45) / len;
+    return [from[0] + dx * t, from[1] + dz * t];
+  };
+
+  out[0] = insetPoint(out[0], out[1]);
+  out[out.length - 1] = insetPoint(
+    out[out.length - 1],
+    out[out.length - 2]
+  );
+  return out;
 }
 
 function pointsAttr(points: readonly [number, number][]): string {
@@ -70,7 +105,9 @@ interface LevelShotProps {
 const TILE = 0.88;
 const TILE_RX = 0.1;
 const ORB_R = 0.28;
-const WALL_W = 0.2;
+const WALL_W = 0.12;
+/** Cell units trimmed from each wall endpoint (covers round-cap radius). */
+const WALL_END_INSET = 0.28 + WALL_W / 2;
 
 /**
  * Top-down level diagram.
@@ -140,7 +177,7 @@ export function LevelShot({ level, className, pad = 0.85 }: LevelShotProps) {
             key={`${wall.id}-fill`}
             points={pointsAttr(wallPathPoints(wall))}
             fill="none"
-            stroke={COLORS.wall}
+            stroke={WALL_FILL[wall.id]}
             strokeWidth={WALL_W}
             strokeLinecap="round"
             strokeLinejoin="round"
