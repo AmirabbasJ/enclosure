@@ -13,12 +13,18 @@ import {
   BOARD_SCALE,
   GROUND_SIZE,
   GROUND_Y,
+  wallCornerWorldKeys,
   wallOccupiedSlotKeys,
 } from '#/domain/board';
 import { resolveLevel, serializeLevel } from '#/domain/level';
 import { DEFAULT_ORB_INPUTS } from '#/domain/orb';
 import { TILE_POSITIONS, TILE_SIZE } from '#/domain/tiles';
-import { wallToNumberKeyMap } from '#/domain/walls';
+import {
+  getWallCornerLocals,
+  getWallFilledCornerLocals,
+  hasFilledCorners,
+  wallToNumberKeyMap,
+} from '#/domain/walls';
 import { palette } from '#/theme/palette';
 import { easeInOutCubic } from '#/utils/easeInOutCubic';
 
@@ -108,6 +114,8 @@ export function SceneContent({
 
   const blockedKeysByWall = useMemo(() => {
     const occupiedById: Record<string, string[]> = {};
+    const cornersById: Record<string, string[]> = {};
+    const filledCornersById: Record<string, string[]> = {};
 
     for (const wall of walls) {
       const { footprints, centerOffset } = getWallFootprints(wall.path);
@@ -123,19 +131,46 @@ export function SceneContent({
         yaw: wall.yaw,
         segments: footprints,
       });
+      const cornerKeys = wallCornerWorldKeys({
+        originX,
+        originZ,
+        yaw: wall.yaw,
+        corners: getWallCornerLocals(wall.path),
+      });
+      cornersById[wall.id] = cornerKeys;
+      filledCornersById[wall.id] = hasFilledCorners(wall.id)
+        ? wallCornerWorldKeys({
+            originX,
+            originZ,
+            yaw: wall.yaw,
+            corners: getWallFilledCornerLocals(wall.path, undefined, wall.id),
+          })
+        : [];
     }
 
-    const result: Record<string, ReadonlySet<string>> = {};
+    const result: Record<
+      string,
+      {
+        grooves: ReadonlySet<string>;
+        blockedFilledCorners: ReadonlySet<string>;
+        occupiedCorners: ReadonlySet<string>;
+      }
+    > = {};
 
     for (const wall of walls) {
-      const blocked = new Set<string>();
+      const grooves = new Set<string>();
+      const blockedFilledCorners = new Set<string>();
+      const occupiedCorners = new Set<string>();
 
       for (const other of walls) {
         if (other.id === wall.id) continue;
-        for (const key of occupiedById[other.id] ?? []) blocked.add(key);
+        for (const key of occupiedById[other.id] ?? []) grooves.add(key);
+        for (const key of filledCornersById[other.id] ?? [])
+          blockedFilledCorners.add(key);
+        for (const key of cornersById[other.id] ?? []) occupiedCorners.add(key);
       }
 
-      result[wall.id] = blocked;
+      result[wall.id] = { grooves, blockedFilledCorners, occupiedCorners };
     }
 
     return result;
@@ -298,9 +333,15 @@ export function SceneContent({
             >
               <Wall
                 path={wall.path}
+                wallId={wall.id}
                 position={wall.position}
                 rotation={[0, wall.yaw, 0]}
-                blockedKeys={blockedKeysByWall[wall.id]}
+                blockedKeys={blockedKeysByWall[wall.id].grooves}
+                blockedFilledCorners={
+                  blockedKeysByWall[wall.id].blockedFilledCorners
+                }
+                occupiedCorners={blockedKeysByWall[wall.id].occupiedCorners}
+                filledCorners={hasFilledCorners(wall.id)}
                 selected={selectedWallId === wall.id}
                 draggable={started && !wall.locked}
                 onPositionChange={(position) => moveWall(wall.id, position)}

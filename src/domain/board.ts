@@ -102,6 +102,67 @@ export function grooveSlotKey(slot: GrooveSlot): string {
   return `${slot.horizontal ? 'h' : 'v'}:${slot.x.toFixed(4)}:${slot.z.toFixed(4)}`;
 }
 
+export function cornerSlotKey(x: number, z: number): string {
+  return `c:${x.toFixed(4)}:${z.toFixed(4)}`;
+}
+
+export function wallCornerWorldKeys({
+  originX,
+  originZ,
+  yaw,
+  corners,
+}: {
+  originX: number;
+  originZ: number;
+  yaw: number;
+  corners: readonly { x: number; z: number }[];
+}): string[] {
+  return corners.map((corner) => {
+    const r = rotateYawXZ(corner.x, corner.z, yaw);
+    return cornerSlotKey(originX + r.x, originZ + r.z);
+  });
+}
+
+/** Filled corner cannot share a vertex with any other corner. */
+function wallPlacementFitsCorners({
+  originX,
+  originZ,
+  yaw,
+  corners,
+  filledCorners,
+  blockedFilledCorners,
+  occupiedCorners,
+}: {
+  originX: number;
+  originZ: number;
+  yaw: number;
+  corners?: readonly { x: number; z: number }[];
+  filledCorners?: readonly { x: number; z: number }[];
+  blockedFilledCorners?: ReadonlySet<string>;
+  occupiedCorners?: ReadonlySet<string>;
+}): boolean {
+  if (corners?.length) {
+    const ownKeys = wallCornerWorldKeys({ originX, originZ, yaw, corners });
+    for (const key of ownKeys) {
+      if (blockedFilledCorners?.has(key)) return false;
+    }
+  }
+
+  if (filledCorners?.length && occupiedCorners?.size) {
+    const filledKeys = wallCornerWorldKeys({
+      originX,
+      originZ,
+      yaw,
+      corners: filledCorners,
+    });
+    for (const key of filledKeys) {
+      if (occupiedCorners.has(key)) return false;
+    }
+  }
+
+  return true;
+}
+
 function findMatchingSlot({
   wx,
   wz,
@@ -155,19 +216,32 @@ export function wallOccupiedSlotKeys({
   return keys;
 }
 
+export interface WallPlacementBlocks {
+  blockedKeys?: ReadonlySet<string>;
+  /** Other walls' filled-corner vertex keys. */
+  blockedFilledCorners?: ReadonlySet<string>;
+  /** Other walls' any-corner vertex keys. */
+  occupiedCorners?: ReadonlySet<string>;
+}
+
 export function wallPlacementFitsGrooves({
   originX,
   originZ,
   yaw,
   segments,
   blockedKeys,
+  corners,
+  filledCorners,
+  blockedFilledCorners,
+  occupiedCorners,
 }: {
   originX: number;
   originZ: number;
   yaw: number;
   segments: readonly WallSegFootprint[];
-  blockedKeys?: ReadonlySet<string>;
-}): boolean {
+  corners?: readonly { x: number; z: number }[];
+  filledCorners?: readonly { x: number; z: number }[];
+} & WallPlacementBlocks): boolean {
   const odd = yawParityOdd(yaw);
 
   for (const seg of segments) {
@@ -184,7 +258,15 @@ export function wallPlacementFitsGrooves({
     if (blockedKeys?.has(grooveSlotKey(slot))) return false;
   }
 
-  return true;
+  return wallPlacementFitsCorners({
+    originX,
+    originZ,
+    yaw,
+    corners,
+    filledCorners,
+    blockedFilledCorners,
+    occupiedCorners,
+  });
 }
 
 export function snapWallOriginToGrooves({
@@ -194,14 +276,19 @@ export function snapWallOriginToGrooves({
   segments,
   maxDist,
   blockedKeys,
+  corners,
+  filledCorners,
+  blockedFilledCorners,
+  occupiedCorners,
 }: {
   originX: number;
   originZ: number;
   yaw: number;
   segments: readonly WallSegFootprint[];
   maxDist: number;
-  blockedKeys?: ReadonlySet<string>;
-}): [number, number] | null {
+  corners?: readonly { x: number; z: number }[];
+  filledCorners?: readonly { x: number; z: number }[];
+} & WallPlacementBlocks): [number, number] | null {
   if (segments.length === 0) return null;
 
   const odd = yawParityOdd(yaw);
@@ -226,6 +313,10 @@ export function snapWallOriginToGrooves({
           yaw,
           segments,
           blockedKeys,
+          corners,
+          filledCorners,
+          blockedFilledCorners,
+          occupiedCorners,
         })
       )
         continue;
@@ -242,12 +333,17 @@ export function enumerateValidWallCenters({
   centerOffset,
   yaw,
   blockedKeys,
+  corners,
+  filledCorners,
+  blockedFilledCorners,
+  occupiedCorners,
 }: {
   segments: readonly WallSegFootprint[];
   centerOffset: { x: number; z: number };
   yaw: number;
-  blockedKeys?: ReadonlySet<string>;
-}): { x: number; z: number }[] {
+  corners?: readonly { x: number; z: number }[];
+  filledCorners?: readonly { x: number; z: number }[];
+} & WallPlacementBlocks): { x: number; z: number }[] {
   if (segments.length === 0) return [];
 
   const odd = yawParityOdd(yaw);
@@ -271,6 +367,10 @@ export function enumerateValidWallCenters({
           yaw,
           segments,
           blockedKeys,
+          corners,
+          filledCorners,
+          blockedFilledCorners,
+          occupiedCorners,
         })
       ) {
         continue;

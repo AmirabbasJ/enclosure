@@ -5,7 +5,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three/webgpu';
 
-import type { WallDir, WallSegFootprint } from '#/domain/walls';
+import type { WallDir, WallId, WallSegFootprint } from '#/domain/walls';
 
 import {
   BOARD_WALL_Y,
@@ -18,6 +18,8 @@ import {
 import { CELL_SIZE, TILE_THICKNESS } from '#/domain/tiles';
 import {
   DIR_DELTA,
+  getWallCornerLocals,
+  getWallFilledCornerLocals,
   getWallFootprints,
   GROOVE_SNAP_DIST,
   GROOVE_SNAP_RELEASE,
@@ -28,6 +30,7 @@ import {
   wallOriginFromCenter,
 } from '#/domain/walls';
 import { palette } from '#/theme/palette';
+import { toonGradient } from '#/theme/toonGradient';
 
 import { BorderBox } from './BorderBox';
 
@@ -70,6 +73,91 @@ function buildSegments(
   }
 
   return segments;
+}
+
+/**
+ * Solid post only at path turns (true corners), not free ends.
+ */
+function buildFilledCorners(
+  path: readonly WallDir[],
+  cellSize: number,
+  wallHeight: number,
+  wallId?: WallId
+): Segment[] {
+  const y = wallHeight / 2 - TILE_THICKNESS / 2;
+  const size: [number, number, number] = [
+    TILE_THICKNESS,
+    wallHeight,
+    TILE_THICKNESS,
+  ];
+
+  return getWallFilledCornerLocals(path, cellSize, wallId).map((corner) => ({
+    position: [corner.x, y, corner.z] as [number, number, number],
+    size,
+  }));
+}
+
+/** Thick cylinder radius — reads past wall face like tower corner post. */
+const FILLED_CORNER_KNOB_RADIUS = TILE_THICKNESS * 1.35;
+
+function FilledCornerKnob({
+  position,
+  wallHeight,
+  backgroundColor,
+  borderColor,
+  showBorder,
+}: {
+  position: [number, number, number];
+  wallHeight: number;
+  backgroundColor: number | string;
+  borderColor: number | string;
+  showBorder: boolean;
+}) {
+  const radius = FILLED_CORNER_KNOB_RADIUS;
+  const geo = useMemo(
+    () => new THREE.CylinderGeometry(radius, radius, wallHeight, 12),
+    [radius, wallHeight]
+  );
+  const edgesGeo = useMemo(
+    () => (showBorder ? new THREE.EdgesGeometry(geo) : null),
+    [geo, showBorder]
+  );
+
+  useEffect(() => {
+    return () => {
+      geo.dispose();
+      edgesGeo?.dispose();
+    };
+  }, [geo, edgesGeo]);
+
+  return (
+    <group position={[position[0], position[1], position[2]]}>
+      <mesh castShadow={false} geometry={geo}>
+        <meshToonMaterial
+          color={backgroundColor}
+          gradientMap={toonGradient}
+          polygonOffset
+          polygonOffsetFactor={1}
+          polygonOffsetUnits={1}
+        />
+      </mesh>
+      {showBorder && edgesGeo ? (
+        <lineSegments
+          geometry={edgesGeo}
+          renderOrder={2}
+          raycast={() => undefined}
+        >
+          <lineBasicMaterial
+            color={borderColor}
+            depthWrite={false}
+            polygonOffset
+            polygonOffsetFactor={-2}
+            polygonOffsetUnits={-2}
+          />
+        </lineSegments>
+      ) : null}
+    </group>
+  );
 }
 
 function snap(value: number, step: number) {
@@ -145,6 +233,7 @@ function wasdBoardStep(
 
 interface WallProps {
   path: readonly WallDir[];
+  wallId?: WallId;
   position?: [number, number, number];
   rotation?: [number, number, number];
   cellSize?: number;
@@ -160,6 +249,12 @@ interface WallProps {
   draggable?: boolean;
   snapStep?: number;
   blockedKeys?: ReadonlySet<string>;
+  /** Other walls' filled-corner vertices. */
+  blockedFilledCorners?: ReadonlySet<string>;
+  /** Other walls' any-corner vertices. */
+  occupiedCorners?: ReadonlySet<string>;
+  /** Fill configured path-turn corners with solid posts. */
+  filledCorners?: boolean;
   onPositionChange?: (position: [number, number, number]) => void;
   onYawChange?: (yaw: number) => void;
   onGroundHit?: (impact: number) => void;
@@ -173,6 +268,7 @@ const defaultRotation = [0, 0, 0] as [number, number, number];
 
 export function Wall({
   path,
+  wallId,
   position = defaultPosition,
   rotation = defaultRotation,
   cellSize = CELL_SIZE,
@@ -188,6 +284,9 @@ export function Wall({
   draggable = false,
   snapStep = 0,
   blockedKeys,
+  blockedFilledCorners,
+  occupiedCorners,
+  filledCorners = false,
   onPositionChange,
   onYawChange,
   onGroundHit,
@@ -212,6 +311,10 @@ export function Wall({
   const onGroundHitRef = useRef(onGroundHit);
   const snapStepRef = useRef(snapStep);
   const blockedKeysRef = useRef(blockedKeys);
+  const blockedFilledCornersRef = useRef(blockedFilledCorners);
+  const occupiedCornersRef = useRef(occupiedCorners);
+  const cornerLocalsRef = useRef<{ x: number; z: number }[]>([]);
+  const filledCornerLocalsRef = useRef<{ x: number; z: number }[]>([]);
   const liftY = useRef(0);
   const hoverAbsY = useRef(HOVER_Y);
   const velY = useRef(0);
@@ -235,6 +338,8 @@ export function Wall({
   onGroundHitRef.current = onGroundHit;
   snapStepRef.current = snapStep;
   blockedKeysRef.current = blockedKeys;
+  blockedFilledCornersRef.current = blockedFilledCorners;
+  occupiedCornersRef.current = occupiedCorners;
 
   const rotateYaw = (ox: number, oz: number, yaw: number) => {
     const c = Math.cos(yaw);
@@ -270,6 +375,10 @@ export function Wall({
       segments: segFootprintsRef.current,
       maxDist,
       blockedKeys: blockedKeysRef.current,
+      corners: cornerLocalsRef.current,
+      filledCorners: filledCornerLocalsRef.current,
+      blockedFilledCorners: blockedFilledCornersRef.current,
+      occupiedCorners: occupiedCornersRef.current,
     });
 
     if (!snapped) {
@@ -346,6 +455,10 @@ export function Wall({
           centerOffset: centerOffsetRef.current,
           yaw: yawTargetRef.current,
           blockedKeys: blockedKeysRef.current,
+          corners: cornerLocalsRef.current,
+          filledCorners: filledCornerLocalsRef.current,
+          blockedFilledCorners: blockedFilledCornersRef.current,
+          occupiedCorners: occupiedCornersRef.current,
         }),
       });
       if (!next) return;
@@ -365,6 +478,19 @@ export function Wall({
     () => buildSegments(path, cellSize, wallHeight),
     [path, cellSize, wallHeight]
   );
+
+  const cornerPosts = useMemo(
+    () =>
+      filledCorners
+        ? buildFilledCorners(path, cellSize, wallHeight, wallId)
+        : [],
+    [filledCorners, path, cellSize, wallHeight, wallId]
+  );
+
+  cornerLocalsRef.current = getWallCornerLocals(path, cellSize);
+  filledCornerLocalsRef.current = filledCorners
+    ? getWallFilledCornerLocals(path, cellSize, wallId)
+    : [];
 
   segFootprintsRef.current = segments.map((seg) => ({
     x: seg.position[0],
@@ -702,6 +828,7 @@ export function Wall({
         onPositionChangeRef.current?.(next);
         positionRef.current = next;
       }
+
       onPlaceRef.current?.();
     };
 
@@ -792,10 +919,31 @@ export function Wall({
         <group position={[-centerOffset.x, 0, -centerOffset.z]}>
           {segments.map((seg, i) => (
             <BorderBox
-              key={i}
+              key={`seg-${i}`}
               castShadow={false}
               size={seg.size}
               position={seg.position}
+              backgroundColor={backgroundColor}
+              borderColor={borderColor}
+              showBorder={showBorder}
+            />
+          ))}
+          {cornerPosts.map((post, i) => (
+            <BorderBox
+              key={`corner-${i}`}
+              castShadow={false}
+              size={post.size}
+              position={post.position}
+              backgroundColor={backgroundColor}
+              borderColor={borderColor}
+              showBorder={showBorder}
+            />
+          ))}
+          {cornerPosts.map((post, i) => (
+            <FilledCornerKnob
+              key={`knob-${i}`}
+              position={post.position}
+              wallHeight={wallHeight}
               backgroundColor={backgroundColor}
               borderColor={borderColor}
               showBorder={showBorder}

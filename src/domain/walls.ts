@@ -51,6 +51,30 @@ export const WALL_PATHS = {
 
 export type WallPathKey = keyof typeof WALL_PATHS;
 
+/** Wall ids whose path turns can get solid corner posts. */
+export const FILLED_CORNER_WALLS: ReadonlySet<WallId> = new Set([
+  'steps',
+  'u',
+  'zigzagTall',
+]);
+
+/**
+ * Which turn indices (0-based along path turns) get filled.
+ * Omit wall → all turns.
+ */
+export const WALL_FILLED_CORNER_TURNS: Partial<
+  Record<WallId, readonly number[]>
+> = {
+  steps: [0, 2],
+  u: [0],
+  /** Path D L ·F· U L U — fill turn after second segment. */
+  zigzagTall: [1],
+};
+
+export function hasFilledCorners(id: WallId): boolean {
+  return FILLED_CORNER_WALLS.has(id);
+}
+
 export interface WallPiece {
   id: WallId;
   path: readonly WallDir[];
@@ -142,6 +166,49 @@ export function getWallFootprints(
       z: (minZ + maxZ) / 2,
     },
   };
+}
+
+/** Path vertices in local wall space (origin at first corner). */
+export function getWallCornerLocals(
+  path: readonly WallDir[],
+  cellSize = CELL_SIZE
+): { x: number; z: number }[] {
+  let x = 0;
+  let z = 0;
+  const corners: { x: number; z: number }[] = [{ x, z }];
+
+  for (const dir of path) {
+    const [dx, dz] = DIR_DELTA[dir];
+    x += dx * cellSize;
+    z += dz * cellSize;
+    corners.push({ x, z });
+  }
+
+  return corners;
+}
+
+/** Vertices where path turns (not free ends). Optional wallId filters turns. */
+export function getWallFilledCornerLocals(
+  path: readonly WallDir[],
+  cellSize = CELL_SIZE,
+  wallId?: WallId
+): { x: number; z: number }[] {
+  if (path.length < 2) return [];
+
+  const all = getWallCornerLocals(path, cellSize);
+  const turnFilter = wallId ? WALL_FILLED_CORNER_TURNS[wallId] : undefined;
+  const filled: { x: number; z: number }[] = [];
+  let turnIndex = 0;
+
+  for (let i = 0; i < path.length - 1; i += 1) {
+    if (path[i] === path[i + 1]) continue;
+    if (!turnFilter || turnFilter.includes(turnIndex)) {
+      filled.push(all[i + 1]);
+    }
+    turnIndex += 1;
+  }
+
+  return filled;
 }
 
 export function wallOriginFromCenter({
