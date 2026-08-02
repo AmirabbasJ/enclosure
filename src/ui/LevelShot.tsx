@@ -2,7 +2,12 @@ import type { LevelInput } from '#/domain/level';
 import type { WallDir, WallId, WallInput, YawQuarters } from '#/domain/walls';
 
 import { BOARD_COLS, BOARD_ROWS } from '#/domain/cells';
-import { DIR_DELTA, WALL_PATHS } from '#/domain/walls';
+import {
+  DIR_DELTA,
+  hasFilledCorners,
+  WALL_FILLED_CORNER_TURNS,
+  WALL_PATHS,
+} from '#/domain/walls';
 import { palette } from '#/theme/palette';
 
 const WALL_FILL: Record<WallId, string> = {
@@ -75,19 +80,8 @@ function pointsAttr(points: readonly [number, number][]): string {
   return points.map(([x, z]) => `${x},${z}`).join(' ');
 }
 
-interface LevelShotProps {
-  level: LevelInput;
-  className?: string;
-  pad?: number;
-}
-
-const TILE = 0.88;
-const TILE_RX = 0.1;
-const ORB_R = 0.28;
-const WALL_W = 0.12;
-const WALL_END_INSET = 0.28 + WALL_W / 2;
-
-export function wallPathPoints(wall: WallInput): [number, number][] {
+/** Full path vertices (no end inset). */
+function wallPathVertices(wall: WallInput): [number, number][] {
   const path = WALL_PATHS[wall.id] as readonly WallDir[];
   let x = wall.col - 0.5;
   let z = wall.row - 0.5;
@@ -101,7 +95,51 @@ export function wallPathPoints(wall: WallInput): [number, number][] {
     points.push([x, z]);
   }
 
-  return shortenPathEnds(points, WALL_END_INSET);
+  return points;
+}
+
+/** Filled-turn vertices in board space (matches 3D filled corners). */
+export function wallFilledCornerPoints(wall: WallInput): [number, number][] {
+  if (!hasFilledCorners(wall.id)) return [];
+
+  const path = WALL_PATHS[wall.id] as readonly WallDir[];
+  if (path.length < 2) return [];
+
+  const verts = wallPathVertices(wall);
+  const turnFilter = WALL_FILLED_CORNER_TURNS[wall.id];
+  const filled: [number, number][] = [];
+  let turnIndex = 0;
+
+  for (let i = 0; i < path.length - 1; i += 1) {
+    if (path[i] === path[i + 1]) continue;
+
+    if (!turnFilter || turnFilter.includes(turnIndex)) {
+      filled.push(verts[i + 1]);
+    }
+
+    turnIndex += 1;
+  }
+
+  return filled;
+}
+
+interface LevelShotProps {
+  level: LevelInput;
+  className?: string;
+  pad?: number;
+}
+
+const TILE = 0.88;
+const TILE_RX = 0.1;
+const ORB_R = 0.28;
+const WALL_W = 0.12;
+const WALL_END_INSET = 0.28 + WALL_W / 2;
+/** Filled-corner tower footprint in board units. */
+const FILLED_CORNER_S = WALL_W * 2.4;
+const FILLED_CORNER_CAP_S = FILLED_CORNER_S * 1.35;
+
+export function wallPathPoints(wall: WallInput): [number, number][] {
+  return shortenPathEnds(wallPathVertices(wall), WALL_END_INSET);
 }
 
 export function LevelShot({ level, className, pad = 0.85 }: LevelShotProps) {
@@ -173,6 +211,31 @@ export function LevelShot({ level, className, pad = 0.85 }: LevelShotProps) {
             strokeLinejoin="round"
           />
         ))}
+
+        {walls.flatMap((wall) =>
+          wallFilledCornerPoints(wall).map(([x, z]) => (
+            <g key={`${wall.id}-filled-${x},${z}`}>
+              <rect
+                x={x - FILLED_CORNER_CAP_S / 2}
+                y={z - FILLED_CORNER_CAP_S / 2}
+                width={FILLED_CORNER_CAP_S}
+                height={FILLED_CORNER_CAP_S}
+                fill={WALL_FILL[wall.id]}
+                stroke={COLORS.wallStroke}
+                strokeWidth={0.04}
+              />
+              <rect
+                x={x - FILLED_CORNER_S / 2}
+                y={z - FILLED_CORNER_S / 2}
+                width={FILLED_CORNER_S}
+                height={FILLED_CORNER_S}
+                fill={WALL_FILL[wall.id]}
+                stroke={COLORS.wallStroke}
+                strokeWidth={0.035}
+              />
+            </g>
+          ))
+        )}
 
         {orbs.map((orb) => (
           <circle

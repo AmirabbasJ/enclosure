@@ -1,8 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
-import { TUTORIAL_QUESTION } from '#/domain/tutorialLevel';
-
 import { useGameAudio } from '../../context/GameAudioContext';
 import { useGame } from '../../context/GameContext';
 import { PixelSceneRenderer } from '../../PixelSceneRenderer';
@@ -25,7 +23,7 @@ function Game() {
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 bg-bg text-text-light ">
       <div className="relative h-screen w-screen ">
         <PixelSceneRenderer>
-          <SceneContent level={TUTORIAL_QUESTION} />
+          <SceneContent />
         </PixelSceneRenderer>
       </div>
       {isPlaying ? null : (
