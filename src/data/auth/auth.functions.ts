@@ -1,16 +1,84 @@
+import type { Session, SupabaseClient } from '@supabase/supabase-js';
+
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
-import {
-  mapAuthError,
-  normalizeUsername,
-  usernameToEmail,
-  validatePassword,
-  validateUsername,
-} from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/admin.functions';
+import type { Database } from '@/database.types';
 
-/** Server-only: creates user via service role. Does not establish a browser session. */
+import { createAdminClient } from '@/lib/supabase/admin.functions';
+import { supabaseClient } from '@/lib/supabase/client';
+
+const AUTH_EMAIL_DOMAIN = 'users.enclosure.local';
+
+const USERNAME_PATTERN = /^[0-9_a-z]{3,24}$/;
+
+export function normalizeUsername(username: string): string {
+  return username.trim().toLowerCase();
+}
+
+/** Maps username → synthetic auth id. Players never see or type this. */
+export function usernameToEmail(username: string): string {
+  return `${normalizeUsername(username)}@${AUTH_EMAIL_DOMAIN}`;
+}
+
+export function validateUsername(username: string): string | null {
+  const normalized = normalizeUsername(username);
+
+  if (!USERNAME_PATTERN.test(normalized)) {
+    return 'Username: 3–24 chars, a–z, 0–9, underscore';
+  }
+
+  return null;
+}
+
+export function validatePassword(password: string): string | null {
+  if (password.length < 6) {
+    return 'Password must be at least 6 characters';
+  }
+
+  return null;
+}
+
+export function mapAuthError(message: string): string {
+  const lower = message.toLowerCase();
+
+  if (lower.includes('invalid login credentials')) {
+    return 'Wrong username or password';
+  }
+  if (
+    lower.includes('user already registered') ||
+    lower.includes('already been registered')
+  ) {
+    return 'Username is already taken';
+  }
+
+  return message;
+}
+
+type Client = SupabaseClient<Database>;
+
+export async function signIn(
+  username: string,
+  password: string,
+  client: Client = supabaseClient
+): Promise<{ error: string | null; session: Session | null }> {
+  const normalized = normalizeUsername(username);
+  const usernameError = validateUsername(normalized);
+  if (usernameError) return { error: usernameError, session: null };
+
+  const passwordError = validatePassword(password);
+  if (passwordError) return { error: passwordError, session: null };
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email: usernameToEmail(normalized),
+    password,
+  });
+
+  if (error) return { error: mapAuthError(error.message), session: null };
+
+  return { error: null, session: data.session };
+}
+
 export const signUp = createServerFn({ method: 'POST' })
   .validator(
     z.object({

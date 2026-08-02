@@ -104,7 +104,6 @@ function quantizeBoardDir(x: number, z: number): [number, number] {
   return [0, z >= 0 ? 1 : -1];
 }
 
-/** Map WASD to board-local step using camera view + board yaw. */
 function wasdBoardStep(
   code: string,
   camera: THREE.Camera,
@@ -115,13 +114,11 @@ function wasdBoardStep(
   const len = Math.hypot(camX, camZ);
   if (len < 1e-6) return null;
 
-  // World XZ: away from camera = screen-up on ground plane
   const worldUpX = -camX / len;
   const worldUpZ = -camZ / len;
 
   const c = Math.cos(boardYaw);
   const s = Math.sin(boardYaw);
-  // World → board local (inverse of Three.js Y rotation)
   const localUpX = worldUpX * c - worldUpZ * s;
   const localUpZ = worldUpX * s + worldUpZ * c;
   const [fwdX, fwdZ] = quantizeBoardDir(localUpX, localUpZ);
@@ -282,10 +279,12 @@ export function Wall({
       maxDist,
       blockedKeys: blockedKeysRef.current,
     });
+
     if (!snapped) {
       snapEngagedRef.current = false;
       return { x, z };
     }
+
     snapEngagedRef.current = true;
     return { x: snapped[0] + r.x, z: snapped[1] + r.z };
   };

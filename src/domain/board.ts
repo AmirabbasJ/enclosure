@@ -380,8 +380,6 @@ export function pickWallCenterInDirection({
   if (best !== null) return best;
   if (!onGrid) return null;
 
-  // Wrap: no forward step → jump to first tile from opposite edge
-  // Prefer same lateral lane, then furthest back along move dir.
   const curLat = cx * -dz + cz * dx;
   let wrap: { x: number; z: number } | null = null;
   let wrapAlong = Infinity;

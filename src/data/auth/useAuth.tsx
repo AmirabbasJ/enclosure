@@ -5,16 +5,9 @@ import { useServerFn } from '@tanstack/react-start';
 
 import type { Database } from '@/database.types';
 
-import {
-  mapAuthError,
-  normalizeUsername,
-  usernameToEmail,
-  validatePassword,
-  validateUsername,
-} from '@/lib/auth';
 import { useSupabase } from '@/lib/supabase/useSupabase';
 
-import { signUp as signUpFn } from './auth.functions';
+import { signIn as signInFn, signUp as signUpFn } from './auth.functions';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -68,21 +61,15 @@ export function useAuth(): AuthValue {
   });
 
   const signIn = async (username: string, password: string) => {
-    const normalized = normalizeUsername(username);
-    const usernameError = validateUsername(normalized);
-    if (usernameError) return usernameError;
-
-    const passwordError = validatePassword(password);
-    if (passwordError) return passwordError;
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: usernameToEmail(normalized),
+    const { error, session: nextSession } = await signInFn(
+      username,
       password,
-    });
+      supabase
+    );
 
-    if (error) return mapAuthError(error.message);
+    if (error) return error;
 
-    queryClient.setQueryData(authKeys.session, data.session);
+    queryClient.setQueryData(authKeys.session, nextSession);
     return null;
   };
 
