@@ -12,6 +12,7 @@ import {
   TUTORIAL_QUESTION,
   TUTORIAL_RED_WRONG,
   TUTORIAL_SURROUND_WRONG,
+  TUTORIAL_TOWER_WRONG,
 } from '#/domain/tutorialLevel';
 
 interface TutorialPage {
@@ -31,6 +32,10 @@ const PAGES: TutorialPage[] = [
   {
     id: 'redOpen',
     text: 'Red cones must never be totally surrounded by walls. They can sit in a partially enclosed area, as long as a wall has an opening on at least one side.',
+  },
+  {
+    id: 'meetTower',
+    text: 'You can place two walls to meet each other where the indents cross, but you cannot place a wall against a tower as it will not fit.',
   },
 ];
 
@@ -147,6 +152,23 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
               label: 'Wrong',
               labelClass: 'text-danger',
               level: TUTORIAL_RED_WRONG,
+              badge: <PixelCross size={28} />,
+            }}
+          />
+        ) : null}
+
+        {current.id === 'meetTower' ? (
+          <ShotPair
+            left={{
+              label: 'Correct',
+              labelClass: 'text-[#4ADE80]',
+              level: TUTORIAL_ANSWER,
+              badge: <PixelTick size={28} />,
+            }}
+            right={{
+              label: 'Wrong',
+              labelClass: 'text-danger',
+              level: TUTORIAL_TOWER_WRONG,
               badge: <PixelCross size={28} />,
             }}
           />

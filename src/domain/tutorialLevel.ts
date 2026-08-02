@@ -51,3 +51,10 @@ export const TUTORIAL_RED_WRONG: LevelInput = {
       : wall
   ),
 };
+
+export const TUTORIAL_TOWER_WRONG: LevelInput = {
+  orbs: TUTORIAL_QUESTION.orbs,
+  walls: (TUTORIAL_ANSWER.walls ?? []).map((wall) =>
+    wall.id === 'steps' ? { ...wall, col: 3, row: 0, yawQuarters: 0 } : wall
+  ),
+};
