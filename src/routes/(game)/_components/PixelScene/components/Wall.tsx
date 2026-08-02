@@ -30,7 +30,6 @@ import {
   wallOriginFromCenter,
 } from '#/domain/walls';
 import { palette } from '#/theme/palette';
-import { toonGradient } from '#/theme/toonGradient';
 
 import { BorderBox } from './BorderBox';
 
@@ -41,6 +40,9 @@ interface Segment {
   position: [number, number, number];
   size: [number, number, number];
 }
+
+const MERLON_HEIGHT = TILE_THICKNESS * 0.9;
+const MERLONS_PER_SEG = 2;
 
 function buildSegments(
   path: readonly WallDir[],
@@ -75,21 +77,59 @@ function buildSegments(
   return segments;
 }
 
-/**
- * Solid post only at path turns (true corners), not free ends.
- */
-function buildFilledCorners(
-  path: readonly WallDir[],
-  cellSize: number,
-  wallHeight: number,
-  wallId?: WallId
-): Segment[] {
-  const y = wallHeight / 2 - TILE_THICKNESS / 2;
-  const size: [number, number, number] = [
-    TILE_THICKNESS,
-    wallHeight,
-    TILE_THICKNESS,
-  ];
+function buildMerlons(segments: readonly Segment[]): Segment[] {
+  const merlons: Segment[] = [];
+  const parts = 2 * MERLONS_PER_SEG - 1;
+
+  for (const seg of segments) {
+    const [sx, sy, sz] = seg.size;
+    const [px, py, pz] = seg.position;
+    const horizontal = sx >= sz;
+    const length = horizontal ? sx : sz;
+    const thickness = horizontal ? sz : sx;
+    const part = length / parts;
+    const topY = py + sy / 2;
+    const my = topY + MERLON_HEIGHT / 2;
+
+    for (let i = 0; i < MERLONS_PER_SEG; i += 1) {
+      const along = -length / 2 + part * (2 * i + 0.5);
+
+      if (horizontal) {
+        merlons.push({
+          position: [px + along, my, pz],
+          size: [part * 0.92, MERLON_HEIGHT, thickness],
+        });
+      } else {
+        merlons.push({
+          position: [px, my, pz + along],
+          size: [thickness, MERLON_HEIGHT, part * 0.92],
+        });
+      }
+    }
+  }
+
+  return merlons;
+}
+
+const FILLED_CORNER_BOX = TILE_THICKNESS * 1.1;
+const FILLED_CORNER_CAP_H = TILE_THICKNESS * 0.45;
+const FILLED_CORNER_CAP_SCALE = 1.35;
+
+function buildFilledCorners({
+  cellSize,
+  path,
+  wallHeight,
+  wallId,
+}: {
+  path: readonly WallDir[];
+  cellSize: number;
+  wallHeight: number;
+  wallId?: WallId;
+}): Segment[] {
+  const w = FILLED_CORNER_BOX * 2;
+  const height = wallHeight - TILE_THICKNESS + MERLON_HEIGHT;
+  const y = TILE_THICKNESS / 2 + height / 2;
+  const size: [number, number, number] = [w, height, w];
 
   return getWallFilledCornerLocals(path, cellSize, wallId).map((corner) => ({
     position: [corner.x, y, corner.z] as [number, number, number],
@@ -97,67 +137,48 @@ function buildFilledCorners(
   }));
 }
 
-/** Thick cylinder radius — reads past wall face like tower corner post. */
-const FILLED_CORNER_KNOB_RADIUS = TILE_THICKNESS * 1.35;
-
-function FilledCornerKnob({
-  position,
-  wallHeight,
-  backgroundColor,
-  borderColor,
-  showBorder,
-}: {
-  position: [number, number, number];
-  wallHeight: number;
-  backgroundColor: number | string;
-  borderColor: number | string;
-  showBorder: boolean;
-}) {
-  const radius = FILLED_CORNER_KNOB_RADIUS;
-  const geo = useMemo(
-    () => new THREE.CylinderGeometry(radius, radius, wallHeight, 12),
-    [radius, wallHeight]
-  );
-  const edgesGeo = useMemo(
-    () => (showBorder ? new THREE.EdgesGeometry(geo) : null),
-    [geo, showBorder]
-  );
-
-  useEffect(() => {
-    return () => {
-      geo.dispose();
-      edgesGeo?.dispose();
+function buildFilledCornerCaps(posts: readonly Segment[]): Segment[] {
+  return posts.map((post) => {
+    const [sx, sy, sz] = post.size;
+    const [px, py, pz] = post.position;
+    const topY = py + sy / 2;
+    const cw = sx * FILLED_CORNER_CAP_SCALE;
+    const cd = sz * FILLED_CORNER_CAP_SCALE;
+    return {
+      position: [px, topY + FILLED_CORNER_CAP_H / 2, pz] as [
+        number,
+        number,
+        number,
+      ],
+      size: [cw, FILLED_CORNER_CAP_H, cd] as [number, number, number],
     };
-  }, [geo, edgesGeo]);
+  });
+}
 
-  return (
-    <group position={[position[0], position[1], position[2]]}>
-      <mesh castShadow={false} geometry={geo}>
-        <meshToonMaterial
-          color={backgroundColor}
-          gradientMap={toonGradient}
-          polygonOffset
-          polygonOffsetFactor={1}
-          polygonOffsetUnits={1}
-        />
-      </mesh>
-      {showBorder && edgesGeo ? (
-        <lineSegments
-          geometry={edgesGeo}
-          renderOrder={2}
-          raycast={() => undefined}
-        >
-          <lineBasicMaterial
-            color={borderColor}
-            depthWrite={false}
-            polygonOffset
-            polygonOffsetFactor={-2}
-            polygonOffsetUnits={-2}
-          />
-        </lineSegments>
-      ) : null}
-    </group>
-  );
+function buildFilledCornerMerlons(caps: readonly Segment[]): Segment[] {
+  const merlons: Segment[] = [];
+
+  for (const cap of caps) {
+    const [sx, sy, sz] = cap.size;
+    const [px, py, pz] = cap.position;
+    const topY = py + sy / 2;
+    const my = topY + MERLON_HEIGHT / 2;
+    const tw = sx * 0.34;
+    const td = sz * 0.34;
+    const ox = (sx - tw) / 2;
+    const oz = (sz - td) / 2;
+
+    for (const dx of [-ox, ox]) {
+      for (const dz of [-oz, oz]) {
+        merlons.push({
+          position: [px + dx, my, pz + dz],
+          size: [tw, MERLON_HEIGHT, td],
+        });
+      }
+    }
+  }
+
+  return merlons;
 }
 
 function snap(value: number, step: number) {
@@ -168,7 +189,6 @@ const HALF_PI = Math.PI / 2;
 
 const GRAB_LIFT = 0.42;
 const HOVER_Y = BOARD_WALL_Y + GRAB_LIFT;
-/** No wall shadow cast above this world Y (intro / high drops). */
 const SHADOW_CAST_MAX_WORLD_Y = 0.35;
 const LIFT_LERP = 14;
 const YAW_LERP = 16;
@@ -249,16 +269,12 @@ interface WallProps {
   draggable?: boolean;
   snapStep?: number;
   blockedKeys?: ReadonlySet<string>;
-  /** Other walls' filled-corner vertices. */
   blockedFilledCorners?: ReadonlySet<string>;
-  /** Other walls' any-corner vertices. */
   occupiedCorners?: ReadonlySet<string>;
-  /** Fill configured path-turn corners with solid posts. */
   filledCorners?: boolean;
   onPositionChange?: (position: [number, number, number]) => void;
   onYawChange?: (yaw: number) => void;
   onGroundHit?: (impact: number) => void;
-  /** After drag-drop or keyboard seat finishes. */
   onPlace?: () => void;
   onDeselect?: () => void;
 }
@@ -479,13 +495,41 @@ export function Wall({
     [path, cellSize, wallHeight]
   );
 
+  const merlons = useMemo(() => buildMerlons(segments), [segments]);
+
   const cornerPosts = useMemo(
     () =>
       filledCorners
-        ? buildFilledCorners(path, cellSize, wallHeight, wallId)
+        ? buildFilledCorners({ path, cellSize, wallHeight, wallId })
         : [],
     [filledCorners, path, cellSize, wallHeight, wallId]
   );
+
+  const cornerCaps = useMemo(
+    () => buildFilledCornerCaps(cornerPosts),
+    [cornerPosts]
+  );
+
+  const cornerMerlons = useMemo(
+    () => buildFilledCornerMerlons(cornerCaps),
+    [cornerCaps]
+  );
+
+  const wallPieces = useMemo(
+    () => [
+      ...segments,
+      ...merlons,
+      ...cornerPosts,
+      ...cornerCaps,
+      ...cornerMerlons,
+    ],
+    [segments, merlons, cornerPosts, cornerCaps, cornerMerlons]
+  );
+
+  const segCount = segments.length;
+  const merlonCount = merlons.length;
+  const cornerCount = cornerPosts.length;
+  const capCount = cornerCaps.length;
 
   cornerLocalsRef.current = getWallCornerLocals(path, cellSize);
   filledCornerLocalsRef.current = filledCorners
@@ -926,6 +970,21 @@ export function Wall({
               backgroundColor={backgroundColor}
               borderColor={borderColor}
               showBorder={showBorder}
+              allPieces={wallPieces}
+              pieceIndex={i}
+            />
+          ))}
+          {merlons.map((merlon, i) => (
+            <BorderBox
+              key={`merlon-${i}`}
+              castShadow={false}
+              size={merlon.size}
+              position={merlon.position}
+              backgroundColor={backgroundColor}
+              borderColor={borderColor}
+              showBorder={showBorder}
+              allPieces={wallPieces}
+              pieceIndex={segCount + i}
             />
           ))}
           {cornerPosts.map((post, i) => (
@@ -937,16 +996,34 @@ export function Wall({
               backgroundColor={backgroundColor}
               borderColor={borderColor}
               showBorder={showBorder}
+              allPieces={wallPieces}
+              pieceIndex={segCount + merlonCount + i}
             />
           ))}
-          {cornerPosts.map((post, i) => (
-            <FilledCornerKnob
-              key={`knob-${i}`}
-              position={post.position}
-              wallHeight={wallHeight}
+          {cornerCaps.map((cap, i) => (
+            <BorderBox
+              key={`corner-cap-${i}`}
+              castShadow={false}
+              size={cap.size}
+              position={cap.position}
               backgroundColor={backgroundColor}
               borderColor={borderColor}
               showBorder={showBorder}
+              allPieces={wallPieces}
+              pieceIndex={segCount + merlonCount + cornerCount + i}
+            />
+          ))}
+          {cornerMerlons.map((merlon, i) => (
+            <BorderBox
+              key={`corner-merlon-${i}`}
+              castShadow={false}
+              size={merlon.size}
+              position={merlon.position}
+              backgroundColor={backgroundColor}
+              borderColor={borderColor}
+              showBorder={showBorder}
+              allPieces={wallPieces}
+              pieceIndex={segCount + merlonCount + cornerCount + capCount + i}
             />
           ))}
         </group>

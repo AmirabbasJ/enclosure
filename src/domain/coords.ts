@@ -1,7 +1,6 @@
 import { BOARD_COLS, BOARD_ROWS } from '#/domain/cells';
 import { TILE_SPACING } from '#/domain/tiles';
 
-/** Map board cell space to local world XZ (before BOARD_SCALE). */
 export function cellToWorld(
   col: number,
   row: number,

@@ -9,7 +9,7 @@ import * as THREE from 'three/webgpu';
 
 import { useGame } from '#/context/GameContext';
 
-export const PIXEL_SIZE = 1;
+export const PIXEL_SIZE = 2.5;
 export const NORMAL_EDGE = 0.3;
 export const DEPTH_EDGE = 0;
 export const PIXEL_ALIGNED_PANNING = true;
@@ -17,7 +17,7 @@ export const PIXEL_ALIGNED_PANNING = true;
 const PLAY_ZOOM = 1;
 const INTRO_START_ZOOM = 0.8;
 const INTRO_DURATION = 1.8;
-/** View distance — ortho size from zoom; distance only buys near/far headroom. */
+
 const CAM_DIST = 5;
 const CAM_Y = CAM_DIST * Math.tan(Math.PI / 6);
 

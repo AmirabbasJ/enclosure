@@ -4,8 +4,8 @@ import type { WallInput, WallPiece } from '#/domain/walls';
 import { buildOrbSpawns, DEFAULT_ORB_INPUTS } from '#/domain/orb';
 import { resolveWalls, wallToInput } from '#/domain/walls';
 
-export type { OrbInput, WallInput };
 export type { YawQuarters } from '#/domain/walls';
+export type { OrbInput, WallInput };
 
 export interface LevelInput {
   orbs?: OrbInput[];
@@ -29,7 +29,6 @@ export function resolveLevel(
   };
 }
 
-/** Snapshot play state back into LevelInput (on-board walls only). */
 export function serializeLevel({
   orbs,
   walls,

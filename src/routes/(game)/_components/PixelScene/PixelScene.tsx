@@ -11,9 +11,11 @@ import {
   BOARD_BASE_SIZE,
   BOARD_BASE_Y,
   BOARD_SCALE,
+  grooveKeysLeadingToCorner,
   GROUND_SIZE,
   GROUND_Y,
   wallCornerWorldKeys,
+  wallCornerWorldPositions,
   wallOccupiedSlotKeys,
 } from '#/domain/board';
 import { resolveLevel, serializeLevel } from '#/domain/level';
@@ -44,7 +46,6 @@ const INTRO_DURATION =
 const INTRO_START_Y = 14;
 const PLAY_Y = 0;
 
-/** Intro offset: wall drops from above onto play. */
 function wallIntroOffset(u = 0): [number, number, number] {
   const k = 1 - u;
   return [0, INTRO_START_Y * k, 0];
@@ -59,7 +60,6 @@ function randomWallDelays(count: number): number[] {
 
 interface SceneContentProps {
   level?: LevelInput;
-  /** Snap level wall inputs to nearest groove. Default true. */
   snapWallsToGrooves?: boolean;
 }
 
@@ -116,6 +116,7 @@ export function SceneContent({
     const occupiedById: Record<string, string[]> = {};
     const cornersById: Record<string, string[]> = {};
     const filledCornersById: Record<string, string[]> = {};
+    const filledApproachGroovesById: Record<string, string[]> = {};
 
     for (const wall of walls) {
       const { footprints, centerOffset } = getWallFootprints(wall.path);
@@ -131,21 +132,46 @@ export function SceneContent({
         yaw: wall.yaw,
         segments: footprints,
       });
-      const cornerKeys = wallCornerWorldKeys({
+      const cornerLocals = getWallCornerLocals(wall.path);
+      cornersById[wall.id] = wallCornerWorldKeys({
         originX,
         originZ,
         yaw: wall.yaw,
-        corners: getWallCornerLocals(wall.path),
+        corners: cornerLocals,
       });
-      cornersById[wall.id] = cornerKeys;
-      filledCornersById[wall.id] = hasFilledCorners(wall.id)
-        ? wallCornerWorldKeys({
-            originX,
-            originZ,
-            yaw: wall.yaw,
-            corners: getWallFilledCornerLocals(wall.path, undefined, wall.id),
-          })
-        : [];
+
+      if (!hasFilledCorners(wall.id)) {
+        filledCornersById[wall.id] = [];
+        filledApproachGroovesById[wall.id] = [];
+        continue;
+      }
+
+      const filledLocals = getWallFilledCornerLocals(
+        wall.path,
+        undefined,
+        wall.id
+      );
+      filledCornersById[wall.id] = wallCornerWorldKeys({
+        originX,
+        originZ,
+        yaw: wall.yaw,
+        corners: filledLocals,
+      });
+
+      const approach: string[] = [];
+
+      for (const pos of wallCornerWorldPositions({
+        originX,
+        originZ,
+        yaw: wall.yaw,
+        corners: filledLocals,
+      })) {
+        for (const key of grooveKeysLeadingToCorner(pos.x, pos.z)) {
+          approach.push(key);
+        }
+      }
+
+      filledApproachGroovesById[wall.id] = approach;
     }
 
     const result: Record<
@@ -164,7 +190,10 @@ export function SceneContent({
 
       for (const other of walls) {
         if (other.id === wall.id) continue;
+
         for (const key of occupiedById[other.id] ?? []) grooves.add(key);
+        for (const key of filledApproachGroovesById[other.id] ?? [])
+          grooves.add(key);
         for (const key of filledCornersById[other.id] ?? [])
           blockedFilledCorners.add(key);
         for (const key of cornersById[other.id] ?? []) occupiedCorners.add(key);

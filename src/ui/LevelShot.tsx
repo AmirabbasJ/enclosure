@@ -5,7 +5,6 @@ import { BOARD_COLS, BOARD_ROWS } from '#/domain/cells';
 import { DIR_DELTA, WALL_PATHS } from '#/domain/walls';
 import { palette } from '#/theme/palette';
 
-/** Light → dark per wall piece. */
 const WALL_FILL: Record<WallId, string> = {
   u: '#E0E6ED',
   steps: '#B8C5D4',
@@ -47,24 +46,6 @@ function rotateDelta(
   return [x, z];
 }
 
-export function wallPathPoints(wall: WallInput): [number, number][] {
-  const path = WALL_PATHS[wall.id] as readonly WallDir[];
-  let x = wall.col - 0.5;
-  let z = wall.row - 0.5;
-  const points: [number, number][] = [[x, z]];
-
-  for (const dir of path) {
-    const [dx, dz] = DIR_DELTA[dir];
-    const [rdx, rdz] = rotateDelta(dx, dz, wall.yawQuarters);
-    x += rdx;
-    z += rdz;
-    points.push([x, z]);
-  }
-
-  return shortenPathEnds(points, WALL_END_INSET);
-}
-
-/** Pull first/last vertices inward so stroke ends don't merge at joints. */
 function shortenPathEnds(
   points: readonly [number, number][],
   inset: number
@@ -72,6 +53,7 @@ function shortenPathEnds(
   if (points.length < 2 || inset <= 0) return [...points];
 
   const out = points.map(([px, pz]) => [px, pz] as [number, number]);
+
   const insetPoint = (
     from: [number, number],
     toward: [number, number]
@@ -85,10 +67,7 @@ function shortenPathEnds(
   };
 
   out[0] = insetPoint(out[0], out[1]);
-  out[out.length - 1] = insetPoint(
-    out[out.length - 1],
-    out[out.length - 2]
-  );
+  out[out.length - 1] = insetPoint(out[out.length - 1], out[out.length - 2]);
   return out;
 }
 
@@ -106,14 +85,25 @@ const TILE = 0.88;
 const TILE_RX = 0.1;
 const ORB_R = 0.28;
 const WALL_W = 0.12;
-/** Cell units trimmed from each wall endpoint (covers round-cap radius). */
 const WALL_END_INSET = 0.28 + WALL_W / 2;
 
-/**
- * Top-down level diagram.
- * Board yaw matches SceneContent (`rotation.y = π/4`).
- * SVG y-down → use rotate(-45), not +45.
- */
+export function wallPathPoints(wall: WallInput): [number, number][] {
+  const path = WALL_PATHS[wall.id] as readonly WallDir[];
+  let x = wall.col - 0.5;
+  let z = wall.row - 0.5;
+  const points: [number, number][] = [[x, z]];
+
+  for (const dir of path) {
+    const [dx, dz] = DIR_DELTA[dir];
+    const [rdx, rdz] = rotateDelta(dx, dz, wall.yawQuarters);
+    x += rdx;
+    z += rdz;
+    points.push([x, z]);
+  }
+
+  return shortenPathEnds(points, WALL_END_INSET);
+}
+
 export function LevelShot({ level, className, pad = 0.85 }: LevelShotProps) {
   const orbs = level.orbs ?? [];
   const walls = level.walls ?? [];

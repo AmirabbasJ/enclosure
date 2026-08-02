@@ -16,7 +16,6 @@ export function normalizeUsername(username: string): string {
   return username.trim().toLowerCase();
 }
 
-/** Maps username → synthetic auth id. Players never see or type this. */
 export function usernameToEmail(username: string): string {
   return `${normalizeUsername(username)}@${AUTH_EMAIL_DOMAIN}`;
 }

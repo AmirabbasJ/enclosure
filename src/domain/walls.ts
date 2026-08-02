@@ -18,7 +18,6 @@ export const WALL_DRAG_HALF_X = WALL_OFFSET_X;
 export const WALL_DRAG_HALF_Z = WALL_OFFSET_Z;
 
 export const GROOVE_SNAP_DIST = TILE_SPACING * 0.4;
-/** Keep snap engaged until pointer leaves this far (hysteresis vs GROOVE_SNAP_DIST). */
 export const GROOVE_SNAP_RELEASE = GROOVE_SNAP_DIST * 1.85;
 
 export type WallDir = 'D' | 'L' | 'R' | 'U';
@@ -29,7 +28,6 @@ export type WallId = 'snake' | 'steps' | 'u' | 'zigzagTall';
 
 export interface WallInput {
   id: WallId;
-  /** Tile whose min-X/min-Z corner is the wall path origin. */
   col: number;
   row: number;
   yawQuarters: YawQuarters;
@@ -51,23 +49,17 @@ export const WALL_PATHS = {
 
 export type WallPathKey = keyof typeof WALL_PATHS;
 
-/** Wall ids whose path turns can get solid corner posts. */
 export const FILLED_CORNER_WALLS: ReadonlySet<WallId> = new Set([
   'steps',
   'u',
   'zigzagTall',
 ]);
 
-/**
- * Which turn indices (0-based along path turns) get filled.
- * Omit wall → all turns.
- */
 export const WALL_FILLED_CORNER_TURNS: Partial<
   Record<WallId, readonly number[]>
 > = {
   steps: [0, 2],
   u: [0],
-  /** Path D L ·F· U L U — fill turn after second segment. */
   zigzagTall: [1],
 };
 
@@ -97,7 +89,6 @@ export function yawToQuarters(yaw: number): YawQuarters {
   return (((Math.round(yaw / (Math.PI / 2)) % 4) + 4) % 4) as YawQuarters;
 }
 
-/** Inverse of wallCenterFromCell when wall sits on a groove; else null (off-board). */
 export function wallToInput(wall: WallPiece): WallInput | null {
   const { centerOffset } = getWallFootprints(wall.path);
   const { originX, originZ } = wallOriginFromCenter({
@@ -168,7 +159,6 @@ export function getWallFootprints(
   };
 }
 
-/** Path vertices in local wall space (origin at first corner). */
 export function getWallCornerLocals(
   path: readonly WallDir[],
   cellSize = CELL_SIZE
@@ -187,7 +177,6 @@ export function getWallCornerLocals(
   return corners;
 }
 
-/** Vertices where path turns (not free ends). Optional wallId filters turns. */
 export function getWallFilledCornerLocals(
   path: readonly WallDir[],
   cellSize = CELL_SIZE,
@@ -205,6 +194,7 @@ export function getWallFilledCornerLocals(
     if (!turnFilter || turnFilter.includes(turnIndex)) {
       filled.push(all[i + 1]);
     }
+
     turnIndex += 1;
   }
 
@@ -229,7 +219,6 @@ export function wallOriginFromCenter({
   return { originX: cx - rx, originZ: cz - rz };
 }
 
-/** Path origin at min-X/min-Z corner of tile (col, row); position = wall center. */
 export function wallCenterFromCell({
   path,
   col,
@@ -241,7 +230,6 @@ export function wallCenterFromCell({
   col: number;
   row: number;
   yaw: number;
-  /** Snap origin to nearest valid groove. Default true. */
   snap?: boolean;
 }): [number, number, number] {
   const { footprints, centerOffset } = getWallFootprints(path);

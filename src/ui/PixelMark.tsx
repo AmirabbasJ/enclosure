@@ -7,7 +7,6 @@ interface PixelIconProps {
 
 const OK = '#4ADE80';
 
-/** 8×8 pixel tick. */
 export function PixelTick({ className, size = 18 }: PixelIconProps) {
   const cells: readonly [number, number][] = [
     // short arm
@@ -44,7 +43,6 @@ export function PixelTick({ className, size = 18 }: PixelIconProps) {
   );
 }
 
-/** 7×7 pixel X. */
 export function PixelCross({ className, size = 18 }: PixelIconProps) {
   const c = palette.danger;
   return (
