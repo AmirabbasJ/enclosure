@@ -7,8 +7,7 @@ import { createContext, use, useEffect, useMemo } from 'react';
 import type { GameEvent, GameMachineContext } from '#/machines/gameMachine';
 
 import { gameMachine } from '#/machines/gameMachine';
-
-import { useAuth } from './AuthContext';
+import { useAuth } from '@/data/auth/useAuth';
 
 interface GameContextValue {
   /** True while the player is in an active game session. */

@@ -8,7 +8,6 @@ import {
 } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 
-import { AuthProvider } from '../context/AuthContext';
 import { GameAudioProvider } from '../context/GameAudioContext';
 import { GameProvider } from '../context/GameContext';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
@@ -49,11 +48,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <AuthProvider>
-          <GameProvider>
-            <GameAudioProvider>{children}</GameAudioProvider>
-          </GameProvider>
-        </AuthProvider>
+        <GameProvider>
+          <GameAudioProvider>{children}</GameAudioProvider>
+        </GameProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',

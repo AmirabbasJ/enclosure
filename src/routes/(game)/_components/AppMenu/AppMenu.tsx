@@ -1,6 +1,6 @@
-import { useAuth } from '#/context/AuthContext';
-import { useGame } from '#/context/GameContext';
-import Button from '#/ui/button';
+import { useAuth } from '@/data/auth/useAuth';
+import { useGame } from '@/context/GameContext';
+import Button from '@/ui/button';
 
 import { AuthForm } from './AuthForm';
 

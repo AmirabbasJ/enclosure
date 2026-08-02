@@ -17,18 +17,18 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          email: string
           id: string
+          username: string
         }
         Insert: {
           created_at?: string
-          email: string
           id: string
+          username: string
         }
         Update: {
           created_at?: string
-          email?: string
           id?: string
+          username?: string
         }
         Relationships: []
       }
@@ -37,7 +37,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_username_available: {
+        Args: { desired: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

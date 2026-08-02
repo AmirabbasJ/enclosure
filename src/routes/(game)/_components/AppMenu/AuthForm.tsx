@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
-import { useAuth } from '#/context/AuthContext';
-import Button from '#/ui/button';
-import TextField from '#/ui/text-field';
+import { useAuth } from '@/data/auth/useAuth';
+import Button from '@/ui/button';
+import TextField from '@/ui/text-field';
 
 interface AuthFormProps {
   onSuccess?: () => void;
