@@ -7,38 +7,30 @@ import type { Database } from '@/database.types';
 
 import { createAdminClient } from '@/lib/supabase/admin.functions';
 import { supabaseClient } from '@/lib/supabase/client';
+import { createServerClient } from '@/lib/supabase/client.server';
 
 const AUTH_EMAIL_DOMAIN = 'users.enclosure.local';
 
-const USERNAME_PATTERN = /^[0-9_a-z]{3,24}$/;
+const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[0-9_a-z]{3,24}$/, 'Username: 3–24 chars, a–z, 0–9, underscore');
 
-export function normalizeUsername(username: string): string {
-  return username.trim().toLowerCase();
+const passwordSchema = z
+  .string()
+  .min(6, 'Password must be at least 6 characters');
+
+const credentialsSchema = z.object({
+  password: passwordSchema,
+  username: usernameSchema,
+});
+
+function usernameToEmail(username: string): string {
+  return `${username}@${AUTH_EMAIL_DOMAIN}`;
 }
 
-export function usernameToEmail(username: string): string {
-  return `${normalizeUsername(username)}@${AUTH_EMAIL_DOMAIN}`;
-}
-
-export function validateUsername(username: string): string | null {
-  const normalized = normalizeUsername(username);
-
-  if (!USERNAME_PATTERN.test(normalized)) {
-    return 'Username: 3–24 chars, a–z, 0–9, underscore';
-  }
-
-  return null;
-}
-
-export function validatePassword(password: string): string | null {
-  if (password.length < 6) {
-    return 'Password must be at least 6 characters';
-  }
-
-  return null;
-}
-
-export function mapAuthError(message: string): string {
+function mapAuthError(message: string): string {
   const lower = message.toLowerCase();
 
   if (lower.includes('invalid login credentials')) {
@@ -54,23 +46,63 @@ export function mapAuthError(message: string): string {
   return message;
 }
 
+function parseCredentials(username: string, password: string) {
+  const result = credentialsSchema.safeParse({ username, password });
+
+  if (!result.success) {
+    return {
+      error: result.error.issues[0]?.message ?? 'Invalid credentials',
+      data: null,
+    };
+  }
+
+  return { error: null, data: result.data };
+}
+
 type Client = SupabaseClient<Database>;
+
+export interface CurrentUser {
+  profile: Database['public']['Tables']['profiles']['Row'] | null;
+}
+
+export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<CurrentUser> => {
+    const supabase = createServerClient();
+
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+
+    const { session } = data;
+    if (!session) return { profile: null };
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, username, created_at')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
+    return { profile };
+  }
+);
 
 export async function signIn(
   username: string,
   password: string,
   client: Client = supabaseClient
 ): Promise<{ error: string | null; session: Session | null }> {
-  const normalized = normalizeUsername(username);
-  const usernameError = validateUsername(normalized);
-  if (usernameError) return { error: usernameError, session: null };
+  const parsed = parseCredentials(username, password);
 
-  const passwordError = validatePassword(password);
-  if (passwordError) return { error: passwordError, session: null };
+  if (!parsed.data) {
+    return { error: parsed.error, session: null };
+  }
+
+  const { username: normalized, password: validPassword } = parsed.data;
 
   const { data, error } = await client.auth.signInWithPassword({
     email: usernameToEmail(normalized),
-    password,
+    password: validPassword,
   });
 
   if (error) return { error: mapAuthError(error.message), session: null };
@@ -79,35 +111,23 @@ export async function signIn(
 }
 
 export const signUp = createServerFn({ method: 'POST' })
-  .validator(
-    z.object({
-      username: z.string().min(3).max(24),
-      password: z.string().min(6),
-    })
-  )
+  .validator(credentialsSchema)
   .handler(async ({ data: { username, password } }): Promise<string | null> => {
-    const normalized = normalizeUsername(username);
-    const usernameError = validateUsername(normalized);
-    if (usernameError) return usernameError;
-
-    const passwordError = validatePassword(password);
-    if (passwordError) return passwordError;
-
     const admin = createAdminClient();
 
     const { data: available, error: availabilityError } = await admin.rpc(
       'is_username_available',
-      { desired: normalized }
+      { desired: username }
     );
 
     if (availabilityError) return availabilityError.message;
     if (!available) return 'Username is already taken';
 
     const { error } = await admin.auth.admin.createUser({
-      email: usernameToEmail(normalized),
+      email: usernameToEmail(username),
       password,
       email_confirm: true,
-      user_metadata: { username: normalized },
+      user_metadata: { username },
     });
 
     if (error) return mapAuthError(error.message);

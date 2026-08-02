@@ -1,5 +1,3 @@
-import type { Session, User } from '@supabase/supabase-js';
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
 
@@ -7,18 +5,19 @@ import type { Database } from '@/database.types';
 
 import { useSupabase } from '@/lib/supabase/useSupabase';
 
-import { signIn as signInFn, signUp as signUpFn } from './auth.functions';
+import {
+  getCurrentUser as getCurrentUserFn,
+  signIn as signInFn,
+  signUp as signUpFn,
+} from './auth.functions';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const authKeys = {
-  session: ['auth', 'session'] as const,
-  profile: (userId: string) => ['auth', 'profile', userId] as const,
+  currentUser: ['auth', 'currentUser'] as const,
 };
 
 export interface AuthValue {
-  session: Session | null;
-  user: User | null;
   profile: Profile | null;
   isLoading: boolean;
   isSignedIn: boolean;
@@ -31,34 +30,15 @@ export function useAuth(): AuthValue {
   const supabase = useSupabase();
   const queryClient = useQueryClient();
   const createUser = useServerFn(signUpFn);
+  const getCurrentUser = useServerFn(getCurrentUserFn);
 
-  const sessionQuery = useQuery({
-    queryKey: authKeys.session,
-    queryFn: async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      return data.session;
-    },
+  const currentUserQuery = useQuery({
+    queryKey: authKeys.currentUser,
+    queryFn: () => getCurrentUser(),
     staleTime: Infinity,
   });
 
-  const session = sessionQuery.data ?? null;
-  const userId = session?.user.id;
-
-  const profileQuery = useQuery({
-    queryKey: authKeys.profile(userId ?? ''),
-    enabled: Boolean(userId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, created_at')
-        .eq('id', userId!)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    },
-  });
+  const profile = currentUserQuery.data?.profile ?? null;
 
   const signIn = async (username: string, password: string) => {
     const { error, session: nextSession } = await signInFn(
@@ -69,7 +49,11 @@ export function useAuth(): AuthValue {
 
     if (error) return error;
 
-    queryClient.setQueryData(authKeys.session, nextSession);
+    queryClient.setQueryData(authKeys.currentUser, {
+      session: nextSession,
+      profile: null,
+    });
+    await queryClient.invalidateQueries({ queryKey: authKeys.currentUser });
     return null;
   };
 
@@ -91,22 +75,18 @@ export function useAuth(): AuthValue {
     const { error } = await supabase.auth.signOut();
     if (error) return error.message;
 
-    queryClient.setQueryData(authKeys.session, null);
-
-    if (userId) {
-      queryClient.removeQueries({ queryKey: authKeys.profile(userId) });
-    }
+    queryClient.setQueryData(authKeys.currentUser, {
+      session: null,
+      profile: null,
+    });
 
     return null;
   };
 
   return {
-    session,
-    user: session?.user ?? null,
-    profile: profileQuery.data ?? null,
-    isLoading:
-      sessionQuery.isPending || (Boolean(userId) && profileQuery.isPending),
-    isSignedIn: Boolean(session),
+    profile,
+    isLoading: currentUserQuery.isPending,
+    isSignedIn: Boolean(profile),
     signIn,
     signUp: (username, password) =>
       signUpMutation.mutateAsync({ username, password }),

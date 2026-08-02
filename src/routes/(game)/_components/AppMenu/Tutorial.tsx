@@ -1,16 +1,18 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
+import { useState } from 'react';
 
 import type { LevelInput } from '#/domain/level';
 
+import Button from '@/ui/button';
+import { LevelShot } from '@/ui/LevelShot';
+import { PixelCross, PixelTick } from '@/ui/PixelMark';
 import {
   TUTORIAL_ANSWER,
   TUTORIAL_QUESTION,
   TUTORIAL_RED_WRONG,
   TUTORIAL_SURROUND_WRONG,
 } from '#/domain/tutorialLevel';
-import Button from '@/ui/button';
-import { LevelShot } from '@/ui/LevelShot';
-import { PixelCross, PixelTick } from '@/ui/PixelMark';
 
 interface TutorialPage {
   id: string;
@@ -20,15 +22,15 @@ interface TutorialPage {
 const PAGES: TutorialPage[] = [
   {
     id: 'goal',
-    text: 'Position the walls using the indents in the board as a guideline, so that the red knights are kept outside and the blue knights remain within the ramparts.',
+    text: 'Position the walls using the indents in the board as a guideline, so that the red cones stay outside and the blue orbs remain enclosed.',
   },
   {
     id: 'surround',
-    text: 'A blue knight is safe inside the city walls only when surrounded by walls on all sides.',
+    text: 'A blue orb is safe only when surrounded by walls on all sides.',
   },
   {
     id: 'redOpen',
-    text: 'The red knights must never be totally surrounded by walls. They can, however, be in an area that is partially enclosed, that is, where a wall has an opening on at least one side.',
+    text: 'Red cones must never be totally surrounded by walls. They can sit in a partially enclosed area, as long as a wall has an opening on at least one side.',
   },
 ];
 
@@ -49,14 +51,14 @@ function ShotFrame({
   badge?: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-      <span className={`text-[8px] uppercase tracking-wide ${labelClass}`}>
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
+      <span className={`text-xs uppercase tracking-wide ${labelClass}`}>
         {label}
       </span>
       <div className="relative w-full">
         <LevelShot level={level} className="h-auto w-full" />
         {badge ? (
-          <div className="pointer-events-none absolute top-1 left-1 drop-shadow-[1px_1px_0_#000]">
+          <div className="pointer-events-none absolute top-1.5 left-1.5 drop-shadow-[1px_1px_0_#000]">
             {badge}
           </div>
         ) : null}
@@ -83,7 +85,7 @@ function ShotPair({
   };
 }) {
   return (
-    <div className="flex items-center justify-center gap-3">
+    <div className="flex items-center justify-center gap-4">
       <ShotFrame {...left} />
       <ShotFrame {...right} />
     </div>
@@ -97,12 +99,10 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
   const isLast = page >= PAGES.length - 1;
 
   return (
-    <div className="flex w-full max-w-[420px] flex-col gap-3">
-      <p className="text-center text-[10px] leading-4 text-text-muted">
-        Tutorial
-      </p>
+    <div className="flex w-full max-w-[560px] flex-col gap-4">
+      <p className="text-center text-sm leading-5 text-text-muted">Tutorial</p>
 
-      <div className="flex flex-col gap-3 rounded-sm bg-panel/80 p-3">
+      <div className="flex flex-col gap-4 rounded-sm bg-panel/80 p-4">
         {current.id === 'goal' ? (
           <ShotPair
             left={{
@@ -124,13 +124,13 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
               label: 'Correct',
               labelClass: 'text-[#4ADE80]',
               level: TUTORIAL_ANSWER,
-              badge: <PixelTick />,
+              badge: <PixelTick size={28} />,
             }}
             right={{
               label: 'Wrong',
               labelClass: 'text-danger',
               level: TUTORIAL_SURROUND_WRONG,
-              badge: <PixelCross />,
+              badge: <PixelCross size={28} />,
             }}
           />
         ) : null}
@@ -141,23 +141,23 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
               label: 'Correct',
               labelClass: 'text-[#4ADE80]',
               level: TUTORIAL_ANSWER,
-              badge: <PixelTick />,
+              badge: <PixelTick size={28} />,
             }}
             right={{
               label: 'Wrong',
               labelClass: 'text-danger',
               level: TUTORIAL_RED_WRONG,
-              badge: <PixelCross />,
+              badge: <PixelCross size={28} />,
             }}
           />
         ) : null}
 
-        <p className="text-center text-[10px] leading-4 text-text-light">
+        <p className="text-center text-xs leading-5 text-text-light">
           {current.text}
         </p>
       </div>
 
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-3">
         {PAGES.map((p, i) => (
           <button
             key={p.id}
@@ -165,14 +165,14 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
             aria-label={`Page ${i + 1}`}
             aria-current={i === page ? 'true' : undefined}
             onClick={() => setPage(i)}
-            className={`h-2 w-2 rounded-full transition-colors ${
+            className={`h-3 w-3 rounded-full transition-colors ${
               i === page ? 'bg-accent' : 'bg-surface hover:bg-text-muted'
             }`}
           />
         ))}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <Button
           className="flex-1"
           disabled={isFirst}
@@ -182,7 +182,7 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
         </Button>
         {isLast ? (
           <Button className="flex-1" onClick={onComplete}>
-            Done
+            Play
           </Button>
         ) : (
           <Button

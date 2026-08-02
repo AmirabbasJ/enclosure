@@ -1,8 +1,6 @@
-import { TUTORIAL_QUESTION } from '#/domain/tutorialLevel';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
 import Button from '@/ui/button';
-import { LevelShot } from '@/ui/LevelShot';
 
 import { AuthForm } from './AuthForm';
 import { Tutorial } from './Tutorial';
@@ -16,7 +14,6 @@ function MenuContent() {
   if (state.matches('mainMenu')) {
     return (
       <>
-        <LevelShot level={TUTORIAL_QUESTION} />
         <Button onClick={() => send({ type: 'PLAY' })}>Play</Button>
         <Button onClick={() => send({ type: 'HELP' })}>Help</Button>
         <Button onClick={() => send({ type: 'PROFILE' })}>
@@ -42,7 +39,7 @@ function MenuContent() {
   if (state.matches('askSignIn')) {
     return (
       <>
-        <p className="mb-2 text-center text-sm opacity-80">
+        <p className="mb-3 text-center text-base opacity-80">
           Sign in to save your scores (optional)
         </p>
         <AuthForm onSuccess={() => send({ type: 'SIGN_IN' })} />
@@ -55,7 +52,7 @@ function MenuContent() {
   if (state.matches('leaderboard')) {
     return (
       <>
-        <p className="mb-2 text-center text-sm opacity-80">Leaderboard</p>
+        <p className="mb-3 text-center text-base opacity-80">Leaderboard</p>
         <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
       </>
     );
@@ -64,7 +61,7 @@ function MenuContent() {
   if (state.matches({ help: 'menu' })) {
     return (
       <>
-        <p className="mb-2 text-center text-sm opacity-80">Help</p>
+        <p className="mb-3 text-center text-base opacity-80">Help</p>
         <Button onClick={() => send({ type: 'CONTROLS' })}>Controls</Button>
         <Button onClick={() => send({ type: 'RULES' })}>Rules</Button>
         <Button onClick={() => send({ type: 'SCORING' })}>Scoring</Button>
@@ -80,7 +77,7 @@ function MenuContent() {
   if (state.matches({ help: 'controls' })) {
     return (
       <>
-        <p className="mb-2 text-center text-sm opacity-80">Controls</p>
+        <p className="mb-3 text-center text-base opacity-80">Controls</p>
         <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
       </>
     );
@@ -89,7 +86,7 @@ function MenuContent() {
   if (state.matches({ help: 'rules' })) {
     return (
       <>
-        <p className="mb-2 text-center text-sm opacity-80">Rules</p>
+        <p className="mb-3 text-center text-base opacity-80">Rules</p>
         <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
       </>
     );
@@ -98,7 +95,7 @@ function MenuContent() {
   if (state.matches({ help: 'scoring' })) {
     return (
       <>
-        <p className="mb-2 text-center text-sm opacity-80">Scoring</p>
+        <p className="mb-3 text-center text-base opacity-80">Scoring</p>
         <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
       </>
     );
@@ -107,7 +104,7 @@ function MenuContent() {
   if (state.matches({ help: 'faq' })) {
     return (
       <>
-        <p className="mb-2 text-center text-sm opacity-80">FAQ</p>
+        <p className="mb-3 text-center text-base opacity-80">FAQ</p>
         <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
       </>
     );
@@ -116,13 +113,13 @@ function MenuContent() {
   if (state.matches('profile')) {
     return (
       <>
-        <p className="mb-2 text-center text-sm opacity-80">
+        <p className="mb-3 text-center text-base opacity-80">
           {isSignedIn ? 'Profile' : 'Sign In'}
         </p>
         {isSignedIn ? (
           <>
             {profile?.username ? (
-              <p className="mb-2 text-center text-xs text-accent">
+              <p className="mb-3 text-center text-sm text-accent">
                 {profile.username}
               </p>
             ) : null}
@@ -145,7 +142,7 @@ function MenuContent() {
   if (state.matches('settings')) {
     return (
       <>
-        <p className="mb-2 text-center text-sm opacity-80">Settings</p>
+        <p className="mb-3 text-center text-base opacity-80">Settings</p>
         <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
       </>
     );
@@ -156,7 +153,7 @@ function MenuContent() {
 
 export function AppMenu() {
   return (
-    <div className="flex min-w-[340px] flex-col gap-2 p-2  ">
+    <div className="flex min-w-[420px] flex-col gap-3 p-3">
       <MenuContent />
     </div>
   );

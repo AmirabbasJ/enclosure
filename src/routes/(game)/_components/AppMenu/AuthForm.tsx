@@ -61,7 +61,7 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         onChange={(event) => setPassword(event.target.value)}
       />
       {error ? (
-        <p className="text-center text-[10px] leading-4 text-danger">{error}</p>
+        <p className="text-center text-xs leading-5 text-danger">{error}</p>
       ) : null}
       <Button disabled={pending} type="submit">
         {pending ? '...' : mode === 'signIn' ? 'Sign In' : 'Create Account'}
