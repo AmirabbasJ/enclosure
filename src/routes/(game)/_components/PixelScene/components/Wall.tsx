@@ -163,6 +163,8 @@ interface WallProps {
   onPositionChange?: (position: [number, number, number]) => void;
   onYawChange?: (yaw: number) => void;
   onGroundHit?: (impact: number) => void;
+  /** After drag-drop or keyboard seat finishes. */
+  onPlace?: () => void;
   onDeselect?: () => void;
 }
 
@@ -189,6 +191,7 @@ export function Wall({
   onPositionChange,
   onYawChange,
   onGroundHit,
+  onPlace,
   onDeselect,
 }: WallProps) {
   const groupRef = useRef<Group>(null);
@@ -205,6 +208,7 @@ export function Wall({
   const displayPosRef = useRef({ x: position[0], z: position[2] });
   const onPositionChangeRef = useRef(onPositionChange);
   const onYawChangeRef = useRef(onYawChange);
+  const onPlaceRef = useRef(onPlace);
   const onGroundHitRef = useRef(onGroundHit);
   const snapStepRef = useRef(snapStep);
   const blockedKeysRef = useRef(blockedKeys);
@@ -227,6 +231,7 @@ export function Wall({
   positionRef.current = position;
   onPositionChangeRef.current = onPositionChange;
   onYawChangeRef.current = onYawChange;
+  onPlaceRef.current = onPlace;
   onGroundHitRef.current = onGroundHit;
   snapStepRef.current = snapStep;
   blockedKeysRef.current = blockedKeys;
@@ -330,6 +335,7 @@ export function Wall({
           positionRef.current = next;
         }
 
+        onPlaceRef.current?.();
         return;
       }
 
@@ -360,6 +366,7 @@ export function Wall({
       const pos = wallPos(next.x, next.z);
       onPositionChangeRef.current?.(pos);
       positionRef.current = pos;
+      onPlaceRef.current?.();
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -679,6 +686,7 @@ export function Wall({
       groundHitFired.current = false;
       liftMode.current = 'falling';
       document.body.style.cursor = '';
+      onPlaceRef.current?.();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -695,6 +703,7 @@ export function Wall({
         onPositionChangeRef.current?.(next);
         positionRef.current = next;
       }
+      onPlaceRef.current?.();
     };
 
     window.addEventListener('pointermove', onMove);

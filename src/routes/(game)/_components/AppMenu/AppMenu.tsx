@@ -1,7 +1,8 @@
-import { useAuth } from '@/data/auth/useAuth';
 import { useGame } from '@/context/GameContext';
+import { useAuth } from '@/data/auth/useAuth';
 import Button from '@/ui/button';
 
+import { LevelShot } from '../../../../ui/LevelShot';
 import { AuthForm } from './AuthForm';
 
 function MenuContent() {
@@ -13,6 +14,20 @@ function MenuContent() {
   if (state.matches('mainMenu')) {
     return (
       <>
+        <LevelShot
+          level={{
+            orbs: [
+              { kind: 'good', col: 1, row: 0 },
+              { kind: 'good', col: 2, row: 1 },
+              { kind: 'good', col: 3, row: 0 },
+              { kind: 'bad', col: 1, row: 1 },
+            ],
+            walls: [
+              { id: 'u', col: 3, row: 1, yawQuarters: 2 },
+              { id: 'snake', col: 1, row: 1, yawQuarters: 1 },
+            ],
+          }}
+        />
         <Button onClick={() => send({ type: 'PLAY' })}>Play</Button>
         <Button onClick={() => send({ type: 'HELP' })}>Help</Button>
         <Button onClick={() => send({ type: 'PROFILE' })}>

@@ -23,7 +23,20 @@ function Game() {
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 bg-bg text-text-light ">
       <div className="relative h-screen w-screen ">
         <PixelSceneRenderer>
-          <SceneContent />
+          <SceneContent
+            level={{
+              orbs: [
+                { kind: 'good', col: 1, row: 0 },
+                { kind: 'good', col: 2, row: 1 },
+                { kind: 'good', col: 3, row: 0 },
+                { kind: 'bad', col: 1, row: 1 },
+              ],
+              walls: [
+                { id: 'u', col: 3, row: 1, yawQuarters: 2 },
+                { id: 'snake', col: 1, row: 1, yawQuarters: 1 },
+              ],
+            }}
+          />
         </PixelSceneRenderer>
       </div>
       {isPlaying ? null : (

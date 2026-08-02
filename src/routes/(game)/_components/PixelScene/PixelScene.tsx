@@ -15,7 +15,8 @@ import {
   GROUND_Y,
   wallOccupiedSlotKeys,
 } from '#/domain/board';
-import { resolveLevel } from '#/domain/level';
+import { resolveLevel, serializeLevel } from '#/domain/level';
+import { DEFAULT_ORB_INPUTS } from '#/domain/orb';
 import { TILE_POSITIONS, TILE_SIZE } from '#/domain/tiles';
 import { wallToNumberKeyMap } from '#/domain/walls';
 import { palette } from '#/theme/palette';
@@ -52,18 +53,26 @@ function randomWallDelays(count: number): number[] {
 
 interface SceneContentProps {
   level?: LevelInput;
+  /** Snap level wall inputs to nearest groove. Default true. */
+  snapWallsToGrooves?: boolean;
 }
 
-export function SceneContent({ level }: SceneContentProps) {
+export function SceneContent({
+  level,
+  snapWallsToGrooves = true,
+}: SceneContentProps) {
   const { isPlaying: started } = useGame();
   const { orbs, walls: spawnWalls } = useMemo(
-    () => resolveLevel(level),
-    [level]
+    () => resolveLevel(level, { snapWallsToGrooves }),
+    [level, snapWallsToGrooves]
   );
   const [walls, setWalls] = useState(spawnWalls);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [introDone, setIntroDone] = useState(false);
   const { playWallGroundHit } = useGameAudio();
+  const wallsRef = useRef(walls);
+  wallsRef.current = walls;
+  const orbInputs = level?.orbs ?? DEFAULT_ORB_INPUTS;
 
   const boardRef = useRef<THREE.Group>(null);
   const introRef = useRef<THREE.Group>(null);
@@ -133,15 +142,29 @@ export function SceneContent({ level }: SceneContentProps) {
   }, [walls]);
 
   const moveWall = (id: string, position: [number, number, number]) => {
-    setWalls((prev) =>
-      prev.map((wall) => (wall.id === id ? { ...wall, position } : wall))
-    );
+    setWalls((prev) => {
+      const next = prev.map((wall) =>
+        wall.id === id ? { ...wall, position } : wall
+      );
+      wallsRef.current = next;
+      return next;
+    });
   };
 
   const rotateWall = (id: string, yaw: number) => {
-    setWalls((prev) =>
-      prev.map((wall) => (wall.id === id ? { ...wall, yaw } : wall))
-    );
+    setWalls((prev) => {
+      const next = prev.map((wall) =>
+        wall.id === id ? { ...wall, yaw } : wall
+      );
+      wallsRef.current = next;
+      return next;
+    });
+  };
+
+  const logLevelState = () => {
+    setTimeout(() => {
+      console.log(serializeLevel({ orbs: orbInputs, walls: wallsRef.current }));
+    }, 0);
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -283,6 +306,7 @@ export function SceneContent({ level }: SceneContentProps) {
                 onPositionChange={(position) => moveWall(wall.id, position)}
                 onYawChange={(yaw) => rotateWall(wall.id, yaw)}
                 onGroundHit={playWallGroundHit}
+                onPlace={logLevelState}
                 onDeselect={() => setSelectedWallId(null)}
               />
             </group>

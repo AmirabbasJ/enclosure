@@ -4,6 +4,7 @@ import {
   snapWallOriginToGrooves,
   wallRestY,
 } from '#/domain/board';
+import { BOARD_COLS, BOARD_ROWS } from '#/domain/cells';
 import { cellToWorld } from '#/domain/coords';
 import { CELL_SIZE, TILE_SPACING, TILE_THICKNESS } from '#/domain/tiles';
 
@@ -66,6 +67,37 @@ export interface WallSegFootprint {
 
 export function yawFromQuarters(yawQuarters: YawQuarters): number {
   return yawQuarters * (Math.PI / 2);
+}
+
+export function yawToQuarters(yaw: number): YawQuarters {
+  return (((Math.round(yaw / (Math.PI / 2)) % 4) + 4) % 4) as YawQuarters;
+}
+
+/** Inverse of wallCenterFromCell when wall sits on a groove; else null (off-board). */
+export function wallToInput(wall: WallPiece): WallInput | null {
+  const { centerOffset } = getWallFootprints(wall.path);
+  const { originX, originZ } = wallOriginFromCenter({
+    cx: wall.position[0],
+    cz: wall.position[2],
+    yaw: wall.yaw,
+    centerOffset,
+  });
+
+  const col = Math.round(originX / TILE_SPACING + (BOARD_COLS - 1) / 2 + 0.5);
+  const row = Math.round(originZ / TILE_SPACING + (BOARD_ROWS - 1) / 2 + 0.5);
+  const yawQuarters = yawToQuarters(wall.yaw);
+  const expected = wallCenterFromCell({
+    path: wall.path,
+    col,
+    row,
+    yaw: yawFromQuarters(yawQuarters),
+  });
+
+  const dx = wall.position[0] - expected[0];
+  const dz = wall.position[2] - expected[2];
+  if (Math.hypot(dx, dz) > CELL_SIZE * 0.4) return null;
+
+  return { id: wall.id, col, row, yawQuarters };
 }
 
 export function getWallFootprints(
@@ -136,11 +168,14 @@ export function wallCenterFromCell({
   col,
   row,
   yaw,
+  snap = true,
 }: {
   path: readonly WallDir[];
   col: number;
   row: number;
   yaw: number;
+  /** Snap origin to nearest valid groove. Default true. */
+  snap?: boolean;
 }): [number, number, number] {
   const { footprints, centerOffset } = getWallFootprints(path);
   const half = TILE_SPACING / 2;
@@ -153,27 +188,29 @@ export function wallCenterFromCell({
   const rx = centerOffset.x * c + centerOffset.z * s;
   const rz = -centerOffset.x * s + centerOffset.z * c;
 
-  const snapped = snapWallOriginToGrooves({
-    originX,
-    originZ,
-    yaw,
-    segments: footprints,
-    maxDist: Number.POSITIVE_INFINITY,
-  });
+  if (snap) {
+    const snapped = snapWallOriginToGrooves({
+      originX,
+      originZ,
+      yaw,
+      segments: footprints,
+      maxDist: Number.POSITIVE_INFINITY,
+    });
 
-  if (snapped) {
-    const x = snapped[0] + rx;
-    const z = snapped[1] + rz;
-    return [
-      x,
-      wallRestY({
-        originX: snapped[0],
-        originZ: snapped[1],
-        yaw,
-        segments: footprints,
-      }),
-      z,
-    ];
+    if (snapped) {
+      const x = snapped[0] + rx;
+      const z = snapped[1] + rz;
+      return [
+        x,
+        wallRestY({
+          originX: snapped[0],
+          originZ: snapped[1],
+          yaw,
+          segments: footprints,
+        }),
+        z,
+      ];
+    }
   }
 
   const x = originX + rx;
@@ -217,9 +254,13 @@ export const WALLS: WallPiece[] = [
   },
 ];
 
-export function resolveWalls(input?: WallInput[]): WallPiece[] {
+export function resolveWalls(
+  input?: WallInput[],
+  options?: { snap?: boolean }
+): WallPiece[] {
   if (!input?.length) return WALLS.map((wall) => ({ ...wall }));
 
+  const snap = options?.snap ?? true;
   const byId = new Map(input.map((wall) => [wall.id, wall]));
 
   return WALLS.map((wall) => {
@@ -234,6 +275,7 @@ export function resolveWalls(input?: WallInput[]): WallPiece[] {
         col: override.col,
         row: override.row,
         yaw,
+        snap,
       }),
       yaw,
       locked: true,
