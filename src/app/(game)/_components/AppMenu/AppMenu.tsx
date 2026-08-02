@@ -1,9 +1,12 @@
+import { useAuth } from '#/context/AuthContext';
 import { useGame } from '#/context/GameContext';
+import Button from '#/ui/button';
 
-import Button from '../../../../ui/button';
+import { AuthForm } from './AuthForm';
 
 function MenuContent() {
-  const { state, send, context } = useGame();
+  const { state, send } = useGame();
+  const { profile, signOut, isSignedIn } = useAuth();
 
   if (state.matches('playing') || state.matches('launch')) return null;
 
@@ -13,7 +16,7 @@ function MenuContent() {
         <Button onClick={() => send({ type: 'PLAY' })}>Play</Button>
         <Button onClick={() => send({ type: 'HELP' })}>Help</Button>
         <Button onClick={() => send({ type: 'PROFILE' })}>
-          {context.isSignedIn ? 'Profile' : 'Sign In'}
+          {isSignedIn ? 'Profile' : 'Sign In'}
         </Button>
         <Button onClick={() => send({ type: 'LEADERBOARD' })}>
           Leaderboard
@@ -41,7 +44,7 @@ function MenuContent() {
         <p className="mb-2 text-center text-sm opacity-80">
           Sign in to save your scores (optional)
         </p>
-        <Button onClick={() => send({ type: 'SIGN_IN' })}>Sign In</Button>
+        <AuthForm onSuccess={() => send({ type: 'SIGN_IN' })} />
         <Button onClick={() => send({ type: 'SKIP_SIGN_IN' })}>Skip</Button>
         <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
       </>
@@ -113,12 +116,25 @@ function MenuContent() {
     return (
       <>
         <p className="mb-2 text-center text-sm opacity-80">
-          {context.isSignedIn ? 'Profile' : 'Sign In'}
+          {isSignedIn ? 'Profile' : 'Sign In'}
         </p>
-        {context.isSignedIn ? (
-          <Button onClick={() => send({ type: 'SIGN_OUT' })}>Sign Out</Button>
+        {isSignedIn ? (
+          <>
+            {profile?.username ? (
+              <p className="mb-2 text-center text-xs text-accent">
+                {profile.username}
+              </p>
+            ) : null}
+            <Button
+              onClick={() => {
+                void signOut().then(() => send({ type: 'SIGN_OUT' }));
+              }}
+            >
+              Sign Out
+            </Button>
+          </>
         ) : (
-          <Button onClick={() => send({ type: 'SIGN_IN' })}>Sign In</Button>
+          <AuthForm onSuccess={() => send({ type: 'SIGN_IN' })} />
         )}
         <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
       </>

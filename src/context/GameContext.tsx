@@ -2,11 +2,13 @@ import type { PropsWithChildren } from 'react';
 import type { SnapshotFrom } from 'xstate';
 
 import { useMachine } from '@xstate/react';
-import { createContext, use, useMemo } from 'react';
+import { createContext, use, useEffect, useMemo } from 'react';
 
 import type { GameEvent, GameMachineContext } from '#/machines/gameMachine';
 
 import { gameMachine } from '#/machines/gameMachine';
+
+import { useAuth } from './AuthContext';
 
 interface GameContextValue {
   /** True while the player is in an active game session. */
@@ -21,7 +23,17 @@ const GameContext = createContext<GameContextValue | null>(null);
 GameContext.displayName = 'GameContext';
 
 export function GameProvider({ children }: PropsWithChildren) {
+  const { isSignedIn, isLoading } = useAuth();
   const [state, send] = useMachine(gameMachine);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (isSignedIn && !state.context.isSignedIn) {
+      send({ type: 'SIGN_IN' });
+    } else if (!isSignedIn && state.context.isSignedIn) {
+      send({ type: 'SIGN_OUT' });
+    }
+  }, [isSignedIn, isLoading, send, state.context.isSignedIn]);
 
   const value = useMemo<GameContextValue>(
     () => ({

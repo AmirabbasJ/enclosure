@@ -43,6 +43,10 @@ export const gameMachine = setup({
     hasSeenTutorial: false,
     isSignedIn: false,
   },
+  on: {
+    SIGN_IN: { actions: 'setSignedIn' },
+    SIGN_OUT: { actions: 'setSignedOut' },
+  },
   states: {
     launch: {
       always: { target: 'mainMenu' },
@@ -90,7 +94,6 @@ export const gameMachine = setup({
         BACK: { target: 'mainMenu' },
       },
     },
-
     leaderboard: {
       on: {
         BACK: { target: 'mainMenu' },
@@ -129,8 +132,6 @@ export const gameMachine = setup({
 
     profile: {
       on: {
-        SIGN_IN: { actions: 'setSignedIn' },
-        SIGN_OUT: { actions: 'setSignedOut' },
         BACK: { target: 'mainMenu' },
       },
     },

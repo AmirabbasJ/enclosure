@@ -7,7 +7,7 @@ function Button({
   return (
     <button
       type="button"
-      className="cursor-pointer bg-bg px-4 py-2 text-text-light hover:bg-panel hover:text-border"
+      className="cursor-pointer bg-bg px-4 py-2 text-text-light hover:bg-panel hover:text-border disabled:cursor-not-allowed disabled:opacity-50"
       {...props}
     >
       {children}
