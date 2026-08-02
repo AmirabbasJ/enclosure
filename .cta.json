@@ -7,11 +7,15 @@
   "tailwind": true,
   "projectPreset": "default",
   "addOnOptions": {},
-  "git": true,
+  "git": false,
   "install": true,
   "intent": true,
-  "routerOnly": true,
+  "routerOnly": false,
   "version": 1,
   "framework": "react",
-  "chosenAddOns": ["eslint"]
+  "chosenAddOns": [
+    "eslint",
+    "nitro",
+    "tanstack-query"
+  ]
 }
