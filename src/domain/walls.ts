@@ -55,6 +55,7 @@ export interface WallPiece {
   path: readonly WallDir[];
   position: [number, number, number];
   yaw: number;
+  locked?: boolean;
 }
 
 export interface WallSegFootprint {
@@ -235,6 +236,7 @@ export function resolveWalls(input?: WallInput[]): WallPiece[] {
         yaw,
       }),
       yaw,
+      locked: true,
     };
   });
 }
@@ -242,6 +244,6 @@ export function resolveWalls(input?: WallInput[]): WallPiece[] {
 export const wallToNumberKeyMap: Record<string, string> = {
   '1': WALLS[0].id,
   '2': WALLS[3].id,
-  '3': WALLS[2].id,
-  '4': WALLS[1].id,
+  '3': WALLS[1].id,
+  '4': WALLS[2].id,
 };

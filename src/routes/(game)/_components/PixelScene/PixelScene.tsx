@@ -73,6 +73,10 @@ export function SceneContent({ level }: SceneContentProps) {
   const introElapsedRef = useRef(0);
   const introDoneRef = useRef(false);
   const wallDelaysRef = useRef<number[]>([]);
+  const lockedWallIds = useRef(new Set<string>());
+  lockedWallIds.current = new Set(
+    walls.filter((wall) => wall.locked).map((wall) => wall.id)
+  );
 
   useEffect(() => {
     setWalls(spawnWalls);
@@ -150,6 +154,7 @@ export function SceneContent({ level }: SceneContentProps) {
     } else if (wallToNumberKeyMap[e.key]) {
       e.preventDefault();
       const id = wallToNumberKeyMap[e.key];
+      if (lockedWallIds.current.has(id)) return;
       setSelectedWallId((prev) => (prev === id ? null : id));
     } else if (e.key === 'Escape' || e.key === 'Enter') {
       e.preventDefault();
@@ -274,7 +279,7 @@ export function SceneContent({ level }: SceneContentProps) {
                 rotation={[0, wall.yaw, 0]}
                 blockedKeys={blockedKeysByWall[wall.id]}
                 selected={selectedWallId === wall.id}
-                draggable={started}
+                draggable={started && !wall.locked}
                 onPositionChange={(position) => moveWall(wall.id, position)}
                 onYawChange={(yaw) => rotateWall(wall.id, yaw)}
                 onGroundHit={playWallGroundHit}

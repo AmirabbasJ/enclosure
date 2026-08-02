@@ -3,8 +3,8 @@ import { createServerOnlyFn } from '@tanstack/react-start';
 
 import type { Database } from '@/database.types';
 
+import { publicConfig } from '@/config/config';
 import { serverConfig } from '@/config/serverConfig.server';
-import { publicConfig } from '@/lib/config/config';
 
 export const createAdminClient = createServerOnlyFn(() => {
   const supabaseUrl = publicConfig.supabase.url;
