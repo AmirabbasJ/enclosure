@@ -79,54 +79,13 @@ export function isOverTileField(x: number, z: number, pad = 0): boolean {
   return Math.abs(x) <= halfW && Math.abs(z) <= halfD;
 }
 
-/** Board seat Y only when every segment lands in a free groove. Else ground (clips board). */
-export function wallRestY({
-  originX,
-  originZ,
-  yaw,
-  segments,
-  blockedKeys,
-}: {
-  originX: number;
-  originZ: number;
-  yaw: number;
-  segments: readonly WallSegFootprint[];
-  blockedKeys?: ReadonlySet<string>;
-}): number {
-  return wallPlacementFitsGrooves({
-    originX,
-    originZ,
-    yaw,
-    segments,
-    blockedKeys,
-  })
-    ? BOARD_WALL_Y
-    : GROUND_WALL_Y;
+/** Board seat Y when center over tile field; else ground. */
+export function wallRestY(x: number, z: number): number {
+  return isOverTileField(x, z) ? BOARD_WALL_Y : GROUND_WALL_Y;
 }
 
-export function wallRestYAtCenter({
-  cx,
-  cz,
-  yaw,
-  centerOffset,
-  segments,
-  blockedKeys,
-}: {
-  cx: number;
-  cz: number;
-  yaw: number;
-  centerOffset: { x: number; z: number };
-  segments: readonly WallSegFootprint[];
-  blockedKeys?: ReadonlySet<string>;
-}): number {
-  const r = rotateYawXZ(centerOffset.x, centerOffset.z, yaw);
-  return wallRestY({
-    originX: cx - r.x,
-    originZ: cz - r.z,
-    yaw,
-    segments,
-    blockedKeys,
-  });
+export function wallRestYAtCenter(cx: number, cz: number): number {
+  return wallRestY(cx, cz);
 }
 
 function yawParityOdd(yaw: number) {

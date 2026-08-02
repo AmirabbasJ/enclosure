@@ -242,25 +242,11 @@ export function Wall({
     return { x: ox * c + oz * s, z: -ox * s + oz * c };
   };
 
-  const restYAt = (x: number, z: number) =>
-    wallRestYAtCenter({
-      cx: x,
-      cz: z,
-      yaw: yawTargetRef.current,
-      centerOffset: centerOffsetRef.current,
-      segments: segFootprintsRef.current,
-      blockedKeys: blockedKeysRef.current,
-    });
+  const restYAt = (x: number, z: number) => wallRestYAtCenter(x, z);
 
   const wallPos = (x: number, z: number): [number, number, number] => [
     x,
     restYAt(x, z),
-    z,
-  ];
-
-  const wallPosXZ = (x: number, z: number): [number, number, number] => [
-    x,
-    positionRef.current[1],
     z,
   ];
 
@@ -271,6 +257,7 @@ export function Wall({
     const originX = x - r.x;
     const originZ = z - r.z;
     const overTiles = isOverTileField(x, z);
+    // Over board → always nearest valid pin. Off board → short snap magnet.
     const maxDist = overTiles
       ? Number.POSITIVE_INFINITY
       : snapEngagedRef.current
@@ -603,9 +590,20 @@ export function Wall({
       }
 
       const { x: cx, z: cz } = clampToDragBounds(x, z);
+      const wasOver = isOverTileField(
+        positionRef.current[0],
+        positionRef.current[2]
+      );
       const pinned = pinToBoardGrid(cx, cz);
       x = pinned.x;
       z = pinned.z;
+      const nowOver = isOverTileField(x, z);
+
+      // First enter board → hard-jump onto pin. Pin↔pin keep MOVE_LERP.
+      if (nowOver && !wasOver) {
+        displayPosRef.current.x = x;
+        displayPosRef.current.z = z;
+      }
 
       const now = performance.now() / 1000;
       const sample = throwSample.current;
@@ -622,8 +620,9 @@ export function Wall({
       sample.z = z;
       sample.t = now;
 
-      onChange(wallPosXZ(x, z));
-      positionRef.current = wallPosXZ(x, z);
+      const next = wallPos(x, z);
+      onChange(next);
+      positionRef.current = next;
     };
 
     const onUp = () => {

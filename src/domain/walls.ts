@@ -200,31 +200,13 @@ export function wallCenterFromCell({
     if (snapped) {
       const x = snapped[0] + rx;
       const z = snapped[1] + rz;
-      return [
-        x,
-        wallRestY({
-          originX: snapped[0],
-          originZ: snapped[1],
-          yaw,
-          segments: footprints,
-        }),
-        z,
-      ];
+      return [x, wallRestY(x, z), z];
     }
   }
 
   const x = originX + rx;
   const z = originZ + rz;
-  return [
-    x,
-    wallRestY({
-      originX,
-      originZ,
-      yaw,
-      segments: footprints,
-    }),
-    z,
-  ];
+  return [x, wallRestY(x, z), z];
 }
 
 export const WALLS: WallPiece[] = [

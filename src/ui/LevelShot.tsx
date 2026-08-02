@@ -5,7 +5,6 @@ import { BOARD_COLS, BOARD_ROWS } from '#/domain/cells';
 import { DIR_DELTA, WALL_PATHS } from '#/domain/walls';
 import { palette } from '#/theme/palette';
 
-/** Match PixelScene: tiles/ground = surface, walls = textMuted, orbs = accent/danger. */
 const COLORS = {
   bg: palette.bg,
   tile: palette.surface,
@@ -23,7 +22,6 @@ function isPlayableTile(col: number, row: number): boolean {
   return !isCorner;
 }
 
-/** Match Three.js Y-yaw: (x,z) → (z, -x) per quarter. */
 function rotateDelta(
   dx: number,
   dz: number,
@@ -42,7 +40,6 @@ function rotateDelta(
   return [x, z];
 }
 
-/** Groove polyline in cell space (col → x, row → z). */
 export function wallPathPoints(wall: WallInput): [number, number][] {
   const path = WALL_PATHS[wall.id] as readonly WallDir[];
   let x = wall.col - 0.5;
@@ -67,7 +64,6 @@ function pointsAttr(points: readonly [number, number][]): string {
 interface LevelShotProps {
   level: LevelInput;
   className?: string;
-  /** Outer padding in cell units. */
   pad?: number;
 }
 
@@ -110,7 +106,7 @@ export function LevelShot({ level, className, pad = 0.85 }: LevelShotProps) {
 
       <g transform={`rotate(-45 ${cx} ${cy})`}>
         {Array.from({ length: BOARD_ROWS }, (_, row) =>
-          Array.from({ length: BOARD_COLS }, (_, col) => {
+          Array.from({ length: BOARD_COLS }, (__, col) => {
             if (!isPlayableTile(col, row)) return null;
             return (
               <rect
