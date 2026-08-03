@@ -144,16 +144,16 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
         {current.id === 'surround' ? (
           <ShotPair
             left={{
-              label: 'Correct',
-              labelClass: 'text-success',
-              level: TUTORIAL_ANSWER,
-              badge: <PixelTick size={28} />,
-            }}
-            right={{
               label: 'Wrong',
               labelClass: 'text-danger',
               level: TUTORIAL_SURROUND_WRONG,
               badge: <PixelCross size={28} />,
+            }}
+            right={{
+              label: 'Correct',
+              labelClass: 'text-success',
+              level: TUTORIAL_ANSWER,
+              badge: <PixelTick size={28} />,
             }}
           />
         ) : null}
@@ -161,16 +161,16 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
         {current.id === 'redOpen' ? (
           <ShotPair
             left={{
-              label: 'Correct',
-              labelClass: 'text-success',
-              level: TUTORIAL_ANSWER,
-              badge: <PixelTick size={28} />,
-            }}
-            right={{
               label: 'Wrong',
               labelClass: 'text-danger',
               level: TUTORIAL_RED_WRONG,
               badge: <PixelCross size={28} />,
+            }}
+            right={{
+              label: 'Correct',
+              labelClass: 'text-success',
+              level: TUTORIAL_ANSWER,
+              badge: <PixelTick size={28} />,
             }}
           />
         ) : null}
@@ -178,16 +178,16 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
         {current.id === 'meetTower' ? (
           <ShotPair
             left={{
-              label: 'Correct',
-              labelClass: 'text-success',
-              level: TUTORIAL_ANSWER,
-              badge: <PixelTick size={28} />,
-            }}
-            right={{
               label: 'Wrong',
               labelClass: 'text-danger',
               level: TUTORIAL_TOWER_WRONG,
               badge: <PixelCross size={28} />,
+            }}
+            right={{
+              label: 'Correct',
+              labelClass: 'text-success',
+              level: TUTORIAL_ANSWER,
+              badge: <PixelTick size={28} />,
             }}
           />
         ) : null}
