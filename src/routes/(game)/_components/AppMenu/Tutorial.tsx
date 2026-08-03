@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { LevelInput } from '#/domain/level';
 
 import Button from '@/ui/button';
+import { Kbd } from '@/ui/kbd';
 import { LevelShot, spaceToOverlayPercent } from '@/ui/LevelShot';
 import { PixelCross } from '@/ui/PixelMark';
 import {
@@ -55,7 +56,69 @@ const PAGES: TutorialPage[] = [
     id: 'meetTower',
     text: 'You can place two walls to meet each other where the indents cross, but you cannot place a wall against a tower as it will not fit.',
   },
+  {
+    id: 'controls',
+    text: 'Drag a wall to place it, or select one and use the keys above.',
+  },
 ];
+
+function ControlsCheatSheet() {
+  const rows: { keys: ReactNode; label: string }[] = [
+    { keys: <Kbd k="MouseLeft" />, label: 'Grab + place wall' },
+    {
+      keys: (
+        <>
+          <Kbd k="1" />
+          <Kbd k="2" />
+          <Kbd k="3" />
+          <Kbd k="4" />
+        </>
+      ),
+      label: 'Select wall',
+    },
+    {
+      keys: (
+        <>
+          <Kbd k="W" />
+          <Kbd k="A" />
+          <Kbd k="S" />
+          <Kbd k="D" />
+        </>
+      ),
+      label: 'Move wall',
+    },
+    { keys: <Kbd k="Space" />, label: 'Rotate wall' },
+    {
+      keys: (
+        <>
+          <Kbd k="ArrowLeft" />
+          <Kbd k="ArrowRight" />
+        </>
+      ),
+      label: 'Turn board',
+    },
+    { keys: <Kbd k="Enter" />, label: 'Drop' },
+  ];
+
+  return (
+    <div className="mx-auto grid w-fit grid-cols-[auto_auto] items-center gap-x-3 gap-y-2.5 py-1">
+      {rows.flatMap(({ keys, label }) => [
+        <div
+          key={`${label}-keys`}
+          className="flex flex-wrap items-center justify-end gap-1"
+        >
+          {keys}
+        </div>,
+        <span
+          key={`${label}-label`}
+          className="text-left text-xs leading-4 text-text-light"
+        >
+          {label}
+        </span>,
+      ])}
+    </div>
+  );
+}
 
 interface TutorialProps {
   onComplete: () => void;
@@ -139,6 +202,8 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
       <p className="text-center text-sm leading-5 text-text-muted">Tutorial</p>
 
       <div className="flex flex-col gap-4 bg-foreground pixelated p-4">
+        {current.id === 'controls' ? <ControlsCheatSheet /> : null}
+
         {current.id === 'goal' ? (
           <ShotPair
             left={{
