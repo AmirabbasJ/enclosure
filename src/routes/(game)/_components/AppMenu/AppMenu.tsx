@@ -135,10 +135,11 @@ export function AppMenu() {
   const { user } = useAuth();
   const { toggleMusic, musicAudioState, toggleHit, hitAudioState } =
     useGameAudio();
+
   return (
     <div className="absolute inset-x-0 bottom-0 z-10 flex w-full flex-col h-full items-center justify-center p-4 ">
       {user ? (
-        <div className="py-2 px-4 flex items-center justify-between w-full absolute top-0 left-0">
+        <div className="py-2 px-4 flex items-center justify-between w-full ">
           <div className="flex items-center gap-2">
             <Avatar size={75} seed={user.username} />
             <p>{user.username} </p>
@@ -168,7 +169,7 @@ export function AppMenu() {
           </div>
         </div>
       ) : null}
-      <div className="flex min-w-[420px] flex-col gap-3 p-3">
+      <div className="flex min-w-[420px] h-full  justify-center flex-col gap-3 p-3">
         <MenuContent />
       </div>
     </div>
