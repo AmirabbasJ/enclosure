@@ -187,7 +187,7 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
             aria-label={`Page ${i + 1}`}
             aria-current={i === page ? 'true' : undefined}
             onClick={() => setPage(i)}
-            className={`h-3 w-3 rounded-full transition-colors ${
+            className={`h-3 w-3 transition-colors ${
               i === page ? 'bg-accent' : 'bg-surface hover:bg-text-muted'
             }`}
           />
