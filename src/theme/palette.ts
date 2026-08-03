@@ -1,5 +1,5 @@
 export const palette = {
-  bg: '#0D1B2A',
+  bg: '#000F31',
   foreground: '#232F5C',
   panel: '#1B263B',
   surface: '#415A77',

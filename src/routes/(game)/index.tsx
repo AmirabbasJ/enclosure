@@ -22,13 +22,13 @@ function Game() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 bg-bg text-text-light ">
-      <div className="relative h-screen w-screen ">
+      <div className=" items-center h-screen w-screen">
         <PixelSceneRenderer>
           <SceneContent level={TUTORIAL_QUESTION} />
         </PixelSceneRenderer>
       </div>
       {isPlaying ? null : (
-        <div className="absolute inset-x-0 bottom-0 z-10 flex w-full   flex-col h-full items-center justify-center p-4 ">
+        <div className="absolute inset-x-0 bottom-0 z-10 flex w-full flex-col h-full items-center justify-center p-4 ">
           <AppMenu />
         </div>
       )}
