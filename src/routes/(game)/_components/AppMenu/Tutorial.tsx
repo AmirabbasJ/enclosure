@@ -125,7 +125,7 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
     <div className="flex w-full max-w-[560px] flex-col gap-4">
       <p className="text-center text-sm leading-5 text-text-muted">Tutorial</p>
 
-      <div className="flex flex-col gap-4 rounded-sm bg-panel/80 p-4">
+      <div className="flex flex-col gap-4 bg-panel/80 p-4">
         {current.id === 'goal' ? (
           <ShotPair
             left={{

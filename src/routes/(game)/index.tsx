@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 
 import { useGameAudio } from '../../context/GameAudioContext';
 import { useGame } from '../../context/GameContext';
+import { TUTORIAL_QUESTION } from '../../domain/tutorialLevel';
 import { PixelSceneRenderer } from '../../PixelSceneRenderer';
 import { AppMenu } from './_components/AppMenu/AppMenu';
 import { SceneContent } from './_components/PixelScene/PixelScene';
@@ -23,7 +24,7 @@ function Game() {
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 bg-bg text-text-light ">
       <div className="relative h-screen w-screen ">
         <PixelSceneRenderer>
-          <SceneContent />
+          <SceneContent level={TUTORIAL_QUESTION} />
         </PixelSceneRenderer>
       </div>
       {isPlaying ? null : (

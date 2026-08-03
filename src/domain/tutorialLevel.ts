@@ -1,5 +1,5 @@
 import type { LevelInput } from '#/domain/level';
-import type { WallInput, YawQuarters } from '#/domain/walls';
+import type { WallInput } from '#/domain/walls';
 
 export const TUTORIAL_QUESTION: LevelInput = {
   orbs: [
@@ -30,9 +30,9 @@ export const TUTORIAL_SURROUND_WRONG: LevelInput = {
     wall.id === 'u'
       ? {
           ...wall,
-          col: 4,
+          col: 3,
           row: 0,
-          yawQuarters: ((wall.yawQuarters + 2) % 4) as YawQuarters,
+          yawQuarters: 3,
         }
       : wall
   ),
@@ -46,7 +46,7 @@ export const TUTORIAL_RED_WRONG: LevelInput = {
           ...wall,
           col: 1,
           row: 2,
-          yawQuarters: ((wall.yawQuarters + 1) % 4) as YawQuarters,
+          yawQuarters: 1,
         }
       : wall
   ),
