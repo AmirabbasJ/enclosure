@@ -2,8 +2,8 @@ import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
 import Button from '@/ui/button';
 
+import { Tutorial } from '../Tutorial/Tutorial';
 import { AuthForm } from './AuthForm';
-import { Tutorial } from './Tutorial';
 
 function MenuContent() {
   const { state, send } = useGame();
@@ -28,9 +28,12 @@ function MenuContent() {
   }
 
   if (state.matches('tutorial')) {
+    const fromHelp = state.context.tutorialBackTo === 'help';
     return (
       <Tutorial
-        onComplete={() => send({ type: 'TUTORIAL_COMPLETE' })}
+        onComplete={
+          fromHelp ? undefined : () => send({ type: 'TUTORIAL_COMPLETE' })
+        }
         onBack={() => send({ type: 'BACK' })}
       />
     );
@@ -63,12 +66,7 @@ function MenuContent() {
       <>
         <p className="mb-3 text-center text-base opacity-80">Help</p>
         <Button onClick={() => send({ type: 'CONTROLS' })}>Controls</Button>
-        <Button onClick={() => send({ type: 'RULES' })}>Rules</Button>
-        <Button onClick={() => send({ type: 'SCORING' })}>Scoring</Button>
-        <Button onClick={() => send({ type: 'FAQ' })}>FAQ</Button>
-        <Button onClick={() => send({ type: 'REPLAY_TUTORIAL' })}>
-          Replay Tutorial
-        </Button>
+        <Button onClick={() => send({ type: 'TUTORIAL' })}>Rules</Button>
         <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
       </>
     );
@@ -76,37 +74,10 @@ function MenuContent() {
 
   if (state.matches({ help: 'controls' })) {
     return (
-      <>
-        <p className="mb-3 text-center text-base opacity-80">Controls</p>
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
-      </>
-    );
-  }
-
-  if (state.matches({ help: 'rules' })) {
-    return (
-      <>
-        <p className="mb-3 text-center text-base opacity-80">Rules</p>
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
-      </>
-    );
-  }
-
-  if (state.matches({ help: 'scoring' })) {
-    return (
-      <>
-        <p className="mb-3 text-center text-base opacity-80">Scoring</p>
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
-      </>
-    );
-  }
-
-  if (state.matches({ help: 'faq' })) {
-    return (
-      <>
-        <p className="mb-3 text-center text-base opacity-80">FAQ</p>
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
-      </>
+      <Tutorial
+        pagesToInclude={['controls']}
+        onBack={() => send({ type: 'BACK' })}
+      />
     );
   }
 

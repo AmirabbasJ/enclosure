@@ -16,51 +16,9 @@ import {
   TUTORIAL_TOWER_WRONG,
 } from '#/domain/tutorialLevel';
 
-interface TutorialPage {
-  id: string;
-  text: ReactNode;
-}
+import type { TutorialPage } from './tutorialPages';
 
-const PAGES: TutorialPage[] = [
-  {
-    id: 'goal',
-    text: (
-      <>
-        Position the walls using the indents in the board as a guideline, so
-        that the <span className="font-bold text-danger">red cones</span> stay
-        outside and the <span className="font-bold text-accent">blue orbs</span>{' '}
-        remain enclosed.
-      </>
-    ),
-  },
-  {
-    id: 'surround',
-    text: (
-      <>
-        A <span className="font-bold text-accent">blue orb</span> is safe only
-        when surrounded by walls on all sides.
-      </>
-    ),
-  },
-  {
-    id: 'redOpen',
-    text: (
-      <>
-        <span className="font-bold text-danger">Red cones</span> must never be
-        totally surrounded by walls. They can sit in a partially enclosed area,
-        as long as a wall has an opening on at least one side.
-      </>
-    ),
-  },
-  {
-    id: 'meetTower',
-    text: 'You can place two walls to meet each other where the indents cross, but you cannot place a wall against a tower as it will not fit.',
-  },
-  {
-    id: 'controls',
-    text: 'Drag a wall to place it, or select one and use the keys above.',
-  },
-];
+import { tutorialPages } from './tutorialPages';
 
 function ControlsCheatSheet() {
   const rows: { keys: ReactNode; label: string }[] = [
@@ -121,7 +79,8 @@ function ControlsCheatSheet() {
 }
 
 interface TutorialProps {
-  onComplete: () => void;
+  pagesToInclude?: TutorialPage['id'][];
+  onComplete?: () => void;
   onBack: () => void;
 }
 
@@ -191,11 +150,19 @@ function ShotPair({
   );
 }
 
-export function Tutorial({ onComplete, onBack }: TutorialProps) {
+const allPagesIds = tutorialPages.map((p) => p.id);
+
+export function Tutorial({
+  onComplete,
+  onBack,
+  pagesToInclude = allPagesIds,
+}: TutorialProps) {
+  const pages = tutorialPages.filter((p) => pagesToInclude.includes(p.id));
   const [page, setPage] = useState(0);
-  const current = PAGES[page] ?? PAGES[0];
+  const current = pages[page] ?? pages[0];
   const isFirst = page === 0;
-  const isLast = page >= PAGES.length - 1;
+  const isLast = page >= pages.length - 1;
+  const isSinglePage = pages.length === 1;
 
   return (
     <div className="flex w-full max-w-[560px] flex-col gap-4">
@@ -275,42 +242,47 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
         </p>
       </div>
 
-      <div className="flex items-center justify-center gap-3">
-        {PAGES.map((p, i) => (
-          <button
-            key={p.id}
-            type="button"
-            aria-label={`Page ${i + 1}`}
-            aria-current={i === page ? 'true' : undefined}
-            onClick={() => setPage(i)}
-            className={`h-3 w-3 transition-colors ${
-              i === page ? 'bg-accent' : 'bg-surface hover:bg-text-muted'
-            }`}
-          />
-        ))}
-      </div>
-
-      <div className="flex gap-3">
-        <Button
-          className="flex-1"
-          disabled={isFirst}
-          onClick={() => setPage((p) => Math.max(0, p - 1))}
-        >
-          Prev
-        </Button>
-        {isLast ? (
-          <Button className="flex-1" onClick={onComplete}>
-            Play
-          </Button>
-        ) : (
-          <Button
-            className="flex-1"
-            onClick={() => setPage((p) => Math.min(PAGES.length - 1, p + 1))}
-          >
-            Next
-          </Button>
-        )}
-      </div>
+      {!isSinglePage ? (
+        <>
+          <div className="flex items-center justify-center gap-3">
+            {pages.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                aria-label={`Page ${i + 1}`}
+                aria-current={i === page ? 'true' : undefined}
+                onClick={() => setPage(i)}
+                className={`h-3 w-3 transition-colors ${
+                  i === page ? 'bg-accent' : 'bg-surface hover:bg-text-muted'
+                }`}
+              />
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <Button
+              className="flex-1"
+              disabled={isFirst}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              Prev
+            </Button>
+            {!isLast ? (
+              <Button
+                className="flex-1"
+                onClick={() =>
+                  setPage((p) => Math.min(pages.length - 1, p + 1))
+                }
+              >
+                Next
+              </Button>
+            ) : onComplete ? (
+              <Button className="flex-1" onClick={onComplete}>
+                Play
+              </Button>
+            ) : null}
+          </div>
+        </>
+      ) : null}
 
       <Button onClick={onBack}>Back</Button>
     </div>

@@ -3,23 +3,21 @@ import { assign, setup } from 'xstate';
 export type GameEvent =
   | { type: 'BACK' }
   | { type: 'CONTROLS' }
-  | { type: 'FAQ' }
   | { type: 'HELP' }
   | { type: 'LEADERBOARD' }
   | { type: 'PLAY' }
   | { type: 'PROFILE' }
-  | { type: 'REPLAY_TUTORIAL' }
-  | { type: 'RULES' }
-  | { type: 'SCORING' }
   | { type: 'SETTINGS' }
   | { type: 'SIGN_IN' }
   | { type: 'SIGN_OUT' }
   | { type: 'SKIP_SIGN_IN' }
-  | { type: 'TUTORIAL_COMPLETE' };
+  | { type: 'TUTORIAL_COMPLETE' }
+  | { type: 'TUTORIAL' };
 
 export interface GameMachineContext {
   hasSeenTutorial: boolean;
   isSignedIn: boolean;
+  tutorialBackTo: 'help' | 'mainMenu';
 }
 
 export const gameMachine = setup({
@@ -30,11 +28,14 @@ export const gameMachine = setup({
   guards: {
     hasSeenTutorial: ({ context }) => context.hasSeenTutorial,
     isSignedIn: ({ context }) => context.isSignedIn,
+    tutorialFromHelp: ({ context }) => context.tutorialBackTo === 'help',
   },
   actions: {
     markTutorialSeen: assign({ hasSeenTutorial: true }),
     setSignedIn: assign({ isSignedIn: true }),
     setSignedOut: assign({ isSignedIn: false }),
+    setTutorialBackToMain: assign({ tutorialBackTo: 'mainMenu' as const }),
+    setTutorialBackToHelp: assign({ tutorialBackTo: 'help' as const }),
   },
 }).createMachine({
   id: 'game',
@@ -42,6 +43,7 @@ export const gameMachine = setup({
   context: {
     hasSeenTutorial: false,
     isSignedIn: false,
+    tutorialBackTo: 'mainMenu',
   },
   on: {
     SIGN_IN: { actions: 'setSignedIn' },
@@ -56,7 +58,10 @@ export const gameMachine = setup({
       on: {
         PLAY: [
           { guard: 'hasSeenTutorial', target: 'playing' },
-          { target: 'tutorial' },
+          {
+            target: 'tutorial',
+            actions: 'setTutorialBackToMain',
+          },
         ],
         LEADERBOARD: [
           { guard: 'isSignedIn', target: 'leaderboard' },
@@ -74,7 +79,10 @@ export const gameMachine = setup({
           target: 'playing',
           actions: 'markTutorialSeen',
         },
-        BACK: { target: 'mainMenu' },
+        BACK: [
+          { guard: 'tutorialFromHelp', target: 'help' },
+          { target: 'mainMenu' },
+        ],
       },
     },
 
@@ -103,15 +111,15 @@ export const gameMachine = setup({
     help: {
       initial: 'menu',
       on: {
-        REPLAY_TUTORIAL: { target: '#game.tutorial' },
+        TUTORIAL: {
+          target: '#game.tutorial',
+          actions: 'setTutorialBackToHelp',
+        },
       },
       states: {
         menu: {
           on: {
             CONTROLS: { target: 'controls' },
-            RULES: { target: 'rules' },
-            SCORING: { target: 'scoring' },
-            FAQ: { target: 'faq' },
             BACK: { target: '#game.mainMenu' },
           },
         },
@@ -119,12 +127,6 @@ export const gameMachine = setup({
           on: { BACK: { target: 'menu' } },
         },
         rules: {
-          on: { BACK: { target: 'menu' } },
-        },
-        scoring: {
-          on: { BACK: { target: 'menu' } },
-        },
-        faq: {
           on: { BACK: { target: 'menu' } },
         },
       },
