@@ -31,7 +31,7 @@ export function GameAudioProvider({ children }: PropsWithChildren) {
     isOn: true,
   });
 
-  const [playHit, { stop: stopHit }] = useSound('/hit.mp3', {
+  const [playHit, { stop: stopHit }] = useSound('/audios/hit.mp3', {
     volume: hitAudioState.isOn ? hitAudioState.volume : 0,
     sprite: {
       1: [1550, 250],
@@ -53,7 +53,7 @@ export function GameAudioProvider({ children }: PropsWithChildren) {
     volume: 0.25,
     isOn: true,
   });
-  const [playMusic, { stop: stopMusic }] = useSound('/music.mp3', {
+  const [playMusic, { stop: stopMusic }] = useSound('/audios/music.mp3', {
     volume: musicAudioState.isOn ? musicAudioState.volume : 0,
     loop: true,
   });

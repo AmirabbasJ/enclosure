@@ -1,25 +1,41 @@
 import type { ImgHTMLAttributes } from 'react';
 
+import {
+  Kbd1,
+  Kbd2,
+  Kbd3,
+  Kbd4,
+  KbdA,
+  KbdArrowLeft,
+  KbdArrowRight,
+  KbdD,
+  KbdEnter,
+  KbdMouseLeft,
+  KbdS,
+  KbdSpace,
+  KbdW,
+} from '../assets/kbd';
+
 const KBD = {
-  '1': { src: '/kbd/1.png', w: 17, h: 16, label: '1' },
-  '2': { src: '/kbd/2.png', w: 17, h: 16, label: '2' },
-  '3': { src: '/kbd/3.png', w: 17, h: 16, label: '3' },
-  '4': { src: '/kbd/4.png', w: 17, h: 16, label: '4' },
-  W: { src: '/kbd/W.png', w: 17, h: 16, label: 'W' },
-  A: { src: '/kbd/A.png', w: 17, h: 16, label: 'A' },
-  S: { src: '/kbd/S.png', w: 17, h: 16, label: 'S' },
-  D: { src: '/kbd/D.png', w: 17, h: 16, label: 'D' },
-  ArrowLeft: { src: '/kbd/ARROWLEFT.png', w: 17, h: 16, label: 'Left arrow' },
+  '1': { src: Kbd1, w: 17, h: 16, label: '1' },
+  '2': { src: Kbd2, w: 17, h: 16, label: '2' },
+  '3': { src: Kbd3, w: 17, h: 16, label: '3' },
+  '4': { src: Kbd4, w: 17, h: 16, label: '4' },
+  W: { src: KbdW, w: 17, h: 16, label: 'W' },
+  A: { src: KbdA, w: 17, h: 16, label: 'A' },
+  S: { src: KbdS, w: 17, h: 16, label: 'S' },
+  D: { src: KbdD, w: 17, h: 16, label: 'D' },
+  ArrowLeft: { src: KbdArrowLeft, w: 17, h: 16, label: 'Left arrow' },
   ArrowRight: {
-    src: '/kbd/ARROWRIGHT.png',
+    src: KbdArrowRight,
     w: 17,
     h: 16,
     label: 'Right arrow',
   },
-  Space: { src: '/kbd/SPACEALTERNATIVE.png', w: 67, h: 16, label: 'Space' },
-  Enter: { src: '/kbd/ENTERALTERNATIVE.png', w: 42, h: 31, label: 'Enter' },
+  Space: { src: KbdSpace, w: 67, h: 16, label: 'Space' },
+  Enter: { src: KbdEnter, w: 42, h: 31, label: 'Enter' },
   MouseLeft: {
-    src: '/kbd/Mouse-left-click.png',
+    src: KbdMouseLeft,
     w: 16,
     h: 16,
     label: 'Left click',
@@ -31,17 +47,17 @@ export type KbdKey = keyof typeof KBD;
 
 const SCALE = 2;
 
-type KbdProps = {
+type KbdProps = Omit<
+  ImgHTMLAttributes<HTMLImageElement>,
+  'alt' | 'children' | 'height' | 'src' | 'width'
+> & {
   k: KbdKey;
   className?: string;
-} & Omit<
-  ImgHTMLAttributes<HTMLImageElement>,
-  'src' | 'alt' | 'width' | 'height' | 'children'
->;
+};
 
 export function Kbd({ k, className = '', ...props }: KbdProps) {
   const asset = KBD[k];
-  const tint = !('tint' in asset && asset.tint === false);
+  const tint = !('tint' in asset && !asset.tint);
   return (
     <img
       src={asset.src}

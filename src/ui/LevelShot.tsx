@@ -1,6 +1,16 @@
 import type { LevelInput } from '#/domain/level';
 import type { WallId, WallInput, YawQuarters } from '#/domain/walls';
 
+import {
+  LevelShotOrb,
+  LevelShotSnake,
+  LevelShotSteps,
+  LevelShotTriangle,
+  LevelShotU,
+  LevelShotZigzag,
+  tiles,
+} from '../assets/level-shot';
+
 const TILES_W = 80;
 const TILES_H = 79;
 const ISO = 12;
@@ -9,19 +19,19 @@ const ISO_ORIGIN_Y = -3;
 
 const WALL_SRC: Record<
   WallId,
-  { href: string; w: number; h: number; ax: number; ay: number }
+  { path: string; w: number; h: number; ax: number; ay: number }
 > = {
-  u: { href: '/level-shot/u.svg', w: 26, h: 25, ax: 13, ay: 0 },
-  steps: { href: '/level-shot/steps.svg', w: 17, h: 48, ax: 0, ay: 0 },
+  u: { path: LevelShotU, w: 26, h: 25, ax: 13, ay: 0 },
+  steps: { path: LevelShotSteps, w: 17, h: 48, ax: 0, ay: 0 },
   snake: {
-    href: '/level-shot/snake.svg',
+    path: LevelShotSnake,
     w: 25,
     h: 49,
     ax: 26,
     ay: 37,
   },
   zigzagTall: {
-    href: '/level-shot/zigzag.svg',
+    path: LevelShotZigzag,
     w: 48,
     h: 40,
     ax: 49,
@@ -30,8 +40,8 @@ const WALL_SRC: Record<
 };
 
 const ORB = {
-  good: { href: '/level-shot/orb.svg', w: 7, h: 7 },
-  bad: { href: '/level-shot/triangle.svg', w: 5, h: 5 },
+  good: { href: LevelShotOrb, w: 7, h: 7 },
+  bad: { href: LevelShotTriangle, w: 5, h: 5 },
 } as const;
 
 export function boardToIso(bx: number, by: number): [number, number] {
@@ -86,13 +96,7 @@ export function LevelShot({ level, className, pad = 4 }: LevelShotProps) {
       role="img"
       aria-label="Level preview"
     >
-      <image
-        href="/level-shot/tiles.svg"
-        x={0}
-        y={0}
-        width={TILES_W}
-        height={TILES_H}
-      />
+      <image href={tiles} x={0} y={0} width={TILES_W} height={TILES_H} />
 
       {walls.map((wall) => {
         const asset = WALL_SRC[wall.id];
@@ -105,7 +109,7 @@ export function LevelShot({ level, className, pad = 4 }: LevelShotProps) {
             key={`${wall.id}-${wall.col}-${wall.row}-${wall.yawQuarters}`}
             transform={`translate(${ix} ${iy}) rotate(${deg}) translate(${-asset.ax} ${-asset.ay})`}
           >
-            <image href={asset.href} width={asset.w} height={asset.h} />
+            <image href={asset.path} width={asset.w} height={asset.h} />
           </g>
         );
       })}

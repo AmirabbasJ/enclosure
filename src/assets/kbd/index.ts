@@ -1,0 +1,13 @@
+export { default as Kbd1 } from './1.png';
+export { default as Kbd2 } from './2.png';
+export { default as Kbd3 } from './3.png';
+export { default as Kbd4 } from './4.png';
+export { default as KbdA } from './A.png';
+export { default as KbdArrowLeft } from './ARROWLEFT.png';
+export { default as KbdArrowRight } from './ARROWRIGHT.png';
+export { default as KbdD } from './D.png';
+export { default as KbdEnter } from './ENTERALTERNATIVE.png';
+export { default as KbdMouseLeft } from './Mouse-left-click.png';
+export { default as KbdS } from './S.png';
+export { default as KbdSpace } from './SPACEALTERNATIVE.png';
+export { default as KbdW } from './W.png';
