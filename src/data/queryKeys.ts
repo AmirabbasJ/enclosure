@@ -1,3 +1,7 @@
-export const queryKeys = {
-  currentUser: ['auth', 'currentUser'] as const,
-};
+import { createQueryKeyStore } from '@lukemorales/query-key-factory';
+
+export const queryKeys = createQueryKeyStore({
+  auth: {
+    currentUser: null,
+  },
+});

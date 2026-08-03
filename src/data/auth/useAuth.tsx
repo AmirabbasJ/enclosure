@@ -31,7 +31,7 @@ export function useAuth(): AuthValue {
   const getCurrentUser = useServerFn(getCurrentUserFn);
 
   const currentUserQuery = useQuery({
-    queryKey: queryKeys.currentUser,
+    queryKey: queryKeys.auth.currentUser.queryKey,
     queryFn: () => getCurrentUser(),
     staleTime: Infinity,
     initialData: { user: currentUser },
@@ -42,7 +42,9 @@ export function useAuth(): AuthValue {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'INITIAL_SESSION') return;
-      void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.currentUser.queryKey,
+      });
     });
     return () => subscription.unsubscribe();
   }, [supabase, queryClient]);
@@ -53,7 +55,9 @@ export function useAuth(): AuthValue {
     const { error } = await signInFn(username, password, supabase);
     if (error) return error;
 
-    await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser });
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.auth.currentUser.queryKey,
+    });
     return null;
   };
 
@@ -75,7 +79,9 @@ export function useAuth(): AuthValue {
     const { error } = await supabase.auth.signOut();
     if (error) return error.message;
 
-    queryClient.setQueryData(queryKeys.currentUser, { user: null });
+    queryClient.setQueryData(queryKeys.auth.currentUser.queryKey, {
+      user: null,
+    });
     return null;
   };
 
