@@ -895,11 +895,6 @@ export function Wall({
     if (!(e.object instanceof THREE.Mesh)) return;
     e.stopPropagation();
 
-    if (selected) {
-      onDeselect?.();
-      return;
-    }
-
     const group = groupRef.current;
     const parent = group?.parent;
     if (!group || !parent) return;
@@ -915,6 +910,9 @@ export function Wall({
       local.current.x - position[0],
       local.current.z - position[2]
     );
+
+    // Drop keyboard-selected wall(s) when a drag starts.
+    onDeselect?.();
 
     velX.current = 0;
     velZ.current = 0;

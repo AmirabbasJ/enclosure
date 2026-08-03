@@ -41,7 +41,7 @@ export function buildTileGrooveSlots(): GrooveSlot[] {
   const seen = new Set<string>();
 
   const add = (x: number, z: number, horizontal: boolean) => {
-    const key = `${horizontal ? 'h' : 'v'}:${x.toFixed(4)}:${z.toFixed(4)}`;
+    const key = grooveSlotKey({ x, z, horizontal });
     if (seen.has(key)) return;
     seen.add(key);
     slots.push({ x, z, horizontal });
@@ -95,12 +95,18 @@ function rotateYawXZ(x: number, z: number, yaw: number) {
   return { x: x * c + z * s, z: -x * s + z * c };
 }
 
+/** Avoid `-0.0000` ≠ `0.0000` key mismatches from float signbit. */
+function fixedKey(n: number): string {
+  const s = n.toFixed(4);
+  return s === '-0.0000' ? '0.0000' : s;
+}
+
 export function grooveSlotKey(slot: GrooveSlot): string {
-  return `${slot.horizontal ? 'h' : 'v'}:${slot.x.toFixed(4)}:${slot.z.toFixed(4)}`;
+  return `${slot.horizontal ? 'h' : 'v'}:${fixedKey(slot.x)}:${fixedKey(slot.z)}`;
 }
 
 export function cornerSlotKey(x: number, z: number): string {
-  return `c:${x.toFixed(4)}:${z.toFixed(4)}`;
+  return `c:${fixedKey(x)}:${fixedKey(z)}`;
 }
 
 export function wallCornerWorldKeys({
@@ -415,7 +421,7 @@ export function enumerateValidWallCenters({
       const cr = rotateYawXZ(centerOffset.x, centerOffset.z, yaw);
       const cx = ox + cr.x;
       const cz = oz + cr.z;
-      const key = `${cx.toFixed(4)}:${cz.toFixed(4)}`;
+      const key = `${fixedKey(cx)}:${fixedKey(cz)}`;
       if (seen.has(key)) continue;
       seen.add(key);
       results.push({ x: cx, z: cz });

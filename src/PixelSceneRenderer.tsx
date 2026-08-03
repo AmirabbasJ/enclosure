@@ -206,7 +206,6 @@ export function PixelSceneRenderer({ children }: PropsWithChildren) {
         );
       }}
       onCreated={({ camera, gl }) => {
-        gl.toneMapping = THREE.NoToneMapping;
         gl.shadowMap.enabled = true;
         gl.shadowMap.type = THREE.PCFSoftShadowMap;
         camera.lookAt(0, 0, 0);
