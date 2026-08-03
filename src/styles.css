@@ -63,4 +63,8 @@
     filter: sepia(0.65) hue-rotate(178deg) saturate(2.4) brightness(0.78)
       contrast(1.08);
   }
+
+  .title-shadow {
+    text-shadow: 2px 2px 0 #0a1440, 4px 4px 0 rgba(95, 164, 255, 0.35);
+  }
 }

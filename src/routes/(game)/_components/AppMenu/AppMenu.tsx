@@ -1,7 +1,6 @@
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
 import { Avatar } from '@/ui/avatar';
-import Button from '@/ui/button';
 
 import { useGameAudio } from '../../../../context/GameAudioContext';
 import {
@@ -10,8 +9,23 @@ import {
   IconSoundMedium,
   IconSoundOff,
 } from '../../../../lib/icons';
+import Button from '../../../../ui/button';
 import { Tutorial } from '../Tutorial/Tutorial';
 import { AuthForm } from './AuthForm';
+
+function MenuButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <Button className="min-w-[250px]" onClick={onClick}>
+      {children}
+    </Button>
+  );
+}
 
 function MenuContent() {
   const { state, send } = useGame();
@@ -23,15 +37,17 @@ function MenuContent() {
   if (state.matches('mainMenu')) {
     return (
       <>
-        <Button onClick={() => send({ type: 'PLAY' })}>Play</Button>
-        <Button onClick={() => send({ type: 'HELP' })}>Help</Button>
-        <Button onClick={() => send({ type: 'PROFILE' })}>
+        <MenuButton onClick={() => send({ type: 'PLAY' })}>Play</MenuButton>
+        <MenuButton onClick={() => send({ type: 'HELP' })}>Help</MenuButton>
+        <MenuButton onClick={() => send({ type: 'PROFILE' })}>
           {isSignedIn ? 'Profile' : 'Sign In'}
-        </Button>
-        <Button onClick={() => send({ type: 'LEADERBOARD' })}>
+        </MenuButton>
+        <MenuButton onClick={() => send({ type: 'LEADERBOARD' })}>
           Leaderboard
-        </Button>
-        <Button onClick={() => send({ type: 'SETTINGS' })}>Settings</Button>
+        </MenuButton>
+        <MenuButton onClick={() => send({ type: 'SETTINGS' })}>
+          Settings
+        </MenuButton>
       </>
     );
   }
@@ -55,8 +71,10 @@ function MenuContent() {
           Sign in to save your scores (optional)
         </p>
         <AuthForm onSuccess={() => send({ type: 'SIGN_IN' })} />
-        <Button onClick={() => send({ type: 'SKIP_SIGN_IN' })}>Skip</Button>
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
+        <MenuButton onClick={() => send({ type: 'SKIP_SIGN_IN' })}>
+          Skip
+        </MenuButton>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
   }
@@ -65,7 +83,7 @@ function MenuContent() {
     return (
       <>
         <p className="mb-3 text-center text-base opacity-80">Leaderboard</p>
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
   }
@@ -74,9 +92,13 @@ function MenuContent() {
     return (
       <>
         <p className="mb-3 text-center text-base opacity-80">Help</p>
-        <Button onClick={() => send({ type: 'CONTROLS' })}>Controls</Button>
-        <Button onClick={() => send({ type: 'TUTORIAL' })}>Rules</Button>
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
+        <MenuButton onClick={() => send({ type: 'CONTROLS' })}>
+          Controls
+        </MenuButton>
+        <MenuButton onClick={() => send({ type: 'TUTORIAL' })}>
+          Rules
+        </MenuButton>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
   }
@@ -103,18 +125,18 @@ function MenuContent() {
                 {user.username}
               </p>
             ) : null}
-            <Button
+            <MenuButton
               onClick={() => {
                 void signOut().then(() => send({ type: 'SIGN_OUT' }));
               }}
             >
               Sign Out
-            </Button>
+            </MenuButton>
           </>
         ) : (
           <AuthForm onSuccess={() => send({ type: 'SIGN_IN' })} />
         )}
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
   }
@@ -123,7 +145,7 @@ function MenuContent() {
     return (
       <>
         <p className="mb-3 text-center text-base opacity-80">Settings</p>
-        <Button onClick={() => send({ type: 'BACK' })}>Back</Button>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
   }
@@ -133,6 +155,7 @@ function MenuContent() {
 
 export function AppMenu() {
   const { user } = useAuth();
+  const { state } = useGame();
   const { toggleMusic, musicAudioState, toggleHit, hitAudioState } =
     useGameAudio();
 
@@ -169,8 +192,23 @@ export function AppMenu() {
           </div>
         </div>
       ) : null}
-      <div className="flex min-w-[420px] h-full  justify-center flex-col gap-3 p-3">
-        <MenuContent />
+      <div className="h-full flex justify-center flex-col items-center gap-4">
+        {state.matches('mainMenu') && (
+          <div className="flex flex-col items-center gap-1">
+            <h1 className="title-shadow text-center font-pixel text-[26px] tracking-[3px] text-accent-hover">
+              EN<span className="text-danger">CLOSURE</span>
+            </h1>
+            <p
+              className=" text-center font-pixel text-[9px] max-w-[300px] text-text-muted "
+              style={{ textShadow: '1px 1px 0 #000' }}
+            >
+              are we being protected, or are we being contained?
+            </p>
+          </div>
+        )}
+        <div className="flex  max-w-[420px] flex-col justify-center gap-3 p-3">
+          <MenuContent />
+        </div>
       </div>
     </div>
   );
