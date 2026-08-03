@@ -1,3 +1,7 @@
+import { Avatar as DicebearAvatar, Style } from '@dicebear/core';
+import definition from '@dicebear/styles/pixelbot.json' with { type: 'json' };
+import { useMemo } from 'react';
+
 interface AvatarProps {
   seed: string;
   size?: number;
@@ -11,13 +15,18 @@ export function Avatar({
   className = '',
   alt = 'avatar',
 }: AvatarProps) {
+  const img = useMemo(() => {
+    const style = new Style(definition);
+    const avatar = new DicebearAvatar(style, {
+      size,
+      seed,
+    });
+
+    const svg = avatar.toDataUri();
+    return svg;
+  }, [seed, size]);
+
   return (
-    <img
-      src={`https://api.dicebear.com/10.x/pixelbot/svg?seed=${encodeURIComponent(seed)}`}
-      alt={alt}
-      width={size}
-      height={size}
-      className={className}
-    />
+    <img src={img} alt={alt} width={size} height={size} className={className} />
   );
 }
