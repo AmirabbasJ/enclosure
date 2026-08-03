@@ -7,7 +7,8 @@ import { AuthForm } from './AuthForm';
 
 function MenuContent() {
   const { state, send } = useGame();
-  const { profile, signOut, isSignedIn } = useAuth();
+
+  const { user, signOut, isSignedIn } = useAuth();
 
   if (state.matches('playing') || state.matches('launch')) return null;
 
@@ -89,9 +90,9 @@ function MenuContent() {
         </p>
         {isSignedIn ? (
           <>
-            {profile?.username ? (
+            {user?.username ? (
               <p className="mb-3 text-center text-sm text-accent">
-                {profile.username}
+                {user.username}
               </p>
             ) : null}
             <Button
@@ -123,9 +124,24 @@ function MenuContent() {
 }
 
 export function AppMenu() {
+  const { user } = useAuth();
   return (
-    <div className="flex min-w-[420px] flex-col gap-3 p-3">
-      <MenuContent />
+    <div className="absolute inset-x-0 bottom-0 z-10 flex w-full flex-col h-full items-center justify-center p-4 ">
+      {user ? (
+        <div className="py-2 px-4 gap-4 flex items-center justify-center absolute top-0 left-0">
+          <img
+            src={`https://api.dicebear.com/10.x/pixelbot/svg?seed=${user.username}`}
+            alt="avatar"
+            width={100}
+            height={100}
+            className="pixelated-circle"
+          />
+          <p>{user.username} </p>
+        </div>
+      ) : null}
+      <div className="flex min-w-[420px] flex-col gap-3 p-3">
+        <MenuContent />
+      </div>
     </div>
   );
 }

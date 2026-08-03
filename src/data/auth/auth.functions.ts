@@ -6,8 +6,10 @@ import { z } from 'zod';
 import type { Database } from '@/database.types';
 
 import { createAdminClient } from '@/lib/supabase/admin.functions';
-import { supabaseClient } from '@/lib/supabase/client';
+import { supabaseBrowserClient } from '@/lib/supabase/client';
 import { createServerClient } from '@/lib/supabase/client.server';
+
+import type { User } from '../../domain/User';
 
 const AUTH_EMAIL_DOMAIN = 'users.enclosure.local';
 
@@ -62,10 +64,10 @@ function parseCredentials(username: string, password: string) {
 type Client = SupabaseClient<Database>;
 
 export interface CurrentUser {
-  profile: Database['public']['Tables']['profiles']['Row'] | null;
+  user: User | null;
 }
 
-export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
+export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
   async (): Promise<CurrentUser> => {
     const supabase = createServerClient();
 
@@ -73,9 +75,9 @@ export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
     if (error) throw error;
 
     const { session } = data;
-    if (!session) return { profile: null };
+    if (!session) return { user: null };
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: user, error: profileError } = await supabase
       .from('profiles')
       .select('id, username, created_at')
       .eq('id', session.user.id)
@@ -83,14 +85,14 @@ export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
 
     if (profileError) throw profileError;
 
-    return { profile };
+    return { user };
   }
 );
 
 export async function signIn(
   username: string,
   password: string,
-  client: Client = supabaseClient
+  client: Client = supabaseBrowserClient
 ): Promise<{ error: string | null; session: Session | null }> {
   const parsed = parseCredentials(username, password);
 

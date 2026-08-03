@@ -1,24 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useServerFn } from '@tanstack/react-start';
-
-import type { Database } from '@/database.types';
+import { useEffect } from 'react';
 
 import { useSupabase } from '@/lib/supabase/useSupabase';
 
+import type { User } from '../../domain/User';
+
+import { Route } from '../../routes/__root';
+import { queryKeys } from '../queryKeys';
 import {
-  getCurrentUser as getCurrentUserFn,
+  getCurrentUserFn,
   signIn as signInFn,
   signUp as signUpFn,
 } from './auth.functions';
 
-type Profile = Database['public']['Tables']['profiles']['Row'];
-
-const authKeys = {
-  currentUser: ['auth', 'currentUser'] as const,
-};
-
 export interface AuthValue {
-  profile: Profile | null;
+  user: User | null;
   isLoading: boolean;
   isSignedIn: boolean;
   signIn: (username: string, password: string) => Promise<string | null>;
@@ -27,33 +24,36 @@ export interface AuthValue {
 }
 
 export function useAuth(): AuthValue {
+  const { user: currentUser } = Route.useRouteContext();
   const supabase = useSupabase();
   const queryClient = useQueryClient();
   const createUser = useServerFn(signUpFn);
   const getCurrentUser = useServerFn(getCurrentUserFn);
 
   const currentUserQuery = useQuery({
-    queryKey: authKeys.currentUser,
+    queryKey: queryKeys.currentUser,
     queryFn: () => getCurrentUser(),
     staleTime: Infinity,
+    initialData: { user: currentUser },
   });
 
-  const profile = currentUserQuery.data?.profile ?? null;
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'INITIAL_SESSION') return;
+      void queryClient.invalidateQueries({ queryKey: queryKeys.currentUser });
+    });
+    return () => subscription.unsubscribe();
+  }, [supabase, queryClient]);
+
+  const user = currentUserQuery.data?.user ?? null;
 
   const signIn = async (username: string, password: string) => {
-    const { error, session: nextSession } = await signInFn(
-      username,
-      password,
-      supabase
-    );
-
+    const { error } = await signInFn(username, password, supabase);
     if (error) return error;
 
-    queryClient.setQueryData(authKeys.currentUser, {
-      session: nextSession,
-      profile: null,
-    });
-    await queryClient.invalidateQueries({ queryKey: authKeys.currentUser });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.currentUser });
     return null;
   };
 
@@ -75,18 +75,14 @@ export function useAuth(): AuthValue {
     const { error } = await supabase.auth.signOut();
     if (error) return error.message;
 
-    queryClient.setQueryData(authKeys.currentUser, {
-      session: null,
-      profile: null,
-    });
-
+    queryClient.setQueryData(queryKeys.currentUser, { user: null });
     return null;
   };
 
   return {
-    profile,
+    user,
     isLoading: currentUserQuery.isPending,
-    isSignedIn: Boolean(profile),
+    isSignedIn: Boolean(user),
     signIn,
     signUp: (username, password) =>
       signUpMutation.mutateAsync({ username, password }),

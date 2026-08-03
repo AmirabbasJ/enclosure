@@ -10,6 +10,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 
 import { GameAudioProvider } from '../context/GameAudioContext';
 import { GameProvider } from '../context/GameContext';
+import { getCurrentUserFn } from '../data/auth/auth.functions';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
 import appCss from '../styles.css?url';
 
@@ -39,6 +40,9 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     ],
   }),
   shellComponent: RootDocument,
+  beforeLoad: async () => {
+    return getCurrentUserFn();
+  },
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {

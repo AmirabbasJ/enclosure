@@ -27,11 +27,7 @@ function Game() {
           <SceneContent level={TUTORIAL_QUESTION} />
         </PixelSceneRenderer>
       </div>
-      {isPlaying ? null : (
-        <div className="absolute inset-x-0 bottom-0 z-10 flex w-full flex-col h-full items-center justify-center p-4 ">
-          <AppMenu />
-        </div>
-      )}
+      {isPlaying ? null : <AppMenu />}
     </div>
   );
 }
