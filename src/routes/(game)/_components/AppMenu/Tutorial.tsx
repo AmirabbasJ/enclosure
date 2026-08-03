@@ -17,21 +17,39 @@ import {
 
 interface TutorialPage {
   id: string;
-  text: string;
+  text: ReactNode;
 }
 
 const PAGES: TutorialPage[] = [
   {
     id: 'goal',
-    text: 'Position the walls using the indents in the board as a guideline, so that the red cones stay outside and the blue orbs remain enclosed.',
+    text: (
+      <>
+        Position the walls using the indents in the board as a guideline, so
+        that the <span className="font-bold text-danger">red cones</span> stay
+        outside and the <span className="font-bold text-accent">blue orbs</span>{' '}
+        remain enclosed.
+      </>
+    ),
   },
   {
     id: 'surround',
-    text: 'A blue orb is safe only when surrounded by walls on all sides.',
+    text: (
+      <>
+        A <span className="font-bold text-accent">blue orb</span> is safe only
+        when surrounded by walls on all sides.
+      </>
+    ),
   },
   {
     id: 'redOpen',
-    text: 'Red cones must never be totally surrounded by walls. They can sit in a partially enclosed area, as long as a wall has an opening on at least one side.',
+    text: (
+      <>
+        <span className="font-bold text-danger">Red cones</span> must never be
+        totally surrounded by walls. They can sit in a partially enclosed area,
+        as long as a wall has an opening on at least one side.
+      </>
+    ),
   },
   {
     id: 'meetTower',
@@ -112,12 +130,12 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
           <ShotPair
             left={{
               label: 'Puzzle',
-              labelClass: 'text-text-muted',
+              labelClass: 'text-warning',
               level: TUTORIAL_QUESTION,
             }}
             right={{
               label: 'Solution',
-              labelClass: 'text-text-muted',
+              labelClass: 'text-success',
               level: TUTORIAL_ANSWER,
             }}
           />
