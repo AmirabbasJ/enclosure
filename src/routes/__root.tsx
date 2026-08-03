@@ -47,7 +47,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="m-0 bg-bg font-pixel text-text-light">
+      <body className="m-0  font-pixel text-text-light">
         <GameProvider>
           <GameAudioProvider>{children}</GameAudioProvider>
         </GameProvider>

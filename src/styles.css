@@ -11,6 +11,7 @@
 @theme {
   --font-pixel: 'Press Start 2P', monospace;
   --color-bg: #0d1b2a;
+  --color-foreground: #232f5c;
   --color-panel: #1b263b;
   --color-surface: #415a77;
   --color-border: #778da9;

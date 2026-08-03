@@ -5,8 +5,8 @@ import { useState } from 'react';
 import type { LevelInput } from '#/domain/level';
 
 import Button from '@/ui/button';
-import { LevelShot } from '@/ui/LevelShot';
-import { PixelCross, PixelTick } from '@/ui/PixelMark';
+import { LevelShot, spaceToOverlayPercent } from '@/ui/LevelShot';
+import { PixelCross } from '@/ui/PixelMark';
 import {
   TUTORIAL_ANSWER,
   TUTORIAL_QUESTION,
@@ -67,12 +67,20 @@ function ShotFrame({
   labelClass,
   level,
   badge,
+  badgeAt,
 }: {
   label: string;
   labelClass: string;
   level: LevelInput;
   badge?: ReactNode;
+  badgeAt?: [number, number];
 }) {
+  const badgeStyle = badgeAt
+    ? {
+        ...spaceToOverlayPercent(badgeAt[0], badgeAt[1]),
+        transform: 'translate(-50%, -50%)',
+      }
+    : undefined;
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
       <span className={`text-xs uppercase tracking-wide ${labelClass}`}>
@@ -80,8 +88,11 @@ function ShotFrame({
       </span>
       <div className="relative w-full">
         <LevelShot level={level} className="h-auto w-full" />
-        {badge ? (
-          <div className="pointer-events-none absolute top-1.5 left-1.5 drop-shadow-[1px_1px_0_#000]">
+        {badge && badgeStyle ? (
+          <div
+            style={badgeStyle}
+            className="pointer-events-none absolute drop-shadow-[1px_1px_0_#000]"
+          >
             {badge}
           </div>
         ) : null}
@@ -99,12 +110,14 @@ function ShotPair({
     labelClass: string;
     level: LevelInput;
     badge?: ReactNode;
+    badgeAt?: [number, number];
   };
   right: {
     label: string;
     labelClass: string;
     level: LevelInput;
     badge?: ReactNode;
+    badgeAt?: [number, number];
   };
 }) {
   return (
@@ -125,7 +138,7 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
     <div className="flex w-full max-w-[560px] flex-col gap-4">
       <p className="text-center text-sm leading-5 text-text-muted">Tutorial</p>
 
-      <div className="flex flex-col gap-4 bg-panel/80 pixelated p-4">
+      <div className="flex flex-col gap-4 bg-foreground pixelated p-4">
         {current.id === 'goal' ? (
           <ShotPair
             left={{
@@ -147,13 +160,13 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
               label: 'Wrong',
               labelClass: 'text-danger',
               level: TUTORIAL_SURROUND_WRONG,
-              badge: <PixelCross size={28} />,
+              badge: <PixelCross className="rotate-45" size={28} />,
+              badgeAt: [3, 0.5],
             }}
             right={{
               label: 'Correct',
               labelClass: 'text-success',
               level: TUTORIAL_ANSWER,
-              badge: <PixelTick size={28} />,
             }}
           />
         ) : null}
@@ -164,13 +177,13 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
               label: 'Wrong',
               labelClass: 'text-danger',
               level: TUTORIAL_RED_WRONG,
-              badge: <PixelCross size={28} />,
+              badge: <PixelCross className="rotate-45" size={28} />,
+              badgeAt: [1, 1.5],
             }}
             right={{
               label: 'Correct',
               labelClass: 'text-success',
               level: TUTORIAL_ANSWER,
-              badge: <PixelTick size={28} />,
             }}
           />
         ) : null}
@@ -181,13 +194,13 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
               label: 'Wrong',
               labelClass: 'text-danger',
               level: TUTORIAL_TOWER_WRONG,
-              badge: <PixelCross size={28} />,
+              badge: <PixelCross className="rotate-45" size={28} />,
+              badgeAt: [4, 1],
             }}
             right={{
               label: 'Correct',
               labelClass: 'text-success',
               level: TUTORIAL_ANSWER,
-              badge: <PixelTick size={28} />,
             }}
           />
         ) : null}

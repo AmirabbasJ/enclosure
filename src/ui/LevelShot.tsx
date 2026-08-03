@@ -1,12 +1,6 @@
 import type { LevelInput } from '#/domain/level';
 import type { WallId, WallInput, YawQuarters } from '#/domain/walls';
 
-import { palette } from '#/theme/palette';
-
-const COLORS = {
-  bg: palette.bg,
-} as const;
-
 const TILES_W = 80;
 const TILES_H = 79;
 const ISO = 12;
@@ -40,14 +34,31 @@ const ORB = {
   bad: { href: '/level-shot/triangle.svg', w: 5, h: 5 },
 } as const;
 
-/** Board (col, row) → tiles.svg pixel space. */
-function boardToIso(bx: number, by: number): [number, number] {
-  bx = 4 - bx;
-  return [ISO_ORIGIN_X + (by - bx) * ISO, (bx + by) * ISO + ISO_ORIGIN_Y];
+export function boardToIso(bx: number, by: number): [number, number] {
+  const newBx = 4 - bx;
+  return [ISO_ORIGIN_X + (by - newBx) * ISO, (newBx + by) * ISO + ISO_ORIGIN_Y];
+}
+
+export function spaceToIso(col: number, row: number): [number, number] {
+  return boardToIso(col - 0.5, row - 0.5);
+}
+
+export function spaceToOverlayPercent(
+  col: number,
+  row: number,
+  pad = 4
+): { left: string; top: string } {
+  const [ix, iy] = spaceToIso(col, row);
+  const viewW = TILES_W + pad * 2;
+  const viewH = TILES_H + pad * 2;
+  return {
+    left: `${((ix + pad) / viewW) * 100}%`,
+    top: `${((iy + pad) / viewH) * 100}%`,
+  };
 }
 
 function wallAnchor(wall: WallInput): [number, number] {
-  return boardToIso(wall.col - 0.5, wall.row - 0.5);
+  return spaceToIso(wall.col, wall.row);
 }
 
 function yawDeg(yawQuarters: YawQuarters): number {
@@ -75,8 +86,6 @@ export function LevelShot({ level, className, pad = 4 }: LevelShotProps) {
       role="img"
       aria-label="Level preview"
     >
-      <rect x={-pad} y={-pad} width={viewW} height={viewH} fill={COLORS.bg} />
-
       <image
         href="/level-shot/tiles.svg"
         x={0}

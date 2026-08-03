@@ -4,10 +4,10 @@ import type { SnapshotFrom } from 'xstate';
 import { useMachine } from '@xstate/react';
 import { createContext, use, useEffect, useMemo } from 'react';
 
-import type { GameEvent, GameMachineContext } from '#/machines/gameMachine';
+import type { GameEvent, GameMachineContext } from '#/lib/machines/gameMachine';
 
 import { useAuth } from '@/data/auth/useAuth';
-import { gameMachine } from '#/machines/gameMachine';
+import { gameMachine } from '#/lib/machines/gameMachine';
 
 interface GameContextValue {
   isPlaying: boolean;
