@@ -127,7 +127,7 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
           <ShotPair
             left={{
               label: 'Correct',
-              labelClass: 'text-[#4ADE80]',
+              labelClass: 'text-success',
               level: TUTORIAL_ANSWER,
               badge: <PixelTick size={28} />,
             }}
@@ -144,7 +144,7 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
           <ShotPair
             left={{
               label: 'Correct',
-              labelClass: 'text-[#4ADE80]',
+              labelClass: 'text-success',
               level: TUTORIAL_ANSWER,
               badge: <PixelTick size={28} />,
             }}
@@ -161,7 +161,7 @@ export function Tutorial({ onComplete, onBack }: TutorialProps) {
           <ShotPair
             left={{
               label: 'Correct',
-              labelClass: 'text-[#4ADE80]',
+              labelClass: 'text-success',
               level: TUTORIAL_ANSWER,
               badge: <PixelTick size={28} />,
             }}

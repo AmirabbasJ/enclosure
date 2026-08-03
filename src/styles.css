@@ -20,6 +20,7 @@
   --color-accent-hover: #bfe9ff;
   --color-danger: #e83151;
   --color-danger-hover: #ff8fa3;
+  --color-success: #4ade80;
 }
 
 @layer base {

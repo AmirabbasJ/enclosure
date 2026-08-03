@@ -5,7 +5,7 @@ interface PixelIconProps {
   size?: number;
 }
 
-const OK = '#4ADE80';
+const OK = 'var(--color-success)';
 
 export function PixelTick({ className, size = 18 }: PixelIconProps) {
   const cells: readonly [number, number][] = [
