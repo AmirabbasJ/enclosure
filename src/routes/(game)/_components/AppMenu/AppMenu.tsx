@@ -3,6 +3,13 @@ import { useAuth } from '@/data/auth/useAuth';
 import { Avatar } from '@/ui/avatar';
 import Button from '@/ui/button';
 
+import { useGameAudio } from '../../../../context/GameAudioContext';
+import {
+  IconMusic,
+  IconMusicOff,
+  IconSoundMedium,
+  IconSoundOff,
+} from '../../../../lib/icons';
 import { Tutorial } from '../Tutorial/Tutorial';
 import { AuthForm } from './AuthForm';
 
@@ -126,12 +133,39 @@ function MenuContent() {
 
 export function AppMenu() {
   const { user } = useAuth();
+  const { toggleMusic, musicAudioState, toggleHit, hitAudioState } =
+    useGameAudio();
   return (
     <div className="absolute inset-x-0 bottom-0 z-10 flex w-full flex-col h-full items-center justify-center p-4 ">
       {user ? (
-        <div className="py-2 px-4 gap-4 flex items-center justify-center absolute top-0 left-0">
-          <Avatar seed={user.username} />
-          <p>{user.username} </p>
+        <div className="py-2 px-4 flex items-center justify-between w-full absolute top-0 left-0">
+          <div className="flex items-center gap-2">
+            <Avatar size={75} seed={user.username} />
+            <p>{user.username} </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={toggleMusic}
+              className="p-2 flex justify-center items-center"
+            >
+              {musicAudioState.isOn ? (
+                <IconMusic width={25} height={25} />
+              ) : (
+                <IconMusicOff width={25} height={25} />
+              )}
+            </Button>
+
+            <Button
+              onClick={toggleHit}
+              className="p-2 flex justify-center items-center"
+            >
+              {hitAudioState.isOn ? (
+                <IconSoundMedium width={25} height={25} />
+              ) : (
+                <IconSoundOff width={25} height={25} />
+              )}
+            </Button>
+          </div>
         </div>
       ) : null}
       <div className="flex min-w-[420px] flex-col gap-3 p-3">

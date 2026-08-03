@@ -75,7 +75,7 @@ export function SceneContent({
   const [walls, setWalls] = useState(spawnWalls);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [introDone, setIntroDone] = useState(false);
-  const { playWallGroundHit } = useGameAudio();
+  const { playRandomHit } = useGameAudio();
   const wallsRef = useRef(walls);
   wallsRef.current = walls;
   const orbInputs = level?.orbs ?? DEFAULT_ORB_INPUTS;
@@ -375,7 +375,7 @@ export function SceneContent({
                 draggable={started && !wall.locked}
                 onPositionChange={(position) => moveWall(wall.id, position)}
                 onYawChange={(yaw) => rotateWall(wall.id, yaw)}
-                onGroundHit={playWallGroundHit}
+                onGroundHit={playRandomHit}
                 onPlace={logLevelState}
                 onDeselect={() => setSelectedWallId(null)}
               />

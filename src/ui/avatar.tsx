@@ -7,7 +7,7 @@ interface AvatarProps {
 
 export function Avatar({
   seed,
-  size = 100,
+  size = 50,
   className = '',
   alt = 'avatar',
 }: AvatarProps) {
@@ -17,7 +17,7 @@ export function Avatar({
       alt={alt}
       width={size}
       height={size}
-      className={`pixelated-circle ${className}`}
+      className={className}
     />
   );
 }
