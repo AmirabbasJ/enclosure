@@ -14,11 +14,12 @@ interface GameAudioContextValue {
   playMusic: VoidFunction;
   stopMusic: (id?: string) => void;
   toggleMusic: VoidFunction;
-  toggleHit: VoidFunction;
-  setHitAudioVolume: (volume: number) => void;
+  toggleSfx: VoidFunction;
+  setSfxAudioVolume: (volume: number) => void;
   setMusicAudioVolume: (volume: number) => void;
+  playButtonClick: VoidFunction;
   musicAudioState: AudioState['music'];
-  hitAudioState: AudioState['hit'];
+  sfxAudioState: AudioState['sfx'];
 }
 
 const GameAudioContext = createContext<GameAudioContextValue | null>(null);
@@ -36,10 +37,10 @@ export function GameAudioProvider({
 
   const [audioState, setLocalAudioState] =
     useState<AudioState>(initialAudioState);
-  const { hit: hitAudioState, music: musicAudioState } = audioState;
+  const { sfx: sfxAudioState, music: musicAudioState } = audioState;
 
   const [playHit, { stop: stopHit }] = useSound('/audios/hit.mp3', {
-    volume: hitAudioState.isOn ? hitAudioState.volume : 0,
+    volume: sfxAudioState.isOn ? sfxAudioState.volume : 0,
     sprite: {
       1: [1550, 250],
       2: [2300, 250],
@@ -59,18 +60,18 @@ export function GameAudioProvider({
     [persistAudioState]
   );
 
-  const toggleHit = useCallback(() => {
+  const toggleSfx = useCallback(() => {
     setAudioState((prev) => ({
       ...prev,
-      hit: { ...prev.hit, isOn: !prev.hit.isOn },
+      sfx: { ...prev.sfx, isOn: !prev.sfx.isOn },
     }));
   }, [setAudioState]);
 
-  const setHitAudioVolume = useCallback(
+  const setSfxAudioVolume = useCallback(
     (volume: number) => {
       setAudioState((prev) => ({
         ...prev,
-        hit: { ...prev.hit, volume },
+        sfx: { ...prev.sfx, volume },
       }));
     },
     [setAudioState]
@@ -104,28 +105,34 @@ export function GameAudioProvider({
     playHit({ id: random });
   }, [playHit, stopHit]);
 
+  const [playButtonClick] = useSound('/audios/button-click.mp3', {
+    volume: sfxAudioState.isOn ? sfxAudioState.volume : 0,
+  });
+
   const value = useMemo(
     () => ({
+      playButtonClick,
       playMusic,
       musicAudioState,
       stopMusic,
       toggleMusic,
       setMusicAudioVolume,
-      hitAudioState,
+      sfxAudioState,
       playRandomHit,
-      toggleHit,
-      setHitAudioVolume,
+      toggleSfx,
+      setSfxAudioVolume,
     }),
     [
+      playButtonClick,
       playRandomHit,
       playMusic,
       stopMusic,
       toggleMusic,
-      toggleHit,
-      setHitAudioVolume,
+      toggleSfx,
+      setSfxAudioVolume,
       setMusicAudioVolume,
       musicAudioState,
-      hitAudioState,
+      sfxAudioState,
     ]
   );
 

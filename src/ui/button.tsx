@@ -3,6 +3,7 @@ import type { VariantProps } from 'tailwind-variants';
 
 import { tv } from 'tailwind-variants';
 
+import { useGameAudio } from '../context/GameAudioContext';
 import { cn } from '../utils/cn';
 
 const buttonVariants = tv({
@@ -31,10 +32,21 @@ type ButtonProps = PropsWithChildren<
   ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonVariants>
 >;
 
-function Button({ children, className, variant, ...props }: ButtonProps) {
+function Button({
+  children,
+  className,
+  variant,
+  onClick,
+  ...props
+}: ButtonProps) {
+  const { playButtonClick } = useGameAudio();
   return (
     <button
       type="button"
+      onClick={(event) => {
+        playButtonClick();
+        return onClick?.(event);
+      }}
       className={cn(buttonVariants({ variant }), className)}
       {...props}
     >

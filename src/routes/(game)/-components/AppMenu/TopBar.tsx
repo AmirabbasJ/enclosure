@@ -12,7 +12,7 @@ import Button from '../../../../ui/button';
 
 export function TopBar() {
   const { user } = useAuth();
-  const { toggleMusic, musicAudioState, toggleHit, hitAudioState } =
+  const { toggleMusic, musicAudioState, toggleSfx, sfxAudioState } =
     useGameAudio();
 
   return (
@@ -34,8 +34,8 @@ export function TopBar() {
           )}
         </Button>
 
-        <Button variant="icon" onClick={toggleHit}>
-          {hitAudioState.isOn ? (
+        <Button variant="icon" onClick={toggleSfx}>
+          {sfxAudioState.isOn ? (
             <IconSoundMedium width={25} height={25} />
           ) : (
             <IconSoundOff width={25} height={25} />

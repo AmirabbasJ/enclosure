@@ -6,7 +6,7 @@ const AUDIO_STATE_COOKIE = 'enclosure-audio-state';
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
 const audioStateSchema = z.object({
-  hit: z.object({
+  sfx: z.object({
     volume: z.number().min(0).max(1),
     isOn: z.boolean(),
   }),
@@ -19,7 +19,7 @@ const audioStateSchema = z.object({
 export type AudioState = z.infer<typeof audioStateSchema>;
 
 const defaultAudioState: AudioState = {
-  hit: {
+  sfx: {
     volume: 0.3,
     isOn: true,
   },
