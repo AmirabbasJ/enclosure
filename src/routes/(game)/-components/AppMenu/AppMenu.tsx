@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
@@ -160,7 +160,23 @@ function MenuContent() {
 }
 
 export function AppMenu() {
-  const { state } = useGame();
+  const { state, send } = useGame();
+
+  const goBack = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      send({ type: 'BACK' });
+    },
+    [send]
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', goBack);
+
+    return () => {
+      window.removeEventListener('keydown', goBack);
+    };
+  }, [goBack]);
 
   return (
     <div className="absolute inset-x-0 bottom-0 z-10 flex h-full w-full flex-col items-center justify-center pb-2">
