@@ -6,7 +6,7 @@ import { useGame } from '../../context/GameContext';
 import { TUTORIAL_QUESTION } from '../../domain/tutorialLevel';
 import { PixelSceneRenderer } from '../../PixelSceneRenderer';
 import { AppMenu } from './-components/AppMenu/AppMenu';
-import { SceneContent } from './-components/PixelScene/PixelScene';
+import { GameScene } from './-components/GameScene/GameScene';
 
 export const Route = createFileRoute('/(game)/')({
   component: Game,
@@ -27,7 +27,7 @@ function Game() {
       <div className=" items-center h-screen w-screen">
         {started ? (
           <PixelSceneRenderer>
-            <SceneContent level={TUTORIAL_QUESTION} />
+            <GameScene level={TUTORIAL_QUESTION} />
           </PixelSceneRenderer>
         ) : null}
       </div>

@@ -197,7 +197,7 @@ export function AppMenu() {
   }, [goBack]);
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-10 flex h-full w-full flex-col items-center justify-center pb-2">
+    <div className="absolute backdrop-blur-lg inset-x-0 bottom-0 z-10 flex h-full w-full flex-col items-center justify-center pb-2">
       {state.matches('mainMenu') && <MenuBoard />}
 
       <div className="relative z-1 flex h-full w-full flex-col items-center justify-center">

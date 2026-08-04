@@ -58,15 +58,15 @@ function randomWallDelays(count: number): number[] {
   );
 }
 
-interface SceneContentProps {
+interface GameSceneProps {
   level?: LevelInput;
   snapWallsToGrooves?: boolean;
 }
 
-export function SceneContent({
+export function GameScene({
   level,
   snapWallsToGrooves = true,
-}: SceneContentProps) {
+}: GameSceneProps) {
   const { isPaused, send } = useGame();
   const { orbs, walls: spawnWalls } = useMemo(
     () => resolveLevel(level, { snapWallsToGrooves }),
