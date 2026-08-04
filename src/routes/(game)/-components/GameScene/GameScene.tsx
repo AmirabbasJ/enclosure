@@ -81,14 +81,14 @@ export function GameScene({
 
   const boardRef = useRef<THREE.Group>(null);
   const introRef = useRef<THREE.Group>(null);
-  const wallIntroRefs = useRef<(THREE.Group | null)[]>([]);
-  const boardYaw = useRef(Math.PI / 4);
-  const boardYawTarget = useRef(Math.PI / 4);
+  const wallIntroRef = useRef<(THREE.Group | null)[]>([]);
+  const boardYawRef = useRef(Math.PI / 4);
+  const boardYawTargetRef = useRef(Math.PI / 4);
   const introElapsedRef = useRef(0);
   const introDoneRef = useRef(false);
   const wallDelaysRef = useRef<number[]>([]);
-  const lockedWallIds = useRef(new Set<string>());
-  lockedWallIds.current = new Set(
+  const lockedWallIdsRef = useRef(new Set<string>());
+  lockedWallIdsRef.current = new Set(
     walls.filter((wall) => wall.locked).map((wall) => wall.id)
   );
 
@@ -99,7 +99,7 @@ export function GameScene({
     wallDelaysRef.current = randomWallDelays(spawnWalls.length);
 
     for (let i = 0; i < spawnWalls.length; i += 1) {
-      wallIntroRefs.current[i]?.position.set(...wallIntroOffset());
+      wallIntroRef.current[i]?.position.set(...wallIntroOffset());
     }
 
     if (introRef.current) introRef.current.position.y = INTRO_START_Y;
@@ -239,14 +239,14 @@ export function GameScene({
       if (isPaused) return;
       if (e.key === 'ArrowRight') {
         e.preventDefault();
-        boardYawTarget.current += Math.PI / 4;
+        boardYawTargetRef.current += Math.PI / 4;
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        boardYawTarget.current -= Math.PI / 4;
+        boardYawTargetRef.current -= Math.PI / 4;
       } else if (wallToNumberKeyMap[e.key]) {
         e.preventDefault();
         const id = wallToNumberKeyMap[e.key];
-        if (lockedWallIds.current.has(id)) return;
+        if (lockedWallIdsRef.current.has(id)) return;
         setSelectedWallId((prev) => (prev === id ? null : id));
       } else if (e.key === 'Enter') {
         e.preventDefault();
@@ -272,8 +272,9 @@ export function GameScene({
     const group = boardRef.current;
     if (!group) return;
     const t = 1 - Math.exp(-8 * delta);
-    boardYaw.current += (boardYawTarget.current - boardYaw.current) * t;
-    group.rotation.y = boardYaw.current;
+    boardYawRef.current +=
+      (boardYawTargetRef.current - boardYawRef.current) * t;
+    group.rotation.y = boardYawRef.current;
 
     if (introDoneRef.current) return;
 
@@ -292,7 +293,7 @@ export function GameScene({
     }
 
     for (let i = 0; i < spawnWalls.length; i += 1) {
-      const slot = wallIntroRefs.current[i];
+      const slot = wallIntroRef.current[i];
       if (!slot) continue;
       const delay = wallDelaysRef.current[i] ?? 0;
       const localT = wallPhaseT - delay;
@@ -308,7 +309,7 @@ export function GameScene({
       if (pieces) pieces.position.y = PLAY_Y;
 
       for (let i = 0; i < spawnWalls.length; i += 1) {
-        wallIntroRefs.current[i]?.position.set(0, 0, 0);
+        wallIntroRef.current[i]?.position.set(0, 0, 0);
       }
 
       introDoneRef.current = true;
@@ -354,7 +355,7 @@ export function GameScene({
           <group
             key={wall.id}
             ref={(node) => {
-              wallIntroRefs.current[index] = node;
+              wallIntroRef.current[index] = node;
 
               if (
                 node &&

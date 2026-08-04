@@ -120,7 +120,7 @@ function buildOccludedEdgesGeometry({
   occluders: readonly BorderOccluder[];
   eps: number;
   samples?: number;
-}): THREE.BufferGeometry {
+}): THREE.BufferGeometry | null {
   const positions: number[] = [];
   const tmpA = new THREE.Vector3();
   const tmpB = new THREE.Vector3();
@@ -137,6 +137,8 @@ function buildOccludedEdgesGeometry({
       positions.push(tmpA.x, tmpA.y, tmpA.z, tmpB.x, tmpB.y, tmpB.z);
     }
   }
+
+  if (positions.length === 0) return null;
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -212,6 +214,7 @@ export function BorderBox({
       </mesh>
       {showBorder && edgesGeo ? (
         <lineSegments
+          key={edgesGeo.uuid}
           geometry={edgesGeo}
           renderOrder={2}
           raycast={() => undefined}

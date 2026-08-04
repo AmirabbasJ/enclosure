@@ -2,6 +2,7 @@ import {
   BOARD_BASE_SIZE,
   GROUND_WALL_Y,
   snapWallOriginToGrooves,
+  wallPlacementFitsGrooves,
   wallRestY,
 } from '#/domain/board';
 import { BOARD_COLS, BOARD_ROWS } from '#/domain/cells';
@@ -90,13 +91,26 @@ export function yawToQuarters(yaw: number): YawQuarters {
 }
 
 export function wallToInput(wall: WallPiece): WallInput | null {
-  const { centerOffset } = getWallFootprints(wall.path);
+  const { footprints, centerOffset } = getWallFootprints(wall.path);
   const { originX, originZ } = wallOriginFromCenter({
     cx: wall.position[0],
     cz: wall.position[2],
     yaw: wall.yaw,
     centerOffset,
   });
+
+  if (
+    !wallPlacementFitsGrooves({
+      originX,
+      originZ,
+      yaw: wall.yaw,
+      segments: footprints,
+      corners: getWallCornerLocals(wall.path),
+      filledCorners: getWallFilledCornerLocals(wall.path, CELL_SIZE, wall.id),
+    })
+  ) {
+    return null;
+  }
 
   const col = Math.round(originX / TILE_SPACING + (BOARD_COLS - 1) / 2 + 0.5);
   const row = Math.round(originZ / TILE_SPACING + (BOARD_ROWS - 1) / 2 + 0.5);
