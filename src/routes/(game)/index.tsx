@@ -5,8 +5,8 @@ import { useGameAudio } from '../../context/GameAudioContext';
 import { useGame } from '../../context/GameContext';
 import { TUTORIAL_QUESTION } from '../../domain/tutorialLevel';
 import { PixelSceneRenderer } from '../../PixelSceneRenderer';
-import { AppMenu } from './_components/AppMenu/AppMenu';
-import { SceneContent } from './_components/PixelScene/PixelScene';
+import { AppMenu } from './-components/AppMenu/AppMenu';
+import { SceneContent } from './-components/PixelScene/PixelScene';
 
 export const Route = createFileRoute('/(game)/')({
   component: Game,
