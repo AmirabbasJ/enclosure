@@ -1,8 +1,12 @@
 import type { PropsWithChildren } from 'react';
 
+import { useServerFn } from '@tanstack/react-start';
 import { createContext, use, useCallback, useMemo, useState } from 'react';
 import useSound from 'use-sound';
 
+import type { AudioState } from '../data/audio/audio.functions';
+
+import { setAudioStateFn } from '../data/audio/audio.functions';
 import { randomInt } from '../utils/randomInt';
 
 interface GameAudioContextValue {
@@ -13,23 +17,26 @@ interface GameAudioContextValue {
   toggleHit: VoidFunction;
   setHitAudioVolume: (volume: number) => void;
   setMusicAudioVolume: (volume: number) => void;
-  musicAudioState: AudioState;
-  hitAudioState: AudioState;
-}
-
-interface AudioState {
-  volume: number;
-  isOn: boolean;
+  musicAudioState: AudioState['music'];
+  hitAudioState: AudioState['hit'];
 }
 
 const GameAudioContext = createContext<GameAudioContextValue | null>(null);
 GameAudioContext.displayName = 'GameAudioContext';
 
-export function GameAudioProvider({ children }: PropsWithChildren) {
-  const [hitAudioState, setHitAudioState] = useState<AudioState>({
-    volume: 0.3,
-    isOn: true,
-  });
+interface GameAudioProviderProps extends PropsWithChildren {
+  initialAudioState: AudioState;
+}
+
+export function GameAudioProvider({
+  children,
+  initialAudioState,
+}: GameAudioProviderProps) {
+  const persistAudioState = useServerFn(setAudioStateFn);
+
+  const [audioState, setLocalAudioState] =
+    useState<AudioState>(initialAudioState);
+  const { hit: hitAudioState, music: musicAudioState } = audioState;
 
   const [playHit, { stop: stopHit }] = useSound('/audios/hit.mp3', {
     volume: hitAudioState.isOn ? hitAudioState.volume : 0,
@@ -41,29 +48,55 @@ export function GameAudioProvider({ children }: PropsWithChildren) {
     },
   });
 
+  const setAudioState = useCallback(
+    (updater: (audioState: AudioState) => AudioState) => {
+      setLocalAudioState((prev) => {
+        const newState = updater(prev);
+        void persistAudioState({ data: newState }).catch(() => undefined);
+        return newState;
+      });
+    },
+    [persistAudioState]
+  );
+
   const toggleHit = useCallback(() => {
-    setHitAudioState((prev) => ({ ...prev, isOn: !prev.isOn }));
-  }, []);
+    setAudioState((prev) => ({
+      ...prev,
+      hit: { ...prev.hit, isOn: !prev.hit.isOn },
+    }));
+  }, [setAudioState]);
 
-  const setHitAudioVolume = useCallback((volume: number) => {
-    setHitAudioState((prev) => ({ ...prev, volume }));
-  }, []);
+  const setHitAudioVolume = useCallback(
+    (volume: number) => {
+      setAudioState((prev) => ({
+        ...prev,
+        hit: { ...prev.hit, volume },
+      }));
+    },
+    [setAudioState]
+  );
 
-  const [musicAudioState, setMusicAudioState] = useState<AudioState>({
-    volume: 0.25,
-    isOn: true,
-  });
   const [playMusic, { stop: stopMusic }] = useSound('/audios/music.mp3', {
     volume: musicAudioState.isOn ? musicAudioState.volume : 0,
     loop: true,
   });
 
   const toggleMusic = useCallback(() => {
-    setMusicAudioState((prev) => ({ ...prev, isOn: !prev.isOn }));
-  }, []);
-  const setMusicAudioVolume = useCallback((volume: number) => {
-    setMusicAudioState((prev) => ({ ...prev, volume }));
-  }, []);
+    setAudioState((prev) => ({
+      ...prev,
+      music: { ...prev.music, isOn: !prev.music.isOn },
+    }));
+  }, [setAudioState]);
+
+  const setMusicAudioVolume = useCallback(
+    (volume: number) => {
+      setAudioState((prev) => ({
+        ...prev,
+        music: { ...prev.music, volume },
+      }));
+    },
+    [setAudioState]
+  );
 
   const playRandomHit = useCallback(() => {
     stopHit();

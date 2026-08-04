@@ -5,8 +5,8 @@ export type GameEvent =
   | { type: 'CONTROLS' }
   | { type: 'HELP' }
   | { type: 'LEADERBOARD' }
+  | { type: 'OPEN_SIGN_IN' }
   | { type: 'PLAY' }
-  | { type: 'PROFILE' }
   | { type: 'SETTINGS' }
   | { type: 'SIGN_IN' }
   | { type: 'SIGN_OUT' }
@@ -68,7 +68,7 @@ export const gameMachine = setup({
           { target: 'askSignIn' },
         ],
         HELP: { target: 'help' },
-        PROFILE: { target: 'profile' },
+        OPEN_SIGN_IN: { target: 'signIn' },
         SETTINGS: { target: 'settings' },
       },
     },
@@ -132,8 +132,12 @@ export const gameMachine = setup({
       },
     },
 
-    profile: {
+    signIn: {
       on: {
+        SIGN_IN: {
+          target: 'mainMenu',
+          actions: 'setSignedIn',
+        },
         BACK: { target: 'mainMenu' },
       },
     },

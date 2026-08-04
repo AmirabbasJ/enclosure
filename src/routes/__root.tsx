@@ -4,12 +4,14 @@ import { TanStackDevtools } from '@tanstack/react-devtools';
 import {
   createRootRouteWithContext,
   HeadContent,
+  Outlet,
   Scripts,
 } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 
 import { GameAudioProvider } from '../context/GameAudioContext';
 import { GameProvider } from '../context/GameContext';
+import { getAudioStateFn } from '../data/audio/audio.functions';
 import { getCurrentUserFn } from '../data/auth/auth.functions';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
 import appCss from '../styles.css?url';
@@ -39,11 +41,29 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
     ],
   }),
+  component: RootProviders,
   shellComponent: RootDocument,
   beforeLoad: async () => {
-    return getCurrentUserFn();
+    const [currentUser, audioState] = await Promise.all([
+      getCurrentUserFn(),
+      getAudioStateFn(),
+    ]);
+
+    return { ...currentUser, audioState };
   },
 });
+
+function RootProviders() {
+  const { audioState } = Route.useRouteContext();
+
+  return (
+    <GameProvider>
+      <GameAudioProvider initialAudioState={audioState}>
+        <Outlet />
+      </GameAudioProvider>
+    </GameProvider>
+  );
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -52,9 +72,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="m-0  font-pixel text-text-light">
-        <GameProvider>
-          <GameAudioProvider>{children}</GameAudioProvider>
-        </GameProvider>
+        {children}
         <TanStackDevtools
           config={{
             position: 'bottom-right',

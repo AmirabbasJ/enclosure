@@ -24,7 +24,7 @@ function MenuButton({
 function MenuContent() {
   const { state, send } = useGame();
 
-  const { user, signOut, isSignedIn } = useAuth();
+  const { signOut, isSignedIn } = useAuth();
 
   if (state.matches('playing') || state.matches('launch')) return null;
 
@@ -34,9 +34,14 @@ function MenuContent() {
         <MenuButton onClick={() => send({ type: 'PLAY' })}>Play</MenuButton>
         <MenuButton onClick={() => send({ type: 'HELP' })}>Help</MenuButton>
         <MenuButton
-          onClick={() =>
-            isSignedIn ? send({ type: 'SIGN_OUT' }) : send({ type: 'SIGN_IN' })
-          }
+          onClick={() => {
+            if (isSignedIn) {
+              void signOut().then(() => send({ type: 'SIGN_OUT' }));
+              return;
+            }
+
+            send({ type: 'OPEN_SIGN_IN' });
+          }}
         >
           {isSignedIn ? 'Sign Out' : 'Sign In'}
         </MenuButton>
@@ -110,30 +115,11 @@ function MenuContent() {
     );
   }
 
-  if (state.matches('profile')) {
+  if (state.matches('signIn')) {
     return (
       <>
-        <p className="mb-3 text-center text-base opacity-80">
-          {isSignedIn ? 'Profile' : 'Sign In'}
-        </p>
-        {isSignedIn ? (
-          <>
-            {user?.username ? (
-              <p className="mb-3 text-center text-sm text-accent">
-                {user.username}
-              </p>
-            ) : null}
-            <MenuButton
-              onClick={() => {
-                void signOut().then(() => send({ type: 'SIGN_OUT' }));
-              }}
-            >
-              Sign Out
-            </MenuButton>
-          </>
-        ) : (
-          <AuthForm onSuccess={() => send({ type: 'SIGN_IN' })} />
-        )}
+        <p className="mb-3 text-center text-base opacity-80">Sign In</p>
+        <AuthForm onSuccess={() => send({ type: 'SIGN_IN' })} />
         <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
