@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouteContext } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useEffect } from 'react';
 
@@ -6,7 +7,6 @@ import { useSupabase } from '@/lib/supabase/useSupabase';
 
 import type { User } from '../../domain/User';
 
-import { Route } from '../../routes/__root';
 import { queryKeys } from '../queryKeys';
 import {
   getCurrentUserFn,
@@ -24,7 +24,7 @@ export interface AuthValue {
 }
 
 export function useAuth(): AuthValue {
-  const { user: currentUser } = Route.useRouteContext();
+  const { user: currentUser } = useRouteContext({ from: '__root__' });
   const supabase = useSupabase();
   const queryClient = useQueryClient();
   const createUser = useServerFn(signUpFn);

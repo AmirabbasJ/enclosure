@@ -98,9 +98,7 @@ function MenuContent() {
         <MenuButton onClick={() => send({ type: 'CONTROLS' })}>
           Controls
         </MenuButton>
-        <MenuButton onClick={() => send({ type: 'TUTORIAL' })}>
-          Rules
-        </MenuButton>
+        <MenuButton onClick={() => send({ type: 'RULES' })}>Rules</MenuButton>
         <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
@@ -110,6 +108,15 @@ function MenuContent() {
     return (
       <Tutorial
         pagesToInclude={['controls']}
+        onBack={() => send({ type: 'BACK' })}
+      />
+    );
+  }
+
+  if (state.matches({ help: 'rules' })) {
+    return (
+      <Tutorial
+        pagesToInclude={['goal', 'meetTower', 'redOpen', 'surround']}
         onBack={() => send({ type: 'BACK' })}
       />
     );

@@ -96,7 +96,7 @@
     z-index: 0;
     width: 420px;
     height: 420px;
-    transform: translate(-50%, -54%) rotateX(58deg) rotateZ(45deg);
+    transform: translate(-50%, -54%) rotateX(58deg) rotateZ(45deg) scale(1.2);
     opacity: 0.5;
     pointer-events: none;
   }

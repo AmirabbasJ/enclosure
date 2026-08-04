@@ -7,6 +7,7 @@ export type GameEvent =
   | { type: 'LEADERBOARD' }
   | { type: 'OPEN_SIGN_IN' }
   | { type: 'PLAY' }
+  | { type: 'RULES' }
   | { type: 'SETTINGS' }
   | { type: 'SIGN_IN' }
   | { type: 'SIGN_OUT' }
@@ -120,6 +121,7 @@ export const gameMachine = setup({
         menu: {
           on: {
             CONTROLS: { target: 'controls' },
+            RULES: { target: 'rules' },
             BACK: { target: '#game.mainMenu' },
           },
         },
