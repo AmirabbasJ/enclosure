@@ -13,8 +13,10 @@ export const Route = createFileRoute('/(game)/')({
 });
 
 function Game() {
-  const { isPlaying } = useGame();
+  const { state } = useGame();
   const { playMusic } = useGameAudio();
+  const started = state.matches('playing') || state.matches('paused');
+  const showMenu = !state.matches('playing');
 
   useEffect(() => {
     playMusic();
@@ -23,11 +25,13 @@ function Game() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 bg-bg text-text-light ">
       <div className=" items-center h-screen w-screen">
-        <PixelSceneRenderer>
-          <SceneContent level={TUTORIAL_QUESTION} />
-        </PixelSceneRenderer>
+        {started ? (
+          <PixelSceneRenderer>
+            <SceneContent level={TUTORIAL_QUESTION} />
+          </PixelSceneRenderer>
+        ) : null}
       </div>
-      {isPlaying ? null : <AppMenu />}
+      {showMenu ? <AppMenu /> : null}
     </div>
   );
 }

@@ -181,9 +181,14 @@ export function BorderBox({
   useEffect(() => {
     return () => {
       boxGeo.dispose();
+    };
+  }, [boxGeo]);
+
+  useEffect(() => {
+    return () => {
       edgesGeo?.dispose();
     };
-  }, [boxGeo, edgesGeo]);
+  }, [edgesGeo]);
 
   const hasFill = backgroundColor !== undefined;
   return (

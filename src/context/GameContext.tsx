@@ -10,11 +10,10 @@ import { useAuth } from '@/data/auth/useAuth';
 import { gameMachine } from '#/lib/machines/gameMachine';
 
 interface GameContextValue {
-  isPlaying: boolean;
+  isPaused: boolean;
   state: SnapshotFrom<typeof gameMachine>;
   context: GameMachineContext;
   send: (event: GameEvent) => void;
-  start: () => void;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -35,11 +34,10 @@ export function GameProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<GameContextValue>(
     () => ({
-      isPlaying: state.matches('playing'),
+      isPaused: state.matches('paused'),
       state,
       context: state.context,
       send,
-      start: () => send({ type: 'PLAY' }),
     }),
     [state, send]
   );

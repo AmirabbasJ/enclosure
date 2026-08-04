@@ -1,7 +1,7 @@
 import type * as THREE from 'three/webgpu';
 
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { LevelInput } from '#/domain/level';
 
@@ -67,14 +67,13 @@ export function SceneContent({
   level,
   snapWallsToGrooves = true,
 }: SceneContentProps) {
-  const { isPlaying: started } = useGame();
+  const { isPaused, send } = useGame();
   const { orbs, walls: spawnWalls } = useMemo(
     () => resolveLevel(level, { snapWallsToGrooves }),
     [level, snapWallsToGrooves]
   );
   const [walls, setWalls] = useState(spawnWalls);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
-  const [introDone, setIntroDone] = useState(false);
   const { playRandomHit } = useGameAudio();
   const wallsRef = useRef(walls);
   wallsRef.current = walls;
@@ -95,22 +94,16 @@ export function SceneContent({
 
   useEffect(() => {
     setWalls(spawnWalls);
-    setIntroDone(false);
     introElapsedRef.current = 0;
     introDoneRef.current = false;
     wallDelaysRef.current = randomWallDelays(spawnWalls.length);
-  }, [spawnWalls]);
 
-  useEffect(() => {
-    if (started) {
-      wallDelaysRef.current = randomWallDelays(spawnWalls.length);
-      return;
+    for (let i = 0; i < spawnWalls.length; i += 1) {
+      wallIntroRefs.current[i]?.position.set(...wallIntroOffset());
     }
 
-    setIntroDone(false);
-    introElapsedRef.current = 0;
-    introDoneRef.current = false;
-  }, [started, spawnWalls.length]);
+    if (introRef.current) introRef.current.position.y = INTRO_START_Y;
+  }, [spawnWalls]);
 
   const blockedKeysByWall = useMemo(() => {
     const occupiedById: Record<string, string[]> = {};
@@ -231,29 +224,41 @@ export function SceneContent({
     }, 0);
   };
 
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      boardYawTarget.current += Math.PI / 4;
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      boardYawTarget.current -= Math.PI / 4;
-    } else if (wallToNumberKeyMap[e.key]) {
-      e.preventDefault();
-      const id = wallToNumberKeyMap[e.key];
-      if (lockedWallIds.current.has(id)) return;
-      setSelectedWallId((prev) => (prev === id ? null : id));
-    } else if (e.key === 'Escape' || e.key === 'Enter') {
-      e.preventDefault();
-      setSelectedWallId(null);
-    }
-  };
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+
+        if (selectedWallId) {
+          setSelectedWallId(null);
+          return;
+        }
+        if (!isPaused) send({ type: 'PAUSE' });
+        return;
+      }
+      if (isPaused) return;
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        boardYawTarget.current += Math.PI / 4;
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        boardYawTarget.current -= Math.PI / 4;
+      } else if (wallToNumberKeyMap[e.key]) {
+        e.preventDefault();
+        const id = wallToNumberKeyMap[e.key];
+        if (lockedWallIds.current.has(id)) return;
+        setSelectedWallId((prev) => (prev === id ? null : id));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        setSelectedWallId(null);
+      }
+    },
+    [isPaused, selectedWallId, send]
+  );
 
   const onBlur = () => setSelectedWallId(null);
 
   useEffect(() => {
-    if (!started) return;
-
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('blur', onBlur);
 
@@ -261,7 +266,7 @@ export function SceneContent({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('blur', onBlur);
     };
-  }, [started]);
+  }, [onKeyDown]);
 
   useFrame((_, delta) => {
     const group = boardRef.current;
@@ -270,7 +275,7 @@ export function SceneContent({
     boardYaw.current += (boardYawTarget.current - boardYaw.current) * t;
     group.rotation.y = boardYaw.current;
 
-    if (!started || introDoneRef.current) return;
+    if (introDoneRef.current) return;
 
     introElapsedRef.current = Math.min(
       INTRO_DURATION,
@@ -307,7 +312,6 @@ export function SceneContent({
       }
 
       introDoneRef.current = true;
-      setIntroDone(true);
     }
   });
 
@@ -316,7 +320,7 @@ export function SceneContent({
       <color attach="background" args={[palette.surface]} />
       <ambientLight intensity={0.72} color="#4895ef" />
       <directionalLight
-        castShadow={started}
+        castShadow
         intensity={0.48}
         color="#c8d6e5"
         position={[4, 8, 5]}
@@ -346,42 +350,42 @@ export function SceneContent({
           showBorder={false}
           receiveShadow
         />
-        {walls.map((wall, index) => {
-          const introPosition = introDone
-            ? ([0, 0, 0] as [number, number, number])
-            : !started
-              ? wallIntroOffset()
-              : undefined;
-          return (
-            <group
-              key={wall.id}
-              ref={(node) => {
-                wallIntroRefs.current[index] = node;
-              }}
-              position={introPosition}
-            >
-              <Wall
-                path={wall.path}
-                wallId={wall.id}
-                position={wall.position}
-                rotation={[0, wall.yaw, 0]}
-                blockedKeys={blockedKeysByWall[wall.id].grooves}
-                blockedFilledCorners={
-                  blockedKeysByWall[wall.id].blockedFilledCorners
-                }
-                occupiedCorners={blockedKeysByWall[wall.id].occupiedCorners}
-                filledCorners={hasFilledCorners(wall.id)}
-                selected={selectedWallId === wall.id}
-                draggable={started && !wall.locked}
-                onPositionChange={(position) => moveWall(wall.id, position)}
-                onYawChange={(yaw) => rotateWall(wall.id, yaw)}
-                onGroundHit={playRandomHit}
-                onPlace={logLevelState}
-                onDeselect={() => setSelectedWallId(null)}
-              />
-            </group>
-          );
-        })}
+        {walls.map((wall, index) => (
+          <group
+            key={wall.id}
+            ref={(node) => {
+              wallIntroRefs.current[index] = node;
+
+              if (
+                node &&
+                !introDoneRef.current &&
+                introElapsedRef.current === 0
+              ) {
+                node.position.set(...wallIntroOffset());
+              }
+            }}
+          >
+            <Wall
+              path={wall.path}
+              wallId={wall.id}
+              position={wall.position}
+              rotation={[0, wall.yaw, 0]}
+              blockedKeys={blockedKeysByWall[wall.id].grooves}
+              blockedFilledCorners={
+                blockedKeysByWall[wall.id].blockedFilledCorners
+              }
+              occupiedCorners={blockedKeysByWall[wall.id].occupiedCorners}
+              filledCorners={hasFilledCorners(wall.id)}
+              selected={selectedWallId === wall.id}
+              draggable={!isPaused && !wall.locked}
+              onPositionChange={(position) => moveWall(wall.id, position)}
+              onYawChange={(yaw) => rotateWall(wall.id, yaw)}
+              onGroundHit={playRandomHit}
+              onPlace={logLevelState}
+              onDeselect={() => setSelectedWallId(null)}
+            />
+          </group>
+        ))}
         <group ref={introRef} position={[0, INTRO_START_Y, 0]}>
           <BorderBox
             size={BOARD_BASE_SIZE}

@@ -7,8 +7,6 @@ import { pixelationPass } from 'three/addons/tsl/display/PixelationPassNode.js';
 import { uniform } from 'three/tsl';
 import * as THREE from 'three/webgpu';
 
-import { useGame } from '#/context/GameContext';
-
 export const PIXEL_SIZE = 2.5;
 export const NORMAL_EDGE = 0.3;
 export const DEPTH_EDGE = 0;
@@ -26,7 +24,6 @@ function easeInOutCubic(t: number) {
 }
 
 function IntroCameraZoom() {
-  const { isPlaying: started } = useGame();
   const { camera } = useThree();
   const elapsedRef = useRef(0);
   const doneRef = useRef(false);
@@ -38,7 +35,7 @@ function IntroCameraZoom() {
   }, [camera]);
 
   useFrame((_, delta) => {
-    if (!started || doneRef.current) return;
+    if (doneRef.current) return;
 
     elapsedRef.current = Math.min(INTRO_DURATION, elapsedRef.current + delta);
     const t = easeInOutCubic(elapsedRef.current / INTRO_DURATION);

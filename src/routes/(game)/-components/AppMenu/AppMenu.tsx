@@ -37,6 +37,18 @@ function MenuContent() {
 
   if (state.matches('playing') || state.matches('launch')) return null;
 
+  if (state.matches('paused')) {
+    return (
+      <>
+        <p className="mb-3 text-center text-base opacity-80">Paused</p>
+        <MenuButton onClick={() => send({ type: 'PLAY' })}>Resume</MenuButton>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>
+          Main Menu
+        </MenuButton>
+      </>
+    );
+  }
+
   if (state.matches('mainMenu')) {
     return (
       <>
@@ -165,9 +177,15 @@ export function AppMenu() {
   const goBack = useCallback(
     (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+
+      if (state.matches('paused')) {
+        send({ type: 'PLAY' });
+        return;
+      }
+
       send({ type: 'BACK' });
     },
-    [send]
+    [send, state]
   );
 
   useEffect(() => {

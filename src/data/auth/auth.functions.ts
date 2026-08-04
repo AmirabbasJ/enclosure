@@ -71,16 +71,15 @@ export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
   async (): Promise<CurrentUser> => {
     const supabase = createServerClient();
 
-    const { data, error } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getUser();
     if (error) throw error;
 
-    const { session } = data;
-    if (!session) return { user: null };
+    const { user: sessionUser } = data;
 
     const { data: user, error: profileError } = await supabase
       .from('profiles')
       .select('id, username, created_at')
-      .eq('id', session.user.id)
+      .eq('id', sessionUser.id)
       .maybeSingle();
 
     if (profileError) throw profileError;

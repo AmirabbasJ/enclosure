@@ -2,7 +2,7 @@ import type { ThreeEvent } from '@react-three/fiber';
 import type { Group } from 'three/webgpu';
 
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three/webgpu';
 
 import type { WallDir, WallId, WallSegFootprint } from '#/domain/walls';
@@ -311,7 +311,7 @@ export function Wall({
 }: WallProps) {
   const groupRef = useRef<Group>(null);
   const spinRef = useRef<Group>(null);
-  const [dragging, setDragging] = useState(false);
+  const draggingRef = useRef(false);
   const grabOffset = useRef(new THREE.Vector2());
   const plane = useRef(new THREE.Plane());
   const hit = useRef(new THREE.Vector3());
@@ -347,7 +347,10 @@ export function Wall({
   const dragPlaneYRef = useRef(HOVER_Y);
   const centerOffsetRef = useRef({ x: 0, z: 0 });
   const segFootprintsRef = useRef<WallSegFootprint[]>([]);
-  positionRef.current = position;
+
+  if (!draggingRef.current && liftMode.current === 'idle') {
+    positionRef.current = position;
+  }
   onPositionChangeRef.current = onPositionChange;
   onYawChangeRef.current = onYawChange;
   onPlaceRef.current = onPlace;
@@ -407,7 +410,17 @@ export function Wall({
   };
 
   useEffect(() => {
-    if (dragging) return;
+    const group = groupRef.current;
+    if (!group) return;
+    const [x, , z] = positionRef.current;
+    group.position.set(x, restYAt(x, z), z);
+    displayPosRef.current.x = x;
+    displayPosRef.current.z = z;
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (draggingRef.current) return;
 
     if (selected) {
       velX.current = 0;
@@ -424,12 +437,12 @@ export function Wall({
       groundHitFired.current = false;
       liftMode.current = 'falling';
     }
-  }, [selected, dragging]);
+  }, [selected]);
 
   const { camera, gl } = useThree();
 
   useEffect(() => {
-    if (!selected || dragging) return;
+    if (!selected || draggingRef.current) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
@@ -488,7 +501,7 @@ export function Wall({
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
     // eslint-disable-next-line @eslint-react/exhaustive-deps
-  }, [selected, dragging, camera]);
+  }, [selected, camera]);
 
   const segments = useMemo(
     () => buildSegments(path, cellSize, wallHeight),
@@ -599,7 +612,6 @@ export function Wall({
     const t = clock.getElapsedTime();
     const dt = Math.min(delta, 0.05);
     const mode = liftMode.current;
-    const onChange = onPositionChangeRef.current;
 
     if (spinRef.current) {
       if (orbitSpeed !== 0 && mode === 'idle') {
@@ -639,10 +651,8 @@ export function Wall({
       nx = bounced.x;
       nz = bounced.z;
 
-      if (onChange && (nx !== px || nz !== pz)) {
-        const next = wallPos(nx, nz);
-        onChange(next);
-        positionRef.current = next;
+      if (nx !== px || nz !== pz) {
+        positionRef.current = wallPos(nx, nz);
       }
 
       const restY = restYAt(positionRef.current[0], positionRef.current[2]);
@@ -657,11 +667,7 @@ export function Wall({
         liftY.current = 0;
 
         const rest = wallPos(positionRef.current[0], positionRef.current[2]);
-
-        if (positionRef.current[1] !== rest[1]) {
-          onChange?.(rest);
-          positionRef.current = rest;
-        }
+        positionRef.current = rest;
 
         if (prevY > restY && !groundHitFired.current) {
           groundHitFired.current = true;
@@ -681,6 +687,11 @@ export function Wall({
             velZ.current = 0;
             yawRef.current = yawTargetRef.current;
             liftMode.current = 'idle';
+            const settled = positionRef.current;
+            queueMicrotask(() => {
+              onPositionChangeRef.current?.(settled);
+              onPlaceRef.current?.();
+            });
           }
         }
       }
@@ -725,170 +736,47 @@ export function Wall({
     }
   });
 
-  useEffect(() => {
-    if (!dragging) return;
+  const endDrag = () => {
+    if (!draggingRef.current) return;
 
-    const onMove = (e: PointerEvent) => {
-      e.preventDefault();
-      const group = groupRef.current;
-      const parent = group?.parent;
-      const onChange = onPositionChangeRef.current;
-      if (!group || !parent || !onChange) return;
+    let vx = velX.current;
+    let vz = velZ.current;
+    const speed = Math.hypot(vx, vz);
 
-      const rect = gl.domElement.getBoundingClientRect();
-      ndc.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      ndc.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.current.setFromCamera(ndc.current, camera);
+    if (speed > MAX_THROW) {
+      const s = MAX_THROW / speed;
+      vx *= s;
+      vz *= s;
+    }
 
-      const base = positionRef.current;
-      hit.current.set(base[0], dragPlaneYRef.current, base[2]);
-      parent.localToWorld(hit.current);
-      plane.current.setFromNormalAndCoplanarPoint(up.current, hit.current);
+    velX.current = vx;
+    velZ.current = vz;
+    velY.current = Math.min(speed * THROW_UP, 5);
 
-      if (!raycaster.current.ray.intersectPlane(plane.current, hit.current)) {
-        return;
-      }
+    if (performance.now() / 1000 - throwSample.current.t > 0.08) {
+      velX.current = 0;
+      velZ.current = 0;
+      velY.current = 0;
+    }
 
-      parent.worldToLocal(local.current.copy(hit.current));
-      const step = snapStepRef.current;
-      let x = local.current.x - grabOffset.current.x;
-      let z = local.current.z - grabOffset.current.y;
+    const [px, , pz] = positionRef.current;
 
-      if (step > 0) {
-        x = snap(x, step);
-        z = snap(z, step);
-      }
-
-      const { x: cx, z: cz } = clampToDragBounds(x, z);
-      const wasOver = isOverTileField(
-        positionRef.current[0],
-        positionRef.current[2]
-      );
-      const pinned = pinToBoardGrid(cx, cz);
-      x = pinned.x;
-      z = pinned.z;
-      const nowOver = isOverTileField(x, z);
-
-      // First enter board → hard-jump onto pin. Pin↔pin keep MOVE_LERP.
-      if (nowOver && !wasOver) {
-        displayPosRef.current.x = x;
-        displayPosRef.current.z = z;
-      }
-
-      const now = performance.now() / 1000;
-      const sample = throwSample.current;
-      const sampleDt = now - sample.t;
-
-      if (sample.t > 0 && sampleDt > 0.001 && sampleDt < 0.12) {
-        const vx = (x - sample.x) / sampleDt;
-        const vz = (z - sample.z) / sampleDt;
-        velX.current = velX.current * 0.25 + vx * 0.75;
-        velZ.current = velZ.current * 0.25 + vz * 0.75;
-      }
-
-      sample.x = x;
-      sample.z = z;
-      sample.t = now;
-
-      const next = wallPos(x, z);
-      onChange(next);
-      positionRef.current = next;
-    };
-
-    const onUp = () => {
-      let vx = velX.current;
-      let vz = velZ.current;
-      const speed = Math.hypot(vx, vz);
-
-      if (speed > MAX_THROW) {
-        const s = MAX_THROW / speed;
-        vx *= s;
-        vz *= s;
-      }
-
-      velX.current = vx;
-      velZ.current = vz;
-      velY.current = Math.min(speed * THROW_UP, 5);
-
-      if (performance.now() / 1000 - throwSample.current.t > 0.08) {
-        velX.current = 0;
-        velZ.current = 0;
-        velY.current = 0;
-      }
-
-      const [px, , pz] = positionRef.current;
-
-      if (isOverTileField(px, pz)) {
-        velX.current = 0;
-        velZ.current = 0;
-        velY.current = 0;
-        const pinned = pinToBoardGrid(px, pz);
-
-        if (pinned.x !== px || pinned.z !== pz) {
-          const next = wallPos(pinned.x, pinned.z);
-          onPositionChangeRef.current?.(next);
-          positionRef.current = next;
-        } else {
-          const next = wallPos(px, pz);
-
-          if (next[1] !== positionRef.current[1]) {
-            onPositionChangeRef.current?.(next);
-            positionRef.current = next;
-          }
-        }
-      } else if (velX.current === 0 && velZ.current === 0) {
-        const pinned = pinToBoardGrid(px, pz);
-
-        if (pinned.x !== px || pinned.z !== pz) {
-          const next = wallPos(pinned.x, pinned.z);
-          onPositionChangeRef.current?.(next);
-          positionRef.current = next;
-        } else {
-          const next = wallPos(px, pz);
-
-          onPositionChangeRef.current?.(next);
-          positionRef.current = next;
-        }
-      }
-
-      setDragging(false);
-      groundHitFired.current = false;
-      liftMode.current = 'falling';
-      document.body.style.cursor = '';
-      onPlaceRef.current?.();
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || e.repeat) return;
-      e.preventDefault();
-      yawTargetRef.current += HALF_PI;
-      onYawChangeRef.current?.(yawTargetRef.current);
-
-      const [px, , pz] = positionRef.current;
+    if (isOverTileField(px, pz)) {
+      velX.current = 0;
+      velZ.current = 0;
+      velY.current = 0;
       const pinned = pinToBoardGrid(px, pz);
+      positionRef.current = wallPos(pinned.x, pinned.z);
+    } else if (velX.current === 0 && velZ.current === 0) {
+      const pinned = pinToBoardGrid(px, pz);
+      positionRef.current = wallPos(pinned.x, pinned.z);
+    }
 
-      if (pinned.x !== px || pinned.z !== pz) {
-        const next = wallPos(pinned.x, pinned.z);
-        onPositionChangeRef.current?.(next);
-        positionRef.current = next;
-      }
-
-      onPlaceRef.current?.();
-    };
-
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
-    window.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-    // eslint-disable-next-line @eslint-react/exhaustive-deps
-  }, [dragging, camera, gl]);
+    draggingRef.current = false;
+    groundHitFired.current = false;
+    liftMode.current = 'falling';
+    document.body.style.cursor = '';
+  };
 
   const handlePointerDown = (e: ThreeEvent<PointerEvent>) => {
     if (!draggable) return;
@@ -907,11 +795,10 @@ export function Wall({
 
     parent.worldToLocal(local.current.copy(hit.current));
     grabOffset.current.set(
-      local.current.x - position[0],
-      local.current.z - position[2]
+      local.current.x - base[0],
+      local.current.z - base[2]
     );
 
-    // Drop keyboard-selected wall(s) when a drag starts.
     onDeselect?.();
 
     velX.current = 0;
@@ -919,8 +806,8 @@ export function Wall({
     velY.current = 0;
     yawTargetRef.current = snap(yawRef.current, HALF_PI);
     throwSample.current = {
-      x: position[0],
-      z: position[2],
+      x: base[0],
+      z: base[2],
       t: performance.now() / 1000,
     };
     snapEngagedRef.current = false;
@@ -928,31 +815,116 @@ export function Wall({
     hoverAbsY.current =
       restYAt(displayPosRef.current.x, displayPosRef.current.z) + liftY.current;
     liftMode.current = 'lifting';
-    setDragging(true);
+    draggingRef.current = true;
     document.body.style.cursor = 'grabbing';
+
+    const onMove = (ev: PointerEvent) => {
+      ev.preventDefault();
+      const g = groupRef.current;
+      const p = g?.parent;
+      if (!g || !p) return;
+
+      const rect = gl.domElement.getBoundingClientRect();
+      ndc.current.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+      ndc.current.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.current.setFromCamera(ndc.current, camera);
+
+      const cur = positionRef.current;
+      hit.current.set(cur[0], dragPlaneYRef.current, cur[2]);
+      p.localToWorld(hit.current);
+      plane.current.setFromNormalAndCoplanarPoint(up.current, hit.current);
+
+      if (!raycaster.current.ray.intersectPlane(plane.current, hit.current)) {
+        return;
+      }
+
+      p.worldToLocal(local.current.copy(hit.current));
+      const stepSize = snapStepRef.current;
+      let x = local.current.x - grabOffset.current.x;
+      let z = local.current.z - grabOffset.current.y;
+
+      if (stepSize > 0) {
+        x = snap(x, stepSize);
+        z = snap(z, stepSize);
+      }
+
+      const { x: cx, z: cz } = clampToDragBounds(x, z);
+      const wasOver = isOverTileField(
+        positionRef.current[0],
+        positionRef.current[2]
+      );
+      const pinned = pinToBoardGrid(cx, cz);
+      x = pinned.x;
+      z = pinned.z;
+      const nowOver = isOverTileField(x, z);
+
+      if (nowOver && !wasOver) {
+        displayPosRef.current.x = x;
+        displayPosRef.current.z = z;
+      }
+
+      const now = performance.now() / 1000;
+      const sample = throwSample.current;
+      const sampleDt = now - sample.t;
+
+      if (sample.t > 0 && sampleDt > 0.001 && sampleDt < 0.12) {
+        const mvx = (x - sample.x) / sampleDt;
+        const mvz = (z - sample.z) / sampleDt;
+        velX.current = velX.current * 0.25 + mvx * 0.75;
+        velZ.current = velZ.current * 0.25 + mvz * 0.75;
+      }
+
+      sample.x = x;
+      sample.z = z;
+      sample.t = now;
+
+      positionRef.current = wallPos(x, z);
+    };
+
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      window.removeEventListener('keydown', onSpace);
+      endDrag();
+    };
+
+    const onSpace = (ev: KeyboardEvent) => {
+      if (ev.code !== 'Space' || ev.repeat) return;
+      ev.preventDefault();
+      yawTargetRef.current += HALF_PI;
+      onYawChangeRef.current?.(yawTargetRef.current);
+
+      const [sx, , sz] = positionRef.current;
+      const pinned = pinToBoardGrid(sx, sz);
+
+      if (pinned.x !== sx || pinned.z !== sz) {
+        positionRef.current = wallPos(pinned.x, pinned.z);
+      }
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    window.addEventListener('keydown', onSpace);
   };
 
   return (
     <group
       ref={groupRef}
-      position={[
-        displayPosRef.current.x,
-        restYAt(displayPosRef.current.x, displayPosRef.current.z),
-        displayPosRef.current.z,
-      ]}
       rotation={[rotation[0], 0, rotation[2]]}
       onPointerDown={handlePointerDown}
       onPointerOver={
         draggable
           ? () => {
-              if (!dragging) document.body.style.cursor = 'grab';
+              if (!draggingRef.current) document.body.style.cursor = 'grab';
             }
           : undefined
       }
       onPointerOut={
         draggable
           ? () => {
-              if (!dragging) document.body.style.cursor = '';
+              if (!draggingRef.current) document.body.style.cursor = '';
             }
           : undefined
       }

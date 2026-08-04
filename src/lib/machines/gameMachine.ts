@@ -6,6 +6,7 @@ export type GameEvent =
   | { type: 'HELP' }
   | { type: 'LEADERBOARD' }
   | { type: 'OPEN_SIGN_IN' }
+  | { type: 'PAUSE' }
   | { type: 'PLAY' }
   | { type: 'RULES' }
   | { type: 'SETTINGS' }
@@ -89,6 +90,14 @@ export const gameMachine = setup({
 
     playing: {
       on: {
+        PAUSE: { target: 'paused' },
+        BACK: { target: 'mainMenu' },
+      },
+    },
+
+    paused: {
+      on: {
+        PLAY: { target: 'playing' },
         BACK: { target: 'mainMenu' },
       },
     },
