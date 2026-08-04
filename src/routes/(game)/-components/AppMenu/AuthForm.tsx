@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { useAuth } from '@/data/auth/useAuth';
 import Button from '@/ui/button';
+import { LoadingDots } from '@/ui/LoadingDots';
 import TextField from '@/ui/text-field';
 
 interface AuthFormProps {
@@ -66,8 +67,18 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         ) : null}
       </div>
       <div className="flex flex-col gap-3">
-        <Button disabled={pending} type="submit">
-          {pending ? '...' : mode === 'signIn' ? 'Sign In' : 'Create Account'}
+        <Button
+          className="flex items-center justify-center"
+          disabled={pending}
+          type="submit"
+        >
+          {pending ? (
+            <LoadingDots />
+          ) : mode === 'signIn' ? (
+            'Sign In'
+          ) : (
+            'Create Account'
+          )}
         </Button>
         <Button
           disabled={pending}

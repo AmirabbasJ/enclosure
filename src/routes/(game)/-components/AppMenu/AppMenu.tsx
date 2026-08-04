@@ -1,5 +1,8 @@
+import { useState } from 'react';
+
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
+import { LoadingDots } from '@/ui/LoadingDots';
 
 import Button from '../../../../ui/button';
 import { Tutorial } from '../Tutorial/Tutorial';
@@ -9,13 +12,19 @@ import { TopBar } from './TopBar';
 
 function MenuButton({
   children,
+  disabled,
   onClick,
 }: {
   children: React.ReactNode;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   return (
-    <Button className="min-w-62.5" onClick={onClick}>
+    <Button
+      className="flex min-w-62.5 items-center justify-center"
+      disabled={disabled}
+      onClick={onClick}
+    >
       {children}
     </Button>
   );
@@ -23,8 +32,8 @@ function MenuButton({
 
 function MenuContent() {
   const { state, send } = useGame();
-
   const { signOut, isSignedIn } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
 
   if (state.matches('playing') || state.matches('launch')) return null;
 
@@ -34,16 +43,22 @@ function MenuContent() {
         <MenuButton onClick={() => send({ type: 'PLAY' })}>Play</MenuButton>
         <MenuButton onClick={() => send({ type: 'HELP' })}>Help</MenuButton>
         <MenuButton
+          disabled={signingOut}
           onClick={() => {
             if (isSignedIn) {
-              void signOut().then(() => send({ type: 'SIGN_OUT' }));
+              setSigningOut(true);
+              void signOut()
+                .then((error) => {
+                  if (!error) send({ type: 'SIGN_OUT' });
+                })
+                .finally(() => setSigningOut(false));
               return;
             }
 
             send({ type: 'OPEN_SIGN_IN' });
           }}
         >
-          {isSignedIn ? 'Sign Out' : 'Sign In'}
+          {signingOut ? <LoadingDots /> : isSignedIn ? 'Sign Out' : 'Sign In'}
         </MenuButton>
         <MenuButton onClick={() => send({ type: 'LEADERBOARD' })}>
           Leaderboard
