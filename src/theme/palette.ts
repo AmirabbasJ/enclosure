@@ -3,6 +3,7 @@ export const palette = {
   foreground: '#232F5C',
   panel: '#1B263B',
   surface: '#415A77',
+  surfaceLight: '#3A4A8A',
   textLight: '#E0E1DD',
   textMuted: '#778DA9',
   accent: '#72CEFF',

@@ -1,17 +1,11 @@
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
-import { Avatar } from '@/ui/avatar';
 
-import { useGameAudio } from '../../../../context/GameAudioContext';
-import {
-  IconMusic,
-  IconMusicOff,
-  IconSoundMedium,
-  IconSoundOff,
-} from '../../../../lib/icons';
 import Button from '../../../../ui/button';
 import { Tutorial } from '../Tutorial/Tutorial';
 import { AuthForm } from './AuthForm';
+import { MenuBoard } from './MenuBoard';
+import { TopBar } from './TopBar';
 
 function MenuButton({
   children,
@@ -21,7 +15,7 @@ function MenuButton({
   onClick: () => void;
 }) {
   return (
-    <Button className="min-w-[250px]" onClick={onClick}>
+    <Button className="min-w-62.5" onClick={onClick}>
       {children}
     </Button>
   );
@@ -39,8 +33,12 @@ function MenuContent() {
       <>
         <MenuButton onClick={() => send({ type: 'PLAY' })}>Play</MenuButton>
         <MenuButton onClick={() => send({ type: 'HELP' })}>Help</MenuButton>
-        <MenuButton onClick={() => send({ type: 'PROFILE' })}>
-          {isSignedIn ? 'Profile' : 'Sign In'}
+        <MenuButton
+          onClick={() =>
+            isSignedIn ? send({ type: 'SIGN_OUT' }) : send({ type: 'SIGN_IN' })
+          }
+        >
+          {isSignedIn ? 'Sign Out' : 'Sign In'}
         </MenuButton>
         <MenuButton onClick={() => send({ type: 'LEADERBOARD' })}>
           Leaderboard
@@ -154,60 +152,31 @@ function MenuContent() {
 }
 
 export function AppMenu() {
-  const { user } = useAuth();
   const { state } = useGame();
-  const { toggleMusic, musicAudioState, toggleHit, hitAudioState } =
-    useGameAudio();
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-10 flex w-full flex-col h-full items-center justify-center p-4 ">
-      {user ? (
-        <div className="py-2 px-4 flex items-center justify-between w-full ">
-          <div className="flex items-center gap-2">
-            <Avatar size={75} seed={user.username} />
-            <p>{user.username} </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={toggleMusic}
-              className="p-2 flex justify-center items-center"
-            >
-              {musicAudioState.isOn ? (
-                <IconMusic width={25} height={25} />
-              ) : (
-                <IconMusicOff width={25} height={25} />
-              )}
-            </Button>
+    <div className="absolute inset-x-0 bottom-0 z-10 flex h-full w-full flex-col items-center justify-center pb-2">
+      {state.matches('mainMenu') && <MenuBoard />}
 
-            <Button
-              onClick={toggleHit}
-              className="p-2 flex justify-center items-center"
-            >
-              {hitAudioState.isOn ? (
-                <IconSoundMedium width={25} height={25} />
-              ) : (
-                <IconSoundOff width={25} height={25} />
-              )}
-            </Button>
+      <div className="relative z-1 flex h-full w-full flex-col items-center justify-center">
+        <TopBar />
+        <div className="flex h-full flex-col items-center justify-center gap-4">
+          {state.matches('mainMenu') && (
+            <div className="flex flex-col items-center gap-1">
+              <h1 className="title-shadow text-center font-pixel text-[38px] tracking-[3px] text-accent-hover">
+                EN<span className="text-danger">CLOSURE</span>
+              </h1>
+              <p
+                className="max-w-75 text-center font-pixel text-[9px] text-text-muted"
+                style={{ textShadow: '1px 1px 0 #000' }}
+              >
+                are we being protected, or are we being contained?
+              </p>
+            </div>
+          )}
+          <div className="flex max-w-105 flex-col justify-center gap-3 p-3">
+            <MenuContent />
           </div>
-        </div>
-      ) : null}
-      <div className="h-full flex justify-center flex-col items-center gap-4">
-        {state.matches('mainMenu') && (
-          <div className="flex flex-col items-center gap-1">
-            <h1 className="title-shadow text-center font-pixel text-[26px] tracking-[3px] text-accent-hover">
-              EN<span className="text-danger">CLOSURE</span>
-            </h1>
-            <p
-              className=" text-center font-pixel text-[9px] max-w-[300px] text-text-muted "
-              style={{ textShadow: '1px 1px 0 #000' }}
-            >
-              are we being protected, or are we being contained?
-            </p>
-          </div>
-        )}
-        <div className="flex  max-w-[420px] flex-col justify-center gap-3 p-3">
-          <MenuContent />
         </div>
       </div>
     </div>
