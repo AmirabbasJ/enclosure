@@ -72,7 +72,8 @@ export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
     const supabase = createServerClient();
 
     const { data, error } = await supabase.auth.getUser();
-    if (error) throw error;
+
+    if (error) return { user: null };
 
     const { user: sessionUser } = data;
 

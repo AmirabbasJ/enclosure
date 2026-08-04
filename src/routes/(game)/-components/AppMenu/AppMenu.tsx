@@ -7,7 +7,6 @@ import { LoadingDots } from '@/ui/LoadingDots';
 import Button from '../../../../ui/button';
 import { Tutorial } from '../Tutorial/Tutorial';
 import { AuthForm } from './AuthForm';
-import { MenuBoard } from './MenuBoard';
 import { TopBar } from './TopBar';
 
 function MenuButton({
@@ -21,7 +20,7 @@ function MenuButton({
 }) {
   return (
     <Button
-      className="flex min-w-62.5 items-center justify-center"
+      className="flex min-w-75 items-center justify-center"
       disabled={disabled}
       onClick={onClick}
     >
@@ -173,7 +172,7 @@ function MenuContent() {
 
 export function AppMenu() {
   const { state, send } = useGame();
-
+  const isSceneActive = state.matches('paused') || state.matches('playing');
   const goBack = useCallback(
     (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -198,15 +197,13 @@ export function AppMenu() {
 
   return (
     <div className="absolute backdrop-blur-lg inset-x-0 bottom-0 z-10 flex h-full w-full flex-col items-center justify-center pb-2">
-      {state.matches('mainMenu') && <MenuBoard />}
-
       <div className="relative z-1 flex h-full w-full flex-col items-center justify-center">
         <TopBar />
         <div className="flex h-full flex-col items-center justify-center gap-4">
           {state.matches('mainMenu') && (
             <div className="flex flex-col items-center gap-1">
               <h1 className="title-shadow text-center font-pixel text-[38px] tracking-[3px] text-accent-hover">
-                EN<span className="text-danger">CLOSURE</span>
+                EN<span className="text-accent">CLOSURE</span>
               </h1>
               <p
                 className="max-w-75 text-center font-pixel text-[9px] text-text-muted"

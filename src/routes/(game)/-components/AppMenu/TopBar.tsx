@@ -26,10 +26,7 @@ export function TopBar() {
         <div />
       )}
       <div className="flex items-center justify-end gap-2">
-        <Button
-          onClick={toggleMusic}
-          className="flex items-center justify-center p-2"
-        >
+        <Button variant="icon" onClick={toggleMusic}>
           {musicAudioState.isOn ? (
             <IconMusic width={25} height={25} />
           ) : (
@@ -37,10 +34,7 @@ export function TopBar() {
           )}
         </Button>
 
-        <Button
-          onClick={toggleHit}
-          className="flex items-center justify-center p-2"
-        >
+        <Button variant="icon" onClick={toggleHit}>
           {hitAudioState.isOn ? (
             <IconSoundMedium width={25} height={25} />
           ) : (
