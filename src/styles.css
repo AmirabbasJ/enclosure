@@ -42,6 +42,72 @@
   }
 }
 
+@layer components {
+  .pixel-range {
+    --range-pct: 0%;
+    --range-track-h: 22px;
+    --range-thumb-w: 24px;
+    --range-thumb-h: 34px;
+    --range-border: 4px;
+    appearance: none;
+    height: var(--range-track-h);
+    background: linear-gradient(
+      to right,
+      var(--color-accent) 0%,
+      var(--color-accent) var(--range-pct),
+      var(--color-bg) var(--range-pct),
+      var(--color-bg) 100%
+    );
+    border: var(--range-border) solid var(--color-foreground);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .pixel-range::-webkit-slider-runnable-track {
+    height: var(--range-track-h);
+    background: transparent;
+  }
+
+  .pixel-range::-moz-range-track {
+    height: var(--range-track-h);
+    background: transparent;
+    border: none;
+  }
+
+  .pixel-range::-webkit-slider-thumb {
+    appearance: none;
+    width: var(--range-thumb-w);
+    height: var(--range-thumb-h);
+    margin-top: -6px;
+    background: var(--color-foreground);
+    border: var(--range-border) solid #000;
+    box-shadow: inset 0 0 0 3px var(--color-surface-light);
+    cursor: pointer;
+  }
+
+  .pixel-range::-moz-range-thumb {
+    width: var(--range-thumb-w);
+    height: var(--range-thumb-h);
+    background: var(--color-foreground);
+    border: var(--range-border) solid #000;
+    border-radius: 0;
+    box-shadow: inset 0 0 0 3px var(--color-surface-light);
+    cursor: pointer;
+  }
+
+  .pixel-range:focus-visible::-webkit-slider-thumb {
+    box-shadow:
+      inset 0 0 0 3px var(--color-surface-light),
+      0 0 0 2px var(--color-accent);
+  }
+
+  .pixel-range:focus-visible::-moz-range-thumb {
+    box-shadow:
+      inset 0 0 0 3px var(--color-surface-light),
+      0 0 0 2px var(--color-accent);
+  }
+}
+
 @layer utilities {
   .pixelated {
     clip-path: polygon(

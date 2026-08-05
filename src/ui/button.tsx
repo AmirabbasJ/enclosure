@@ -22,6 +22,9 @@ const buttonVariants = tv({
       filled: 'px-6 pt-3.5 pb-5',
       icon: 'flex items-center justify-center px-2 pt-1 pb-2.5',
     },
+    noStyling: {
+      true: 'bg-transparent shadow-none enabled:hover:bg-transparent enabled:active:shadow-none hover:text-text-light',
+    },
   },
   defaultVariants: {
     variant: 'filled',
@@ -36,6 +39,7 @@ function Button({
   children,
   className,
   variant,
+  noStyling,
   onClick,
   ...props
 }: ButtonProps) {
@@ -47,7 +51,7 @@ function Button({
         playButtonClick();
         return onClick?.(event);
       }}
-      className={cn(buttonVariants({ variant }), className)}
+      className={cn(buttonVariants({ variant, noStyling, className }))}
       {...props}
     >
       {children}

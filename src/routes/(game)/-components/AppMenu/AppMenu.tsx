@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { useGameAudio } from '@/context/GameAudioContext';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
 import { LoadingDots } from '@/ui/LoadingDots';
 
+import {
+  IconMusic,
+  IconMusicOff,
+  IconSoundMedium,
+  IconSoundOff,
+} from '../../../../lib/icons';
 import Button from '../../../../ui/button';
+import RangeSlider from '../../../../ui/range-slider';
 import { Tutorial } from '../Tutorial/Tutorial';
 import { AuthForm } from './AuthForm';
 import { TopBar } from './TopBar';
@@ -26,6 +34,54 @@ function MenuButton({
     >
       {children}
     </Button>
+  );
+}
+
+function SettingsMenu({ onBack }: { onBack: () => void }) {
+  const {
+    musicAudioState,
+    sfxAudioState,
+    setMusicAudioVolume,
+    setSfxAudioVolume,
+    toggleMusic,
+    toggleSfx,
+  } = useGameAudio();
+
+  return (
+    <div className="flex flex-col items-center gap-5 ">
+      <p className="mb-3 text-center text-base opacity-80">Settings</p>
+      <div className="flex w-full min-w-75 flex-col gap-10">
+        <RangeSlider
+          label={
+            <Button noStyling variant="icon" onClick={toggleMusic}>
+              {musicAudioState.isOn ? (
+                <IconMusic width={25} height={25} />
+              ) : (
+                <IconMusicOff width={25} height={25} />
+              )}
+            </Button>
+          }
+          id="Music"
+          value={Math.round(musicAudioState.volume * 100)}
+          onValueChange={(v) => setMusicAudioVolume(v / 100)}
+        />
+        <RangeSlider
+          label={
+            <Button noStyling variant="icon" onClick={toggleSfx}>
+              {sfxAudioState.isOn ? (
+                <IconSoundMedium width={25} height={25} />
+              ) : (
+                <IconSoundOff width={25} height={25} />
+              )}
+            </Button>
+          }
+          id="SFX"
+          value={Math.round(sfxAudioState.volume * 100)}
+          onValueChange={(v) => setSfxAudioVolume(v / 100)}
+        />
+      </div>
+      <MenuButton onClick={onBack}>Back</MenuButton>
+    </div>
   );
 }
 
@@ -159,12 +215,7 @@ function MenuContent() {
   }
 
   if (state.matches('settings')) {
-    return (
-      <>
-        <p className="mb-3 text-center text-base opacity-80">Settings</p>
-        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
-      </>
-    );
+    return <SettingsMenu onBack={() => send({ type: 'BACK' })} />;
   }
 
   return null;
