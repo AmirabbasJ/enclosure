@@ -31,6 +31,7 @@ function Game() {
           </PixelSceneRenderer>
         ) : null}
       </div>
+
       {showMenu ? <AppMenu /> : null}
     </div>
   );

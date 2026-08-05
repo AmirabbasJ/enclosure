@@ -12,6 +12,7 @@ import {
   IconSoundOff,
 } from '../../../lib/icons';
 import Button from '../../../ui/button';
+import PixelBlast from '../../../ui/pixel-blast';
 import RangeSlider from '../../../ui/range-slider';
 import { Tutorial } from '../Tutorial/Tutorial';
 import { AuthForm } from './AuthForm';
@@ -259,25 +260,50 @@ export function AppMenu() {
   }, [goBack]);
 
   return (
-    <div className="absolute backdrop-blur-lg inset-x-0 bottom-0 z-10 flex h-full w-full flex-col items-center justify-center pb-2">
-      <div className="relative z-1 flex h-full w-full flex-col items-center justify-center">
+    <div className="absolute backdrop-blur-xs inset-x-0 bottom-0 flex h-full w-full flex-col items-center justify-center pb-2">
+      <div className="relative flex h-full w-full flex-col items-center justify-center">
         <TopBar />
-        <div className="flex h-full flex-col items-center justify-center gap-4">
-          {state.matches('mainMenu') && (
-            <div className="flex flex-col items-center gap-1">
-              <h1 className="title-shadow text-center font-pixel text-[38px] tracking-[3px] text-accent-hover">
-                EN<span className="text-accent">CLOSURE</span>
-              </h1>
-              <p
-                className="max-w-75 text-center font-pixel text-[9px] text-text-muted"
-                style={{ textShadow: '1px 1px 0 #000' }}
-              >
-                are we being protected, or are we being contained?
-              </p>
+        <div className="relative w-full flex h-full flex-col items-center justify-center gap-4">
+          {!isSceneActive ? (
+            <div className="absolute w-full h-full blur-[3px]">
+              <PixelBlast
+                variant="square"
+                pixelSize={5}
+                color="#72ceff"
+                patternScale={3}
+                patternDensity={1}
+                pixelSizeJitter={0}
+                enableRipples
+                rippleSpeed={0.4}
+                rippleThickness={0.12}
+                rippleIntensityScale={1.5}
+                liquid={false}
+                liquidStrength={0.12}
+                liquidRadius={1.2}
+                liquidWobbleSpeed={5}
+                speed={0.5}
+                edgeFade={0.1}
+                transparent
+              />
             </div>
-          )}
-          <div className="flex max-w-105 flex-col justify-center gap-3 p-3">
-            <MenuContent />
+          ) : null}
+          <div className="z-2">
+            {state.matches('mainMenu') && (
+              <div className="flex flex-col items-center gap-1">
+                <h1 className="title-shadow text-center font-pixel text-[38px] tracking-[3px] text-accent-hover">
+                  EN<span className="text-accent">CLOSURE</span>
+                </h1>
+                <p
+                  className="max-w-75 text-center font-pixel text-[9px] text-text-muted"
+                  style={{ textShadow: '1px 1px 0 #000' }}
+                >
+                  are we being protected, or are we being contained?
+                </p>
+              </div>
+            )}
+            <div className="flex max-w-105 flex-col justify-center gap-3 p-3">
+              <MenuContent />
+            </div>
           </div>
         </div>
       </div>
