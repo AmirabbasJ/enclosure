@@ -1,14 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
-import { useGameAudio } from '../../context/GameAudioContext';
-import { useGame } from '../../context/GameContext';
-import { TUTORIAL_QUESTION } from '../../domain/tutorialLevel';
-import { PixelSceneRenderer } from '../../PixelSceneRenderer';
+import { useGameAudio } from '../context/GameAudioContext';
+import { useGame } from '../context/GameContext';
+import { TUTORIAL_QUESTION } from '../domain/tutorialLevel';
+import { PixelSceneRenderer } from '../PixelSceneRenderer';
 import { AppMenu } from './-components/AppMenu/AppMenu';
 import { GameScene } from './-components/GameScene/GameScene';
 
-export const Route = createFileRoute('/(game)/')({
+export const Route = createFileRoute('/')({
   component: Game,
 });
 

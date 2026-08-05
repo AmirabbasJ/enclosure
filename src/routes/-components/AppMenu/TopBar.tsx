@@ -1,14 +1,14 @@
 import { useAuth } from '@/data/auth/useAuth';
 import { Avatar } from '@/ui/avatar';
 
-import { useGameAudio } from '../../../../context/GameAudioContext';
+import { useGameAudio } from '../../../context/GameAudioContext';
 import {
   IconMusic,
   IconMusicOff,
   IconSoundMedium,
   IconSoundOff,
-} from '../../../../lib/icons';
-import Button from '../../../../ui/button';
+} from '../../../lib/icons';
+import Button from '../../../ui/button';
 
 export function TopBar() {
   const { user } = useAuth();

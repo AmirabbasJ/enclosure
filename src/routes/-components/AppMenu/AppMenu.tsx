@@ -10,9 +10,9 @@ import {
   IconMusicOff,
   IconSoundMedium,
   IconSoundOff,
-} from '../../../../lib/icons';
-import Button from '../../../../ui/button';
-import RangeSlider from '../../../../ui/range-slider';
+} from '../../../lib/icons';
+import Button from '../../../ui/button';
+import RangeSlider from '../../../ui/range-slider';
 import { Tutorial } from '../Tutorial/Tutorial';
 import { AuthForm } from './AuthForm';
 import { TopBar } from './TopBar';
