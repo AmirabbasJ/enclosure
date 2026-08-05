@@ -65,19 +65,19 @@ export type Database = {
           created_at: string
           id: string
           username: string
-          viewed_tutorial: boolean | null
+          has_viewed_tutorial: boolean | null
         }
         Insert: {
           created_at?: string
           id: string
           username: string
-          viewed_tutorial?: boolean | null
+          has_viewed_tutorial?: boolean | null
         }
         Update: {
           created_at?: string
           id?: string
           username?: string
-          viewed_tutorial?: boolean | null
+          has_viewed_tutorial?: boolean | null
         }
         Relationships: []
       }

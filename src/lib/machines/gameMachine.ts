@@ -1,4 +1,8 @@
-import { assign, setup } from 'xstate';
+import { assign, emit, setup } from 'xstate';
+
+import type { Metadata } from '../../data/metadata/metadata.functions';
+
+import { defaultMetadata } from '../../data/metadata/metadata.functions';
 
 export type GameEvent =
   | { type: 'BACK' }
@@ -17,7 +21,7 @@ export type GameEvent =
   | { type: 'TUTORIAL' };
 
 export interface GameMachineContext {
-  hasSeenTutorial: boolean;
+  metadata: Metadata;
   isSignedIn: boolean;
   tutorialBackTo: 'help' | 'mainMenu';
 }
@@ -26,14 +30,25 @@ export const gameMachine = setup({
   types: {
     context: {} as GameMachineContext,
     events: {} as GameEvent,
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    input: {} as {
+      metadata?: Metadata;
+      isSignedIn?: boolean;
+    },
+    emitted: {} as { type: 'TUTORIAL_COMPLETE' },
   },
   guards: {
-    hasSeenTutorial: ({ context }) => context.hasSeenTutorial,
+    hasViewedTutorial: ({ context }) => context.metadata.hasViewedTutorial,
     isSignedIn: ({ context }) => context.isSignedIn,
     tutorialFromHelp: ({ context }) => context.tutorialBackTo === 'help',
   },
   actions: {
-    markTutorialSeen: assign({ hasSeenTutorial: true }),
+    markTutorialSeen: assign({
+      metadata: ({ context }) => ({
+        ...context.metadata,
+        hasViewedTutorial: true,
+      }),
+    }),
     setSignedIn: assign({ isSignedIn: true }),
     setSignedOut: assign({ isSignedIn: false }),
     setTutorialBackToMain: assign({ tutorialBackTo: 'mainMenu' as const }),
@@ -41,25 +56,21 @@ export const gameMachine = setup({
   },
 }).createMachine({
   id: 'game',
-  initial: 'launch',
-  context: {
-    hasSeenTutorial: false,
-    isSignedIn: false,
+  initial: 'mainMenu',
+  context: ({ input }) => ({
+    metadata: input.metadata ?? defaultMetadata,
+    isSignedIn: input.isSignedIn ?? false,
     tutorialBackTo: 'mainMenu',
-  },
+  }),
   on: {
     SIGN_IN: { actions: 'setSignedIn' },
     SIGN_OUT: { actions: 'setSignedOut' },
   },
   states: {
-    launch: {
-      always: { target: 'mainMenu' },
-    },
-
     mainMenu: {
       on: {
         PLAY: [
-          { guard: 'hasSeenTutorial', target: 'playing' },
+          { guard: 'hasViewedTutorial', target: 'playing' },
           {
             target: 'tutorial',
             actions: 'setTutorialBackToMain',
@@ -79,7 +90,7 @@ export const gameMachine = setup({
       on: {
         TUTORIAL_COMPLETE: {
           target: 'playing',
-          actions: 'markTutorialSeen',
+          actions: [emit({ type: 'TUTORIAL_COMPLETE' }), 'markTutorialSeen'],
         },
         BACK: [
           { guard: 'tutorialFromHelp', target: 'help' },

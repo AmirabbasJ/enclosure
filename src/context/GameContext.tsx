@@ -9,6 +9,8 @@ import type { GameEvent, GameMachineContext } from '#/lib/machines/gameMachine';
 import { useAuth } from '@/data/auth/useAuth';
 import { gameMachine } from '#/lib/machines/gameMachine';
 
+import { useMetadata } from '../data/metadata/useMetadata';
+
 interface GameContextValue {
   isPaused: boolean;
   state: SnapshotFrom<typeof gameMachine>;
@@ -21,7 +23,15 @@ GameContext.displayName = 'GameContext';
 
 export function GameProvider({ children }: PropsWithChildren) {
   const { isSignedIn, isLoading } = useAuth();
-  const [state, send] = useMachine(gameMachine);
+  const { metadata, setMetadataMutation } = useMetadata();
+
+  const [state, send, actor] = useMachine(gameMachine, {
+    input: { isSignedIn, metadata },
+  });
+
+  actor.on('TUTORIAL_COMPLETE', () => {
+    setMetadataMutation.mutate({ hasViewedTutorial: true });
+  });
 
   useEffect(() => {
     if (isLoading) return;

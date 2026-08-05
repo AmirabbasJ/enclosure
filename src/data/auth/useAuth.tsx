@@ -32,7 +32,7 @@ export function useAuth(): AuthValue {
 
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.currentUser.queryKey,
-    queryFn: () => getCurrentUser().then(({ user }) => user),
+    queryFn: () => getCurrentUser().then((d) => d?.user),
     staleTime: Infinity,
     initialData: currentUser,
   });

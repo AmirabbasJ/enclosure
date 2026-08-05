@@ -5,6 +5,7 @@ import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
 import { LoadingDots } from '@/ui/LoadingDots';
 
+import { useMetadata } from '../../../data/metadata/useMetadata';
 import {
   IconMusic,
   IconMusicOff,
@@ -103,7 +104,7 @@ function MenuContent() {
   const { signOut, isSignedIn } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
 
-  if (state.matches('playing') || state.matches('launch')) return null;
+  if (state.matches('playing')) return null;
 
   if (state.matches('paused')) {
     return (
@@ -258,6 +259,7 @@ export function AppMenu() {
       window.removeEventListener('keydown', goBack);
     };
   }, [goBack]);
+  useMetadata();
 
   return (
     <div className="absolute backdrop-blur-xs inset-x-0 bottom-0 flex h-full w-full flex-col items-center justify-center pb-2">

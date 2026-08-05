@@ -9,11 +9,12 @@ import { setMetadataFn } from './metadata.functions';
 
 export function useMetadata() {
   const { metadata: initialMetadata } = useRouteContext({ from: '__root__' });
+
   const setMetadata = useServerFn(setMetadataFn);
 
   const { data: metadata } = useQuery({
     queryKey: ['metadata'],
-    queryFn: () => getCurrentUserFn().then((d) => d.metadata),
+    queryFn: () => getCurrentUserFn().then((d) => d?.metadata),
     initialData: initialMetadata,
   });
 

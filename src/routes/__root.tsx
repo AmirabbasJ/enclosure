@@ -13,6 +13,7 @@ import { GameAudioProvider } from '../context/GameAudioContext';
 import { GameProvider } from '../context/GameContext';
 import { getAudioStateFn } from '../data/audio/audio.functions';
 import { getCurrentUserFn } from '../data/auth/auth.functions';
+import { getMetadataCookieFn } from '../data/metadata/metadata.functions';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
 import appCss from '../styles.css?url';
 
@@ -44,13 +45,16 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: RootProviders,
   shellComponent: RootDocument,
   beforeLoad: async () => {
-    const [currentUserData, audioState] = await Promise.all([
-      getCurrentUserFn(),
-      getAudioStateFn(),
-    ]);
+    const currentUserData = await getCurrentUserFn();
+    const audioState = await getAudioStateFn();
+    const cookieMetadata = await getMetadataCookieFn();
 
-    const { metadata, user } = currentUserData;
-    return { user, metadata, audioState };
+    const metadata = cookieMetadata ?? currentUserData?.metadata;
+    return {
+      user: currentUserData?.user,
+      metadata,
+      audioState,
+    };
   },
 });
 

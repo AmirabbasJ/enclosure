@@ -11,7 +11,10 @@ import { createServerClient } from '@/lib/supabase/client.server';
 
 import type { User } from '../../domain/User';
 
-import { getMetadataFn } from '../metadata/metadata.functions';
+import {
+  defaultMetadata,
+  getMetadataCookieFn,
+} from '../metadata/metadata.functions';
 
 const AUTH_EMAIL_DOMAIN = 'users.enclosure.local';
 
@@ -66,30 +69,30 @@ function parseCredentials(username: string, password: string) {
 type Client = SupabaseClient<Database>;
 
 export interface CurrentUser {
-  user: User | null;
+  user: User;
   metadata: {
     hasViewedTutorial: boolean;
   };
 }
 
 export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<CurrentUser> => {
+  async (): Promise<CurrentUser | null> => {
     const supabase = createServerClient();
 
     const { data, error } = await supabase.auth.getUser();
 
-    if (error) return { user: null, metadata: { hasViewedTutorial: false } };
+    if (error) return null;
 
     const { user: sessionUser } = data;
 
     const { data: user, error: profileError } = await supabase
       .from('profiles')
-      .select('id, username, created_at, viewed_tutorial')
+      .select('id, username, created_at, has_viewed_tutorial')
       .eq('id', sessionUser.id)
       .maybeSingle();
 
     if (profileError) throw profileError;
-    if (!user) return { user: null, metadata: { hasViewedTutorial: false } };
+    if (!user) return null;
 
     return {
       user: {
@@ -97,7 +100,7 @@ export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
         username: user.username,
       },
       metadata: {
-        hasViewedTutorial: user.viewed_tutorial ?? false,
+        hasViewedTutorial: user.has_viewed_tutorial ?? false,
       },
     };
   }
@@ -136,7 +139,7 @@ export const signUp = createServerFn({ method: 'POST' })
       { desired: username }
     );
 
-    const metadata = await getMetadataFn();
+    const metadata = (await getMetadataCookieFn()) ?? defaultMetadata;
 
     if (availabilityError) return availabilityError.message;
     if (!available) return 'Username is already taken';
