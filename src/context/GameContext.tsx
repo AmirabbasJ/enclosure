@@ -26,7 +26,7 @@ export function GameProvider({ children }: PropsWithChildren) {
   const { metadata, setMetadataMutation } = useMetadata();
 
   const [state, send, actor] = useMachine(gameMachine, {
-    input: { isSignedIn, metadata },
+    input: { isSignedIn, metadata: metadata ?? undefined },
   });
 
   actor.on('TUTORIAL_COMPLETE', () => {

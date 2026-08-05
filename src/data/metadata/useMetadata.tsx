@@ -5,6 +5,7 @@ import { useServerFn } from '@tanstack/react-start';
 import type { Metadata } from './metadata.functions';
 
 import { getCurrentUserFn } from '../auth/auth.functions';
+import { queryKeys } from '../queryKeys';
 import { setMetadataFn } from './metadata.functions';
 
 export function useMetadata() {
@@ -13,9 +14,9 @@ export function useMetadata() {
   const setMetadata = useServerFn(setMetadataFn);
 
   const { data: metadata } = useQuery({
-    queryKey: ['metadata'],
+    queryKey: queryKeys.metadata.current.queryKey,
     queryFn: () => getCurrentUserFn().then((d) => d?.metadata),
-    initialData: initialMetadata,
+    initialData: initialMetadata ?? null,
   });
 
   const setMetadataMutation = useMutation({

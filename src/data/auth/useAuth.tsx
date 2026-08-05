@@ -34,7 +34,7 @@ export function useAuth(): AuthValue {
     queryKey: queryKeys.auth.currentUser.queryKey,
     queryFn: () => getCurrentUser().then((d) => d?.user),
     staleTime: Infinity,
-    initialData: currentUser,
+    initialData: currentUser ?? null,
   });
 
   useEffect(() => {

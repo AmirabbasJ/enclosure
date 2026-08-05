@@ -4,4 +4,7 @@ export const queryKeys = createQueryKeyStore({
   auth: {
     currentUser: null,
   },
+  metadata: {
+    current: null,
+  },
 });
