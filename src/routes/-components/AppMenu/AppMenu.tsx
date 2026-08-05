@@ -53,7 +53,7 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex flex-col items-center gap-5 ">
       <p className="mb-3 text-center text-base opacity-80">Settings</p>
-      <div className="flex w-full min-w-75 flex-col gap-10">
+      <div className="flex w-full min-w-75 flex-col gap-5 p-5 bg-foreground pixelated">
         <RangeSlider
           disabled={!musicAudioState.isOn}
           label={
