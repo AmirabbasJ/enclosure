@@ -11,6 +11,8 @@ import { createServerClient } from '@/lib/supabase/client.server';
 
 import type { User } from '../../domain/User';
 
+import { getMetadataFn } from '../metadata/metadata.functions';
+
 const AUTH_EMAIL_DOMAIN = 'users.enclosure.local';
 
 const usernameSchema = z
@@ -65,6 +67,9 @@ type Client = SupabaseClient<Database>;
 
 export interface CurrentUser {
   user: User | null;
+  metadata: {
+    hasViewedTutorial: boolean;
+  };
 }
 
 export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
@@ -73,19 +78,28 @@ export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
 
     const { data, error } = await supabase.auth.getUser();
 
-    if (error) return { user: null };
+    if (error) return { user: null, metadata: { hasViewedTutorial: false } };
 
     const { user: sessionUser } = data;
 
     const { data: user, error: profileError } = await supabase
       .from('profiles')
-      .select('id, username, created_at')
+      .select('id, username, created_at, viewed_tutorial')
       .eq('id', sessionUser.id)
       .maybeSingle();
 
     if (profileError) throw profileError;
+    if (!user) return { user: null, metadata: { hasViewedTutorial: false } };
 
-    return { user };
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+      },
+      metadata: {
+        hasViewedTutorial: user.viewed_tutorial ?? false,
+      },
+    };
   }
 );
 
@@ -122,6 +136,8 @@ export const signUp = createServerFn({ method: 'POST' })
       { desired: username }
     );
 
+    const metadata = await getMetadataFn();
+
     if (availabilityError) return availabilityError.message;
     if (!available) return 'Username is already taken';
 
@@ -129,7 +145,10 @@ export const signUp = createServerFn({ method: 'POST' })
       email: usernameToEmail(username),
       password,
       email_confirm: true,
-      user_metadata: { username },
+      user_metadata: {
+        username,
+        hasViewedTutorial: metadata.hasViewedTutorial,
+      },
     });
 
     if (error) return mapAuthError(error.message);

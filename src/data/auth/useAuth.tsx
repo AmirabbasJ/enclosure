@@ -32,9 +32,9 @@ export function useAuth(): AuthValue {
 
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.currentUser.queryKey,
-    queryFn: () => getCurrentUser(),
+    queryFn: () => getCurrentUser().then(({ user }) => user),
     staleTime: Infinity,
-    initialData: { user: currentUser },
+    initialData: currentUser,
   });
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function useAuth(): AuthValue {
     return () => subscription.unsubscribe();
   }, [supabase, queryClient]);
 
-  const user = currentUserQuery.data?.user ?? null;
+  const user = currentUserQuery.data ?? null;
 
   const signIn = async (username: string, password: string) => {
     const { error } = await signInFn(username, password, supabase);
@@ -79,9 +79,7 @@ export function useAuth(): AuthValue {
     const { error } = await supabase.auth.signOut();
     if (error) return error.message;
 
-    queryClient.setQueryData(queryKeys.auth.currentUser.queryKey, {
-      user: null,
-    });
+    queryClient.setQueryData(queryKeys.auth.currentUser.queryKey, null);
     return null;
   };
 

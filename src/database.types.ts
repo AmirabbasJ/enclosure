@@ -12,35 +12,114 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.15"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      levels: {
+        Row: {
+          answer: Json
+          created_at: string
+          id: number
+          question: Json
+        }
+        Insert: {
+          answer: Json
+          created_at?: string
+          id?: number
+          question: Json
+        }
+        Update: {
+          answer?: Json
+          created_at?: string
+          id?: number
+          question?: Json
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
           id: string
           username: string
+          viewed_tutorial: boolean | null
         }
         Insert: {
           created_at?: string
           id: string
           username: string
+          viewed_tutorial?: boolean | null
         }
         Update: {
           created_at?: string
           id?: string
           username?: string
+          viewed_tutorial?: boolean | null
         }
         Relationships: []
+      }
+      progress: {
+        Row: {
+          completed_at: string
+          id: string
+          level: number | null
+        }
+        Insert: {
+          completed_at?: string
+          id: string
+          level?: number | null
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          level?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "progress_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "progress_level_fkey"
+            columns: ["level"]
+            isOneToOne: false
+            referencedRelation: "levels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      is_username_available: {
-        Args: { desired: string }
-        Returns: boolean
-      }
+      is_username_available: { Args: { desired: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
@@ -169,6 +248,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

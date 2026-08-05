@@ -44,12 +44,13 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: RootProviders,
   shellComponent: RootDocument,
   beforeLoad: async () => {
-    const [currentUser, audioState] = await Promise.all([
+    const [currentUserData, audioState] = await Promise.all([
       getCurrentUserFn(),
       getAudioStateFn(),
     ]);
 
-    return { ...currentUser, audioState };
+    const { metadata, user } = currentUserData;
+    return { user, metadata, audioState };
   },
 });
 

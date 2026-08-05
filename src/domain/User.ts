@@ -1,3 +1,4 @@
-import type { Database } from '../database.types';
-
-export type User = Database['public']['Tables']['profiles']['Row'];
+export interface User {
+  id: string;
+  username: string;
+}
