@@ -45,6 +45,8 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
     setSfxAudioVolume,
     toggleMusic,
     toggleSfx,
+    playButtonClick,
+    resetAudioState,
   } = useGameAudio();
 
   return (
@@ -52,6 +54,7 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
       <p className="mb-3 text-center text-base opacity-80">Settings</p>
       <div className="flex w-full min-w-75 flex-col gap-10">
         <RangeSlider
+          disabled={!musicAudioState.isOn}
           label={
             <Button noStyling variant="icon" onClick={toggleMusic}>
               {musicAudioState.isOn ? (
@@ -66,6 +69,7 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
           onValueChange={(v) => setMusicAudioVolume(v / 100)}
         />
         <RangeSlider
+          disabled={!sfxAudioState.isOn}
           label={
             <Button noStyling variant="icon" onClick={toggleSfx}>
               {sfxAudioState.isOn ? (
@@ -77,10 +81,18 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
           }
           id="SFX"
           value={Math.round(sfxAudioState.volume * 100)}
-          onValueChange={(v) => setSfxAudioVolume(v / 100)}
+          onMouseUp={() => {
+            if (sfxAudioState.isOn) playButtonClick();
+          }}
+          onValueChange={(v) => {
+            setSfxAudioVolume(v / 100);
+          }}
         />
       </div>
-      <MenuButton onClick={onBack}>Back</MenuButton>
+      <div className="flex flex-col gap-3">
+        <MenuButton onClick={resetAudioState}>Reset</MenuButton>
+        <MenuButton onClick={onBack}>Back</MenuButton>
+      </div>
     </div>
   );
 }

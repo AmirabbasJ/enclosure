@@ -6,7 +6,10 @@ import useSound from 'use-sound';
 
 import type { AudioState } from '../data/audio/audio.functions';
 
-import { setAudioStateFn } from '../data/audio/audio.functions';
+import {
+  defaultAudioState,
+  setAudioStateFn,
+} from '../data/audio/audio.functions';
 import { randomInt } from '../utils/randomInt';
 
 interface GameAudioContextValue {
@@ -17,6 +20,7 @@ interface GameAudioContextValue {
   toggleSfx: VoidFunction;
   setSfxAudioVolume: (volume: number) => void;
   setMusicAudioVolume: (volume: number) => void;
+  resetAudioState: VoidFunction;
   playButtonClick: VoidFunction;
   musicAudioState: AudioState['music'];
   sfxAudioState: AudioState['sfx'];
@@ -109,6 +113,10 @@ export function GameAudioProvider({
     volume: sfxAudioState.isOn ? sfxAudioState.volume : 0,
   });
 
+  const resetAudioState = useCallback(() => {
+    setAudioState(() => defaultAudioState);
+  }, [setAudioState]);
+
   const value = useMemo(
     () => ({
       playButtonClick,
@@ -121,6 +129,7 @@ export function GameAudioProvider({
       playRandomHit,
       toggleSfx,
       setSfxAudioVolume,
+      resetAudioState,
     }),
     [
       playButtonClick,
@@ -133,6 +142,7 @@ export function GameAudioProvider({
       setMusicAudioVolume,
       musicAudioState,
       sfxAudioState,
+      resetAudioState,
     ]
   );
 

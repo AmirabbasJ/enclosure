@@ -18,7 +18,7 @@ const audioStateSchema = z.object({
 
 export type AudioState = z.infer<typeof audioStateSchema>;
 
-const defaultAudioState: AudioState = {
+export const defaultAudioState: AudioState = {
   sfx: {
     volume: 0.3,
     isOn: true,

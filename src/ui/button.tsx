@@ -23,7 +23,7 @@ const buttonVariants = tv({
       icon: 'flex items-center justify-center px-2 pt-1 pb-2.5',
     },
     noStyling: {
-      true: 'bg-transparent shadow-none enabled:hover:bg-transparent enabled:active:shadow-none hover:text-text-light',
+      true: 'bg-transparent py-2 shadow-none enabled:hover:bg-transparent enabled:active:shadow-none hover:text-text-light',
     },
   },
   defaultVariants: {
