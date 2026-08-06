@@ -199,29 +199,21 @@ export function GameScene({
   }, [walls]);
 
   const moveWall = (id: string, position: [number, number, number]) => {
-    setWalls((prev) => {
-      const next = prev.map((wall) =>
-        wall.id === id ? { ...wall, position } : wall
-      );
-      wallsRef.current = next;
-      return next;
-    });
+    wallsRef.current = wallsRef.current.map((wall) =>
+      wall.id === id ? { ...wall, position } : wall
+    );
+    setWalls(wallsRef.current);
   };
 
   const rotateWall = (id: string, yaw: number) => {
-    setWalls((prev) => {
-      const next = prev.map((wall) =>
-        wall.id === id ? { ...wall, yaw } : wall
-      );
-      wallsRef.current = next;
-      return next;
-    });
+    wallsRef.current = wallsRef.current.map((wall) =>
+      wall.id === id ? { ...wall, yaw } : wall
+    );
+    setWalls(wallsRef.current);
   };
 
   const logLevelState = () => {
-    setTimeout(() => {
-      console.log(serializeLevel({ orbs: orbInputs, walls: wallsRef.current }));
-    }, 0);
+    console.log(serializeLevel({ orbs: orbInputs, walls: wallsRef.current }));
   };
 
   const onKeyDown = useCallback(
