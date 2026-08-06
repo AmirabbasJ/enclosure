@@ -113,12 +113,12 @@ export const getSessionFn = createServerFn({ method: 'GET' }).handler(
   }
 );
 
-export async function signIn(
+export const signIn = async (
   username: string,
-  password: string,
-  client: Client = supabaseBrowserClient
-): Promise<{ error: string | null; session: Session | null }> {
+  password: string
+): Promise<{ error: string | null; session: Session | null }> => {
   const parsed = parseCredentials(username, password);
+  console.log('wow what is this?');
 
   if (!parsed.data) {
     return { error: parsed.error, session: null };
@@ -126,7 +126,7 @@ export async function signIn(
 
   const { username: normalized, password: validPassword } = parsed.data;
 
-  const { data, error } = await client.auth.signInWithPassword({
+  const { data, error } = await supabaseBrowserClient.auth.signInWithPassword({
     email: usernameToEmail(normalized),
     password: validPassword,
   });
@@ -134,7 +134,7 @@ export async function signIn(
   if (error) return { error: mapAuthError(error.message), session: null };
 
   return { error: null, session: data.session };
-}
+};
 
 export const signUpGuestFn = createServerFn({ method: 'POST' }).handler(
   async (): Promise<string | null> => {

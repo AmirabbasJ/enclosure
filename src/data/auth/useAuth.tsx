@@ -57,7 +57,7 @@ export function useAuth(): AuthValue {
   const user = currentUserQuery.data ?? null;
 
   const signIn = async (username: string, password: string) => {
-    const { error } = await signInFn(username, password, supabase);
+    const { error } = await signInFn(username, password);
     if (error) return error;
 
     await queryClient.invalidateQueries({
