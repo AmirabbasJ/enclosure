@@ -9,14 +9,14 @@ export const TUTORIAL_QUESTION: LevelInput = {
     { kind: 'bad', col: 1, row: 1 },
   ],
   walls: [
-    { id: 'u', col: 3, row: 1, yawQuarters: 2 },
+    { id: 'u', col: 3, row: 0, yawQuarters: 2 },
     { id: 'snake', col: 1, row: 1, yawQuarters: 1 },
   ],
 };
 
 export const TUTORIAL_ANSWER_WALLS = [
-  { id: 'zigzagTall', col: 1, row: 1, yawQuarters: 2 },
-  { id: 'steps', col: 4, row: 1, yawQuarters: 0 },
+  { id: 'zigzagTall', col: 1, row: 0, yawQuarters: 2 },
+  { id: 'steps', col: 2, row: 1, yawQuarters: 0 },
 ] as const satisfies readonly WallInput[];
 
 export const TUTORIAL_ANSWER: LevelInput = {
@@ -30,8 +30,8 @@ export const TUTORIAL_SURROUND_WRONG: LevelInput = {
     wall.id === 'u'
       ? {
           ...wall,
-          col: 3,
-          row: 0,
+          col: 2,
+          row: -1,
           yawQuarters: 3,
         }
       : wall
@@ -58,7 +58,7 @@ export const TUTORIAL_TOWER_WRONG: LevelInput = {
     wall.id === 'u'
       ? {
           ...wall,
-          col: 4,
+          col: 3,
           row: 0,
           yawQuarters: 0,
         }

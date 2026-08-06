@@ -267,6 +267,7 @@ interface WallProps {
   floatPhase?: number;
   selected?: boolean;
   draggable?: boolean;
+  snapToGrooves?: boolean;
   snapStep?: number;
   blockedKeys?: ReadonlySet<string>;
   blockedFilledCorners?: ReadonlySet<string>;
@@ -298,6 +299,7 @@ export function Wall({
   floatPhase = 0,
   selected = false,
   draggable = false,
+  snapToGrooves = true,
   snapStep = 0,
   blockedKeys,
   blockedFilledCorners,
@@ -326,6 +328,7 @@ export function Wall({
   const onPlaceRef = useRef(onPlace);
   const onGroundHitRef = useRef(onGroundHit);
   const snapStepRef = useRef(snapStep);
+  const snapToGroovesRef = useRef(snapToGrooves);
   const blockedKeysRef = useRef(blockedKeys);
   const blockedFilledCornersRef = useRef(blockedFilledCorners);
   const occupiedCornersRef = useRef(occupiedCorners);
@@ -356,6 +359,7 @@ export function Wall({
   onPlaceRef.current = onPlace;
   onGroundHitRef.current = onGroundHit;
   snapStepRef.current = snapStep;
+  snapToGroovesRef.current = snapToGrooves;
   blockedKeysRef.current = blockedKeys;
   blockedFilledCornersRef.current = blockedFilledCorners;
   occupiedCornersRef.current = occupiedCorners;
@@ -375,6 +379,8 @@ export function Wall({
   ];
 
   const pinToBoardGrid = (x: number, z: number): { x: number; z: number } => {
+    if (!snapToGroovesRef.current) return { x, z };
+
     const off = centerOffsetRef.current;
     const yaw = yawTargetRef.current;
     const r = rotateYaw(off.x, off.z, yaw);
@@ -474,6 +480,19 @@ export function Wall({
 
       const [dx, dz] = step;
       const [px, , pz] = positionRef.current;
+
+      if (!snapToGroovesRef.current) {
+        const clamped = clampToDragBounds(
+          px + dx * CELL_SIZE,
+          pz + dz * CELL_SIZE
+        );
+        const pos = wallPos(clamped.x, clamped.z);
+        onPositionChangeRef.current?.(pos);
+        positionRef.current = pos;
+        onPlaceRef.current?.();
+        return;
+      }
+
       const next = pickWallCenterInDirection({
         cx: px,
         cz: pz,

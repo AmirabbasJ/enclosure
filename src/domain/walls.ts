@@ -90,6 +90,65 @@ export function yawToQuarters(yaw: number): YawQuarters {
   return (((Math.round(yaw / (Math.PI / 2)) % 4) + 4) % 4) as YawQuarters;
 }
 
+/** World position of a groove-space corner for (col, row). */
+export function spaceToWorld(
+  col: number,
+  row: number
+): { x: number; z: number } {
+  const half = TILE_SPACING / 2;
+  const [tx, , tz] = cellToWorld(col, row);
+  return { x: tx - half, z: tz - half };
+}
+
+export function worldToSpace(
+  x: number,
+  z: number
+): { col: number; row: number } {
+  return {
+    col: Math.round(x / TILE_SPACING + (BOARD_COLS - 1) / 2 + 0.5),
+    row: Math.round(z / TILE_SPACING + (BOARD_ROWS - 1) / 2 + 0.5),
+  };
+}
+
+/** Min board AABB corner of path, relative to path origin, after yaw. */
+export function wallAabbMinLocal(
+  path: readonly WallDir[],
+  yaw: number,
+  cellSize = CELL_SIZE
+): { x: number; z: number } {
+  const corners = getWallCornerLocals(path, cellSize);
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  let minX = Infinity;
+  let minZ = Infinity;
+
+  for (const corner of corners) {
+    const rx = corner.x * c + corner.z * s;
+    const rz = -corner.x * s + corner.z * c;
+    minX = Math.min(minX, rx);
+    minZ = Math.min(minZ, rz);
+  }
+
+  return { x: minX, z: minZ };
+}
+
+/** Path-origin space indices for an AABB-anchored wall input. */
+export function wallPathOriginSpace({
+  path,
+  col,
+  row,
+  yaw,
+}: {
+  path: readonly WallDir[];
+  col: number;
+  row: number;
+  yaw: number;
+}): { col: number; row: number } {
+  const aabbMin = wallAabbMinLocal(path, yaw);
+  const target = spaceToWorld(col, row);
+  return worldToSpace(target.x - aabbMin.x, target.z - aabbMin.z);
+}
+
 export function wallToInput(wall: WallPiece): WallInput | null {
   const { footprints, centerOffset } = getWallFootprints(wall.path);
   const { originX, originZ } = wallOriginFromCenter({
@@ -112,8 +171,8 @@ export function wallToInput(wall: WallPiece): WallInput | null {
     return null;
   }
 
-  const col = Math.round(originX / TILE_SPACING + (BOARD_COLS - 1) / 2 + 0.5);
-  const row = Math.round(originZ / TILE_SPACING + (BOARD_ROWS - 1) / 2 + 0.5);
+  const aabbMin = wallAabbMinLocal(wall.path, wall.yaw);
+  const { col, row } = worldToSpace(originX + aabbMin.x, originZ + aabbMin.z);
   const yawQuarters = yawToQuarters(wall.yaw);
   const expected = wallCenterFromCell({
     path: wall.path,
@@ -247,10 +306,10 @@ export function wallCenterFromCell({
   snap?: boolean;
 }): [number, number, number] {
   const { footprints, centerOffset } = getWallFootprints(path);
-  const half = TILE_SPACING / 2;
-  const [tx, , tz] = cellToWorld(col, row);
-  const originX = tx - half;
-  const originZ = tz - half;
+  const aabbMin = wallAabbMinLocal(path, yaw);
+  const target = spaceToWorld(col, row);
+  const originX = target.x - aabbMin.x;
+  const originZ = target.z - aabbMin.z;
 
   const c = Math.cos(yaw);
   const s = Math.sin(yaw);

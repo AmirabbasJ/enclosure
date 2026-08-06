@@ -1,5 +1,11 @@
 import type { LevelInput } from '#/domain/level';
-import type { WallId, WallInput, YawQuarters } from '#/domain/walls';
+import type { WallId, WallInput } from '#/domain/walls';
+
+import {
+  WALL_PATHS,
+  wallPathOriginSpace,
+  yawFromQuarters,
+} from '#/domain/walls';
 
 import {
   LevelShotOrb,
@@ -67,12 +73,34 @@ export function spaceToOverlayPercent(
   };
 }
 
-function wallAnchor(wall: WallInput): [number, number] {
-  return spaceToIso(wall.col, wall.row);
-}
+function wallTransform(
+  wall: WallInput,
+  asset: { ax: number; ay: number }
+): { ix: number; iy: number; ax: number; ay: number; deg: number } {
+  const yaw = yawFromQuarters(wall.yawQuarters);
+  const origin = wallPathOriginSpace({
+    path: WALL_PATHS[wall.id],
+    col: wall.col,
+    row: wall.row,
+    yaw,
+  });
+  const [originIx, originIy] = spaceToIso(origin.col, origin.row);
+  const [aabbIx, aabbIy] = spaceToIso(wall.col, wall.row);
 
-function yawDeg(yawQuarters: YawQuarters): number {
-  return yawQuarters * 90;
+  const deg = wall.yawQuarters * 90;
+  const rad = (-deg * Math.PI) / 180;
+  const dx = aabbIx - originIx;
+  const dy = aabbIy - originIy;
+  const localDx = dx * Math.cos(rad) - dy * Math.sin(rad);
+  const localDy = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+  return {
+    ix: aabbIx,
+    iy: aabbIy,
+    ax: asset.ax + localDx,
+    ay: asset.ay + localDy,
+    deg,
+  };
 }
 
 interface LevelShotProps {
@@ -100,14 +128,12 @@ export function LevelShot({ level, className, pad = 4 }: LevelShotProps) {
 
       {walls.map((wall) => {
         const asset = WALL_SRC[wall.id];
+        const { ix, iy, ax, ay, deg } = wallTransform(wall, asset);
 
-        const [ix, iy] = wallAnchor(wall);
-
-        const deg = yawDeg(wall.yawQuarters);
         return (
           <g
             key={`${wall.id}-${wall.col}-${wall.row}-${wall.yawQuarters}`}
-            transform={`translate(${ix} ${iy}) rotate(${deg}) translate(${-asset.ax} ${-asset.ay})`}
+            transform={`translate(${ix} ${iy}) rotate(${deg}) translate(${-ax} ${-ay})`}
           >
             <image href={asset.path} width={asset.w} height={asset.h} />
           </g>

@@ -371,6 +371,7 @@ export function GameScene({
               wallId={wall.id}
               position={wall.position}
               rotation={[0, wall.yaw, 0]}
+              snapToGrooves={snapWallsToGrooves}
               blockedKeys={blockedKeysByWall[wall.id].grooves}
               blockedFilledCorners={
                 blockedKeysByWall[wall.id].blockedFilledCorners
