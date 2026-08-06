@@ -14,6 +14,7 @@ import { GameProvider } from '../context/GameContext';
 import { getAudioStateFn } from '../data/audio/audio.functions';
 import { getCurrentUserFn } from '../data/auth/auth.functions';
 import { getMetadataCookieFn } from '../data/metadata/metadata.functions';
+import { getProgressFn } from '../data/progress/progrsss.functions';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
 import appCss from '../styles.css?url';
 
@@ -48,12 +49,14 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     const currentUserData = await getCurrentUserFn();
     const audioState = await getAudioStateFn();
     const cookieMetadata = await getMetadataCookieFn();
+    const progress = await getProgressFn();
 
     const metadata = cookieMetadata ?? currentUserData?.metadata;
     return {
       user: currentUserData?.user,
       metadata,
       audioState,
+      progress,
     };
   },
 });

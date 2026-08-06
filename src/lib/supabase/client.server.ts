@@ -5,10 +5,12 @@ import {
   setResponseHeader,
 } from '@tanstack/react-start/server';
 
+import type { Database } from '../../database.types';
+
 import { serverConfig } from '../../config/serverConfig.server';
 
 export function createServerClient() {
-  return createSupabaseServerClient(
+  return createSupabaseServerClient<Database>(
     serverConfig.supabase.url,
     serverConfig.supabase.anonKey,
     {

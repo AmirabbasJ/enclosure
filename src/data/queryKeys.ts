@@ -7,4 +7,7 @@ export const queryKeys = createQueryKeyStore({
   metadata: {
     current: null,
   },
+  progress: {
+    current: null,
+  },
 });

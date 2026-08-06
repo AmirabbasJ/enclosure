@@ -63,21 +63,21 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          has_viewed_tutorial: boolean | null
           id: string
           username: string
-          has_viewed_tutorial: boolean | null
         }
         Insert: {
           created_at?: string
+          has_viewed_tutorial?: boolean | null
           id: string
           username: string
-          has_viewed_tutorial?: boolean | null
         }
         Update: {
           created_at?: string
+          has_viewed_tutorial?: boolean | null
           id?: string
           username?: string
-          has_viewed_tutorial?: boolean | null
         }
         Relationships: []
       }
@@ -85,17 +85,17 @@ export type Database = {
         Row: {
           completed_at: string
           id: string
-          level: number | null
+          level_id: number
         }
         Insert: {
           completed_at?: string
           id: string
-          level?: number | null
+          level_id: number
         }
         Update: {
           completed_at?: string
           id?: string
-          level?: number | null
+          level_id?: number
         }
         Relationships: [
           {
@@ -106,8 +106,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "progress_level_fkey"
-            columns: ["level"]
+            foreignKeyName: "progress_level_id_fkey"
+            columns: ["level_id"]
             isOneToOne: false
             referencedRelation: "levels"
             referencedColumns: ["id"]
