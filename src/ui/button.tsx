@@ -5,6 +5,7 @@ import { tv } from 'tailwind-variants';
 
 import { useGameAudio } from '../context/GameAudioContext';
 import { cn } from '../utils/cn';
+import { LoadingDots } from './LoadingDots';
 
 const buttonVariants = tv({
   base: [
@@ -31,8 +32,11 @@ const buttonVariants = tv({
   },
 });
 
-type ButtonProps = PropsWithChildren<
-  ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonVariants>
+export type ButtonProps = PropsWithChildren<
+  ButtonHTMLAttributes<HTMLButtonElement> &
+    VariantProps<typeof buttonVariants> & {
+      isLoading?: boolean;
+    }
 >;
 
 function Button({
@@ -41,6 +45,7 @@ function Button({
   variant,
   noStyling,
   onClick,
+  isLoading = false,
   ...props
 }: ButtonProps) {
   const { playButtonClick } = useGameAudio();
@@ -51,10 +56,11 @@ function Button({
         playButtonClick();
         return onClick?.(event);
       }}
+      disabled={isLoading || props.disabled}
       className={cn(buttonVariants({ variant, noStyling, className }))}
       {...props}
     >
-      {children}
+      {isLoading ? <LoadingDots /> : children}
     </button>
   );
 }

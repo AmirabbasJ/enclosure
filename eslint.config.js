@@ -13,6 +13,7 @@ export default defineConfig({
     'react-hooks/incompatible-library': 'off',
     'react-refresh/only-export-components': 'off',
     '@eslint-react/refs': 'off',
+    '@typescript-eslint/no-unnecessary-type-assertion': 'off',
   },
   ignores: ['./src/database.types.ts', './eslint.config.mjs'],
 });

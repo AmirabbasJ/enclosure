@@ -2,16 +2,17 @@ import { useState } from 'react';
 
 import { useAuth } from '@/data/auth/useAuth';
 import Button from '@/ui/button';
-import { LoadingDots } from '@/ui/LoadingDots';
 import TextField from '@/ui/text-field';
 
 interface AuthFormProps {
+  initialMode?: 'signIn' | 'signUp';
   onSuccess?: () => void;
 }
 
-export function AuthForm({ onSuccess }: AuthFormProps) {
+// FIXME can submit empty and no error validation
+export function AuthForm({ initialMode = 'signIn', onSuccess }: AuthFormProps) {
   const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
+  const [mode, setMode] = useState<'signIn' | 'signUp'>(initialMode);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -69,16 +70,10 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
       <div className="flex flex-col gap-3">
         <Button
           className="flex items-center justify-center"
-          disabled={pending}
+          isLoading={pending}
           type="submit"
         >
-          {pending ? (
-            <LoadingDots />
-          ) : mode === 'signIn' ? (
-            'Sign In'
-          ) : (
-            'Create Account'
-          )}
+          {mode === 'signIn' ? 'Sign In' : 'Create Account'}
         </Button>
         <Button
           disabled={pending}

@@ -68,15 +68,15 @@ function parseCredentials(username: string, password: string) {
 
 type Client = SupabaseClient<Database>;
 
-export interface CurrentUser {
+export interface UserSession {
   user: User;
   metadata: {
     hasViewedTutorial: boolean;
   };
 }
 
-export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<CurrentUser | null> => {
+export const getSessionFn = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<UserSession | null> => {
     const supabase = createServerClient();
 
     const { data, error } = await supabase.auth.getUser();
@@ -94,10 +94,17 @@ export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(
     if (profileError) throw profileError;
     if (!user) return null;
 
+    const isGuest = sessionUser.is_anonymous;
+
+    // FIXME extract
+    const username = isGuest
+      ? `Guest-${sessionUser.id.split('-').at(0)!}`
+      : user.username!;
     return {
       user: {
         id: user.id,
-        username: user.username,
+        username,
+        type: isGuest ? 'guest' : 'auth',
       },
       metadata: {
         hasViewedTutorial: user.has_viewed_tutorial ?? false,
@@ -128,6 +135,17 @@ export async function signIn(
 
   return { error: null, session: data.session };
 }
+
+export const signUpGuestFn = createServerFn({ method: 'POST' }).handler(
+  async (): Promise<string | null> => {
+    const client = createServerClient();
+    const { error, data } = await client.auth.signInAnonymously();
+    console.log('signUpGuestFn', { error, data });
+    if (error) return error.message;
+
+    return data.user?.id ?? null;
+  }
+);
 
 export const signUp = createServerFn({ method: 'POST' })
   .validator(credentialsSchema)

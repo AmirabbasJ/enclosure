@@ -1,3 +1,5 @@
+import type { UseMutationResult } from '@tanstack/react-query';
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
@@ -9,9 +11,10 @@ import type { User } from '../../domain/User';
 
 import { queryKeys } from '../queryKeys';
 import {
-  getCurrentUserFn,
+  getSessionFn,
   signIn as signInFn,
   signUp as signUpFn,
+  signUpGuestFn,
 } from './auth.functions';
 
 export interface AuthValue {
@@ -20,6 +23,7 @@ export interface AuthValue {
   isSignedIn: boolean;
   signIn: (username: string, password: string) => Promise<string | null>;
   signUp: (username: string, password: string) => Promise<string | null>;
+  signUpGuestMutation: UseMutationResult<string | null, Error, void>;
   signOut: () => Promise<string | null>;
 }
 
@@ -28,7 +32,8 @@ export function useAuth(): AuthValue {
   const supabase = useSupabase();
   const queryClient = useQueryClient();
   const createUser = useServerFn(signUpFn);
-  const getCurrentUser = useServerFn(getCurrentUserFn);
+  const getCurrentUser = useServerFn(getSessionFn);
+  const signUpGuest = useServerFn(signUpGuestFn);
 
   const currentUserQuery = useQuery({
     queryKey: queryKeys.auth.currentUser.queryKey,
@@ -75,6 +80,10 @@ export function useAuth(): AuthValue {
     },
   });
 
+  const signUpGuestMutation = useMutation({
+    mutationFn: () => signUpGuest(),
+  });
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) return error.message;
@@ -88,6 +97,7 @@ export function useAuth(): AuthValue {
     isLoading: currentUserQuery.isPending,
     isSignedIn: Boolean(user),
     signIn,
+    signUpGuestMutation,
     signUp: (username, password) =>
       signUpMutation.mutateAsync({ username, password }),
     signOut,

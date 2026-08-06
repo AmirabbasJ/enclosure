@@ -3,7 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useGameAudio } from '@/context/GameAudioContext';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
-import { LoadingDots } from '@/ui/LoadingDots';
+
+import type { ButtonProps } from '../../../ui/button';
 
 import { useMetadata } from '../../../data/metadata/useMetadata';
 import {
@@ -19,23 +20,9 @@ import { Tutorial } from '../Tutorial/Tutorial';
 import { AuthForm } from './AuthForm';
 import { TopBar } from './TopBar';
 
-function MenuButton({
-  children,
-  disabled,
-  onClick,
-}: {
-  children: React.ReactNode;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
+function MenuButton(props: ButtonProps) {
   return (
-    <Button
-      className="flex min-w-75 items-center justify-center"
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {children}
-    </Button>
+    <Button {...props} className="flex min-w-75 items-center justify-center" />
   );
 }
 
@@ -101,7 +88,7 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
 
 function MenuContent() {
   const { state, send } = useGame();
-  const { signOut, isSignedIn } = useAuth();
+  const { signOut, isSignedIn, signUpGuestMutation } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
 
   if (state.matches('playing')) return null;
@@ -123,8 +110,9 @@ function MenuContent() {
       <>
         <MenuButton onClick={() => send({ type: 'PLAY' })}>Play</MenuButton>
         <MenuButton onClick={() => send({ type: 'HELP' })}>Help</MenuButton>
+        {/* FIXME use mutation loading */}
         <MenuButton
-          disabled={signingOut}
+          isLoading={signingOut}
           onClick={() => {
             if (isSignedIn) {
               setSigningOut(true);
@@ -139,7 +127,7 @@ function MenuContent() {
             send({ type: 'OPEN_SIGN_IN' });
           }}
         >
-          {signingOut ? <LoadingDots /> : isSignedIn ? 'Sign Out' : 'Sign In'}
+          {isSignedIn ? 'Sign Out' : 'Sign In'}
         </MenuButton>
         <MenuButton onClick={() => send({ type: 'LEADERBOARD' })}>
           Leaderboard
@@ -160,6 +148,42 @@ function MenuContent() {
         }
         onBack={() => send({ type: 'BACK' })}
       />
+    );
+  }
+
+  if (state.matches('askGuestOrSignUp')) {
+    return (
+      <>
+        <p className="mb-3 text-center text-base opacity-80">
+          Play as guest or create an account
+        </p>
+        <MenuButton onClick={() => send({ type: 'SIGN_UP' })}>
+          Sign Up
+        </MenuButton>
+        <MenuButton
+          isLoading={signUpGuestMutation.isPending}
+          onClick={async () => {
+            const guestId = await signUpGuestMutation.mutateAsync();
+            if (guestId) send({ type: 'CONTINUE_AS_GUEST' });
+          }}
+        >
+          Continue as Guest
+        </MenuButton>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
+      </>
+    );
+  }
+
+  if (state.matches('signUpForPlay')) {
+    return (
+      <>
+        <p className="mb-3 text-center text-base opacity-80">Sign Up</p>
+        <AuthForm
+          initialMode="signUp"
+          onSuccess={() => send({ type: 'SIGN_IN' })}
+        />
+        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
+      </>
     );
   }
 

@@ -1,4 +1,4 @@
-import { assign, emit, setup } from 'xstate';
+import { and, assign, emit, setup } from 'xstate';
 
 import type { Metadata } from '../../data/metadata/metadata.functions';
 
@@ -6,6 +6,7 @@ import { defaultMetadata } from '../../data/metadata/metadata.functions';
 
 export type GameEvent =
   | { type: 'BACK' }
+  | { type: 'CONTINUE_AS_GUEST' }
   | { type: 'CONTROLS' }
   | { type: 'HELP' }
   | { type: 'LEADERBOARD' }
@@ -16,6 +17,7 @@ export type GameEvent =
   | { type: 'SETTINGS' }
   | { type: 'SIGN_IN' }
   | { type: 'SIGN_OUT' }
+  | { type: 'SIGN_UP' }
   | { type: 'SKIP_SIGN_IN' }
   | { type: 'TUTORIAL_COMPLETE' }
   | { type: 'TUTORIAL' };
@@ -70,11 +72,16 @@ export const gameMachine = setup({
     mainMenu: {
       on: {
         PLAY: [
-          { guard: 'hasViewedTutorial', target: 'playing' },
           {
+            guard: and(['isSignedIn', 'hasViewedTutorial']),
+            target: 'playing',
+          },
+          {
+            guard: 'isSignedIn',
             target: 'tutorial',
             actions: 'setTutorialBackToMain',
           },
+          { target: 'askGuestOrSignUp' },
         ],
         LEADERBOARD: [
           { guard: 'isSignedIn', target: 'leaderboard' },
@@ -83,6 +90,37 @@ export const gameMachine = setup({
         HELP: { target: 'help' },
         OPEN_SIGN_IN: { target: 'signIn' },
         SETTINGS: { target: 'settings' },
+      },
+    },
+
+    askGuestOrSignUp: {
+      on: {
+        CONTINUE_AS_GUEST: [
+          { guard: 'hasViewedTutorial', target: 'playing' },
+          {
+            target: 'tutorial',
+            actions: 'setTutorialBackToMain',
+          },
+        ],
+        SIGN_UP: { target: 'signUpForPlay' },
+        BACK: { target: 'mainMenu' },
+      },
+    },
+
+    signUpForPlay: {
+      on: {
+        SIGN_IN: [
+          {
+            guard: 'hasViewedTutorial',
+            target: 'playing',
+            actions: 'setSignedIn',
+          },
+          {
+            target: 'tutorial',
+            actions: ['setSignedIn', 'setTutorialBackToMain'],
+          },
+        ],
+        BACK: { target: 'askGuestOrSignUp' },
       },
     },
 
