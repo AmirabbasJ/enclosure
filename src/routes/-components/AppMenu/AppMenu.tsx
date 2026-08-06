@@ -7,12 +7,14 @@ import { useAuth } from '@/data/auth/useAuth';
 import type { ButtonProps } from '../../../ui/button';
 
 import { useMetadata } from '../../../data/metadata/useMetadata';
+import { useProgress } from '../../../data/progress/useProgress';
 import {
   IconMusic,
   IconMusicOff,
   IconSoundMedium,
   IconSoundOff,
 } from '../../../lib/icons';
+import { Avatar } from '../../../ui/avatar';
 import Button from '../../../ui/button';
 import PixelBlast from '../../../ui/pixel-blast';
 import RangeSlider from '../../../ui/range-slider';
@@ -88,7 +90,8 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
 
 function MenuContent() {
   const { state, send } = useGame();
-  const { signOut, isSignedIn, signUpGuestMutation } = useAuth();
+  const { signUpGuestMutation, user } = useAuth();
+  const { progress } = useProgress();
   const [signingOut, setSigningOut] = useState(false);
 
   if (state.matches('playing')) return null;
@@ -114,20 +117,21 @@ function MenuContent() {
         <MenuButton
           isLoading={signingOut}
           onClick={() => {
-            if (isSignedIn) {
-              setSigningOut(true);
-              void signOut()
-                .then((error) => {
-                  if (!error) send({ type: 'SIGN_OUT' });
-                })
-                .finally(() => setSigningOut(false));
-              return;
-            }
+            send({ type: 'PROFILE' });
+            // if (isSignedIn) {
+            //   setSigningOut(true);
+            //   void signOut()
+            //     .then((error) => {
+            //       if (!error) send({ type: 'SIGN_OUT' });
+            //     })
+            //     .finally(() => setSigningOut(false));
+            //   return;
+            // }
 
-            send({ type: 'OPEN_SIGN_IN' });
+            // send({ type: 'OPEN_SIGN_IN' });
           }}
         >
-          {isSignedIn ? 'Sign Out' : 'Sign In'}
+          Profile
         </MenuButton>
         <MenuButton onClick={() => send({ type: 'LEADERBOARD' })}>
           Leaderboard
@@ -135,6 +139,27 @@ function MenuContent() {
         <MenuButton onClick={() => send({ type: 'SETTINGS' })}>
           Settings
         </MenuButton>
+      </>
+    );
+  }
+
+  if (state.matches('profile')) {
+    return (
+      <>
+        <p className="mb-3 text-center text-base opacity-80">Profile</p>
+        <div className="flex items-center gap-2 bg-foreground p-4 pixelated">
+          <Avatar size={50} seed={user!.username ?? ''} />
+          <div className="flex flex-col gap-1">
+            <p className="text-sm">{user!.username}</p>
+            <p className="text-[9px]  text-success">
+              Level {progress!.level_id}
+            </p>
+          </div>
+        </div>
+        <MenuButton onClick={() => send({ type: 'SIGN_OUT' })}>
+          Sign Out
+        </MenuButton>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
   }
@@ -174,7 +199,7 @@ function MenuContent() {
     );
   }
 
-  if (state.matches('signUpForPlay')) {
+  if (state.matches('signUp')) {
     return (
       <>
         <p className="mb-3 text-center text-base opacity-80">Sign Up</p>

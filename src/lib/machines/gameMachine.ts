@@ -13,6 +13,7 @@ export type GameEvent =
   | { type: 'OPEN_SIGN_IN' }
   | { type: 'PAUSE' }
   | { type: 'PLAY' }
+  | { type: 'PROFILE' }
   | { type: 'RULES' }
   | { type: 'SETTINGS' }
   | { type: 'SIGN_IN' }
@@ -22,17 +23,20 @@ export type GameEvent =
   | { type: 'TUTORIAL_COMPLETE' }
   | { type: 'TUTORIAL' };
 
+export type PendingAction = 'play' | 'profile';
+
 export interface GameMachineContext {
   metadata: Metadata;
   isSignedIn: boolean;
   tutorialBackTo: 'help' | 'mainMenu';
+  pendingAction: PendingAction | null;
 }
 
 export const gameMachine = setup({
   types: {
     context: {} as GameMachineContext,
     events: {} as GameEvent,
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+
     input: {} as {
       metadata?: Metadata;
       isSignedIn?: boolean;
@@ -53,8 +57,13 @@ export const gameMachine = setup({
     }),
     setSignedIn: assign({ isSignedIn: true }),
     setSignedOut: assign({ isSignedIn: false }),
+
     setTutorialBackToMain: assign({ tutorialBackTo: 'mainMenu' as const }),
     setTutorialBackToHelp: assign({ tutorialBackTo: 'help' as const }),
+
+    setPendingPlay: assign({ pendingAction: 'play' as const }),
+    setPendingProfile: assign({ pendingAction: 'profile' as const }),
+    clearPendingAction: assign({ pendingAction: null }),
   },
 }).createMachine({
   id: 'game',
@@ -63,6 +72,7 @@ export const gameMachine = setup({
     metadata: input.metadata ?? defaultMetadata,
     isSignedIn: input.isSignedIn ?? false,
     tutorialBackTo: 'mainMenu',
+    pendingAction: null,
   }),
   on: {
     SIGN_IN: { actions: 'setSignedIn' },
@@ -81,7 +91,10 @@ export const gameMachine = setup({
             target: 'tutorial',
             actions: 'setTutorialBackToMain',
           },
-          { target: 'askGuestOrSignUp' },
+          {
+            target: 'askGuestOrSignUp',
+            actions: 'setPendingPlay',
+          },
         ],
         LEADERBOARD: [
           { guard: 'isSignedIn', target: 'leaderboard' },
@@ -90,45 +103,61 @@ export const gameMachine = setup({
         HELP: { target: 'help' },
         OPEN_SIGN_IN: { target: 'signIn' },
         SETTINGS: { target: 'settings' },
+        PROFILE: [
+          { guard: 'isSignedIn', target: 'profile' },
+          {
+            target: 'askGuestOrSignUp',
+            actions: 'setPendingProfile',
+          },
+        ],
       },
     },
 
     askGuestOrSignUp: {
       on: {
-        CONTINUE_AS_GUEST: [
-          { guard: 'hasViewedTutorial', target: 'playing' },
-          {
-            target: 'tutorial',
-            actions: 'setTutorialBackToMain',
-          },
-        ],
-        SIGN_UP: { target: 'signUpForPlay' },
-        BACK: { target: 'mainMenu' },
+        CONTINUE_AS_GUEST: { target: 'routeAfterAuth' },
+        SIGN_UP: { target: 'signUp' },
+        BACK: {
+          target: 'mainMenu',
+          actions: 'clearPendingAction',
+        },
       },
     },
 
-    signUpForPlay: {
+    signUp: {
       on: {
-        SIGN_IN: [
-          {
-            guard: 'hasViewedTutorial',
-            target: 'playing',
-            actions: 'setSignedIn',
-          },
-          {
-            target: 'tutorial',
-            actions: ['setSignedIn', 'setTutorialBackToMain'],
-          },
-        ],
+        SIGN_IN: {
+          target: 'routeAfterAuth',
+          actions: 'setSignedIn',
+        },
         BACK: { target: 'askGuestOrSignUp' },
       },
+    },
+
+    routeAfterAuth: {
+      always: [
+        {
+          guard: ({ context }) => context.pendingAction === 'profile',
+          target: 'profile',
+          actions: 'clearPendingAction',
+        },
+        {
+          guard: 'hasViewedTutorial',
+          target: 'playing',
+          actions: 'clearPendingAction',
+        },
+        {
+          target: 'tutorial',
+          actions: ['setTutorialBackToMain', 'clearPendingAction'],
+        },
+      ],
     },
 
     tutorial: {
       on: {
         TUTORIAL_COMPLETE: {
           target: 'playing',
-          actions: [emit({ type: 'TUTORIAL_COMPLETE' }), 'markTutorialSeen'],
+          actions: ['markTutorialSeen', emit({ type: 'TUTORIAL_COMPLETE' })],
         },
         BACK: [
           { guard: 'tutorialFromHelp', target: 'help' },
@@ -161,6 +190,13 @@ export const gameMachine = setup({
         BACK: { target: 'mainMenu' },
       },
     },
+
+    profile: {
+      on: {
+        BACK: { target: 'mainMenu' },
+      },
+    },
+
     leaderboard: {
       on: {
         BACK: { target: 'mainMenu' },
