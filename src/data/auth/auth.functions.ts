@@ -203,7 +203,7 @@ export const upgradeAccountFn = createServerFn({ method: 'POST' })
   .handler(async ({ data: { username, password } }) => {
     const client = createServerClient();
 
-    const d = await client.auth.updateUser({
+    await client.auth.updateUser({
       email: usernameToEmail(username),
       password,
       data: {
@@ -211,5 +211,46 @@ export const upgradeAccountFn = createServerFn({ method: 'POST' })
       },
     });
 
+    return null;
+  });
+
+export const updateUsernameFn = createServerFn({ method: 'POST' })
+  .validator(z.object({ username: usernameSchema }))
+  .handler(async ({ data: { username } }): Promise<string | null> => {
+    const client = createServerClient();
+    const {
+      data: { user },
+    } = await client.auth.getUser();
+
+    if (!user) return 'Not signed in';
+    if (user.is_anonymous) return 'Guest accounts cannot edit profile';
+
+    const { data: profile, error: profileError } = await client
+      .from('profiles')
+      .select('username')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError) return profileError.message;
+    if (!profile) return 'Profile not found';
+    if (profile.username === username) return null;
+
+    const admin = createAdminClient();
+    const { data: available, error: availabilityError } = await admin.rpc(
+      'is_username_available',
+      { desired: username }
+    );
+
+    if (availabilityError) return availabilityError.message;
+    if (!available) return 'Username is already taken';
+
+    const { error } = await admin.auth.admin.updateUserById(user.id, {
+      email: usernameToEmail(username),
+      user_metadata: {
+        username,
+      },
+    });
+
+    if (error) return mapAuthError(error.message);
     return null;
   });

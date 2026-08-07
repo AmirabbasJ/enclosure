@@ -21,6 +21,7 @@ import { Tutorial } from '../Tutorial/Tutorial';
 import { UserProfile } from '../UserProfile';
 import { AuthForm } from './AuthForm';
 import { TopBar } from './TopBar';
+import { UpdateProfileForm } from './updateProfile';
 import { UpgradeAccountForm } from './UpgradeAccountForm';
 
 function MenuButton(props: ButtonProps) {
@@ -146,15 +147,20 @@ function MenuContent() {
           </MenuButton>
         ) : null}
         {user?.type === 'auth' ? (
-          <MenuButton
-            isLoading={signOutMutation.isPending}
-            onClick={async () => {
-              await signOutMutation.mutateAsync();
-              send({ type: 'SIGN_OUT' });
-            }}
-          >
-            Sign Out
-          </MenuButton>
+          <>
+            <MenuButton onClick={() => send({ type: 'EDIT_PROFILE' })}>
+              Edit Profile
+            </MenuButton>
+            <MenuButton
+              isLoading={signOutMutation.isPending}
+              onClick={async () => {
+                await signOutMutation.mutateAsync();
+                send({ type: 'SIGN_OUT' });
+              }}
+            >
+              Sign Out
+            </MenuButton>
+          </>
         ) : null}
         <MenuButton
           variant="danger"
@@ -173,6 +179,10 @@ function MenuContent() {
 
   if (state.matches('upgradeAccount')) {
     return <UpgradeAccountForm onBack={() => send({ type: 'BACK' })} />;
+  }
+
+  if (state.matches('editProfile')) {
+    return <UpdateProfileForm onBack={() => send({ type: 'BACK' })} />;
   }
 
   if (state.matches('tutorial')) {

@@ -17,6 +17,7 @@ import {
   signIn,
   signUp as signUpFn,
   signUpGuestFn,
+  updateUsernameFn,
   upgradeAccountFn,
 } from './auth.functions';
 
@@ -30,6 +31,13 @@ export interface AuthValue {
     {
       username: string;
       password: string;
+    }
+  >;
+  updateUsernameMutation: UseMutationResult<
+    string | null,
+    Error,
+    {
+      username: string;
     }
   >;
   signInMutation: UseMutationResult<
@@ -62,6 +70,7 @@ export function useAuth(): AuthValue {
   const signUpGuest = useServerFn(signUpGuestFn);
   const deleteAccount = useServerFn(deleteAccountFn);
   const upgradeAccount = useServerFn(upgradeAccountFn);
+  const updateUsername = useServerFn(updateUsernameFn);
 
   const currentUserQuery = useQuery({
     queryKey: queryKeys.user.me.queryKey,
@@ -181,6 +190,17 @@ export function useAuth(): AuthValue {
     },
   });
 
+  const updateUsernameMutation = useMutation({
+    mutationFn: async ({ username }: { username: string }) => {
+      return updateUsername({ data: { username } });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.user._def,
+      });
+    },
+  });
+
   return {
     user,
     deleteAccountMutation,
@@ -191,5 +211,6 @@ export function useAuth(): AuthValue {
     signUpMutation,
     signOutMutation,
     upgradeAccountMutation,
+    updateUsernameMutation,
   };
 }

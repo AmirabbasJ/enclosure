@@ -8,6 +8,7 @@ export type GameEvent =
   | { type: 'BACK' }
   | { type: 'CONTINUE_AS_GUEST' }
   | { type: 'CONTROLS' }
+  | { type: 'EDIT_PROFILE' }
   | { type: 'HELP' }
   | { type: 'LEADERBOARD' }
   | { type: 'OPEN_SIGN_IN' }
@@ -195,12 +196,19 @@ export const gameMachine = setup({
     profile: {
       on: {
         UPGRADE_ACCOUNT: { target: 'upgradeAccount' },
+        EDIT_PROFILE: { target: 'editProfile' },
         BACK: { target: 'mainMenu' },
         SIGN_OUT: { target: 'mainMenu', actions: 'setSignedOut' },
       },
     },
 
     upgradeAccount: {
+      on: {
+        BACK: { target: 'profile' },
+      },
+    },
+
+    editProfile: {
       on: {
         BACK: { target: 'profile' },
       },
