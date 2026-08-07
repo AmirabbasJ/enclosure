@@ -15,27 +15,23 @@ export const Route = createFileRoute('/')({
 });
 
 function Game() {
-  const { state } = useGame();
+  const { state, send } = useGame();
   const { playMusic } = useGameAudio();
-  const { level, checkLevelCompletionMutation } = useLevel();
+  const { level, completeLevelMutation } = useLevel();
   const started = state.matches('playing') || state.matches('paused');
   const showMenu = !state.matches('playing');
 
-  const onWallsChange = async (walls: WallInput[]) => {
+  const checkSolution = async (walls: WallInput[]) => {
     const isAllWallsPlaced = walls.length === 4;
 
     if (!isAllWallsPlaced) {
-      console.log('not all walls placed');
       return;
     }
 
-    const isCorrect = await checkLevelCompletionMutation.mutateAsync(walls);
+    const { isCorrect } = await completeLevelMutation.mutateAsync(walls);
+    if (!isCorrect) return;
 
-    if (isCorrect) {
-      console.log('correct');
-    } else {
-      console.log('incorrect');
-    }
+    send({ type: 'LEVEL_COMPLETED' });
   };
 
   useEffect(() => {
@@ -47,7 +43,7 @@ function Game() {
       <div className=" items-center h-screen w-screen">
         {started && level ? (
           <PixelSceneRenderer>
-            <GameScene onWallsChange={onWallsChange} level={level.question} />
+            <GameScene onWallsChange={checkSolution} level={level.question} />
           </PixelSceneRenderer>
         ) : null}
       </div>

@@ -7,7 +7,6 @@ import { getProgressFn } from './progrsss.functions';
 
 export function useProgress() {
   const { progress: initialProgress } = useRouteContext({ from: '__root__' });
-
   const getProgress = useServerFn(getProgressFn);
 
   const { data: progress, isLoading } = useQuery({

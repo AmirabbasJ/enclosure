@@ -13,7 +13,7 @@ import { GameAudioProvider } from '../context/GameAudioContext';
 import { GameProvider } from '../context/GameContext';
 import { getAudioStateFn } from '../data/audio/audio.functions';
 import { getSessionFn } from '../data/auth/auth.functions';
-import { getCurrentLevelFn } from '../data/levels/level.functions';
+import { getLevelFn } from '../data/levels/level.functions';
 import { getMetadataCookieFn } from '../data/metadata/metadata.functions';
 import { getProgressFn } from '../data/progress/progrsss.functions';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
@@ -51,7 +51,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     const audioState = await getAudioStateFn();
     const cookieMetadata = await getMetadataCookieFn();
     const progress = await getProgressFn();
-    const level = await getCurrentLevelFn();
+    const level = await getLevelFn();
 
     const metadata = cookieMetadata ?? currentUserData?.metadata;
     return {

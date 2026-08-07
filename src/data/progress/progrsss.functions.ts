@@ -1,9 +1,11 @@
 import { createServerFn } from '@tanstack/react-start';
 
+import type { Progress } from '../../domain/progress';
+
 import { createServerClient } from '../../lib/supabase/client.server';
 
 export const getProgressFn = createServerFn({ method: 'GET' }).handler(
-  async () => {
+  async (): Promise<Progress | null> => {
     const supabase = createServerClient();
     const {
       data: { user },

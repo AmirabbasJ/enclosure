@@ -98,6 +98,22 @@ function MenuContent() {
 
   if (state.matches('playing')) return null;
 
+  if (state.matches('levelCompleted')) {
+    const passedLevel = progress!.level_id - 1;
+    return (
+      <>
+        <p className="mb-3 text-center text-base opacity-80">
+          Level {passedLevel} Completed
+        </p>
+        <MenuButton onClick={() => send({ type: 'NEXT_LEVEL' })}>
+          Next Level
+        </MenuButton>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>
+          Main Menu
+        </MenuButton>
+      </>
+    );
+  }
   if (state.matches('paused')) {
     return (
       <>
@@ -332,7 +348,10 @@ function MenuContent() {
 
 export function AppMenu() {
   const { state, send } = useGame();
-  const isSceneActive = state.matches('paused') || state.matches('playing');
+  const isSceneActive =
+    state.matches('paused') ||
+    state.matches('playing') ||
+    state.matches('levelCompleted');
   const goBack = useCallback(
     (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;

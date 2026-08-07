@@ -12,6 +12,8 @@ export type GameEvent =
   | { type: 'EDIT_PROFILE' }
   | { type: 'HELP' }
   | { type: 'LEADERBOARD' }
+  | { type: 'LEVEL_COMPLETED' }
+  | { type: 'NEXT_LEVEL' }
   | { type: 'OPEN_SIGN_IN' }
   | { type: 'PAUSE' }
   | { type: 'PLAY' }
@@ -171,6 +173,7 @@ export const gameMachine = setup({
 
     playing: {
       on: {
+        LEVEL_COMPLETED: { target: 'levelCompleted' },
         PAUSE: { target: 'paused' },
         BACK: { target: 'mainMenu' },
       },
@@ -179,6 +182,13 @@ export const gameMachine = setup({
     paused: {
       on: {
         PLAY: { target: 'playing' },
+        BACK: { target: 'mainMenu' },
+      },
+    },
+
+    levelCompleted: {
+      on: {
+        NEXT_LEVEL: { target: 'playing' },
         BACK: { target: 'mainMenu' },
       },
     },

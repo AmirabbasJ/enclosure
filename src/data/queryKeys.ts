@@ -5,6 +5,7 @@ export const queryKeys = createQueryKeyStore({
     me: null,
     metadata: null,
     progress: null,
-    level: null,
+    level: (levelId?: number | null) =>
+      levelId == null ? (['level'] as const) : ['level', levelId],
   },
 });
