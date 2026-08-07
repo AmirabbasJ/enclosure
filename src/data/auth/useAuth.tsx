@@ -1,14 +1,9 @@
-import type { Session } from '@supabase/supabase-js';
-import type { UseMutationResult } from '@tanstack/react-query';
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useEffect } from 'react';
 
 import { useSupabase } from '@/lib/supabase/useSupabase';
-
-import type { User } from '../../domain/User';
 
 import { queryKeys } from '../queryKeys';
 import {
@@ -21,47 +16,7 @@ import {
   upgradeAccountFn,
 } from './auth.functions';
 
-export interface AuthValue {
-  user: User | null;
-  isLoading: boolean;
-  isSignedIn: boolean;
-  upgradeAccountMutation: UseMutationResult<
-    null,
-    Error,
-    {
-      username: string;
-      password: string;
-    }
-  >;
-  updateUsernameMutation: UseMutationResult<
-    string | null,
-    Error,
-    {
-      username: string;
-    }
-  >;
-  signInMutation: UseMutationResult<
-    Session | null,
-    Error,
-    {
-      username: string;
-      password: string;
-    }
-  >;
-  signUpMutation: UseMutationResult<
-    string | Session | null,
-    Error,
-    {
-      username: string;
-      password: string;
-    }
-  >;
-  signUpGuestMutation: UseMutationResult<string | null, Error, void>;
-  deleteAccountMutation: UseMutationResult<string | null, Error, void>;
-  signOutMutation: UseMutationResult<string | null, Error, void>;
-}
-
-export function useAuth(): AuthValue {
+export function useAuth() {
   const { user: currentUser } = useRouteContext({ from: '__root__' });
   const supabase = useSupabase();
   const queryClient = useQueryClient();

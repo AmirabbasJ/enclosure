@@ -1,9 +1,7 @@
-import type { Session, SupabaseClient } from '@supabase/supabase-js';
+import type { Session } from '@supabase/supabase-js';
 
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-
-import type { Database } from '@/database.types';
 
 import { createAdminClient } from '@/lib/supabase/admin.functions';
 import { supabaseBrowserClient } from '@/lib/supabase/client';
@@ -65,8 +63,6 @@ function parseCredentials(username: string, password: string) {
 
   return { error: null, data: result.data };
 }
-
-type Client = SupabaseClient<Database>;
 
 export interface UserSession {
   user: User;

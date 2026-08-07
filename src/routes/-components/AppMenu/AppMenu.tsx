@@ -391,7 +391,7 @@ export function AppMenu() {
                   EN<span className="text-accent">CLOSURE</span>
                 </h1>
                 <p
-                  className="max-w-75 text-center font-pixel text-[9px] text-text-muted"
+                  className="max-w-75 text-center font-pixel text-[9px] text-text-light"
                   style={{ textShadow: '1px 1px 0 #000' }}
                 >
                   are we being protected, or are we being contained?
