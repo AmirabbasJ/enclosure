@@ -8,6 +8,7 @@ export type GameEvent =
   | { type: 'BACK' }
   | { type: 'CONTINUE_AS_GUEST' }
   | { type: 'CONTROLS' }
+  | { type: 'DELETE_ACCOUNT' }
   | { type: 'EDIT_PROFILE' }
   | { type: 'HELP' }
   | { type: 'LEADERBOARD' }
@@ -197,6 +198,7 @@ export const gameMachine = setup({
       on: {
         UPGRADE_ACCOUNT: { target: 'upgradeAccount' },
         EDIT_PROFILE: { target: 'editProfile' },
+        DELETE_ACCOUNT: { target: 'confirmDeleteAccount' },
         BACK: { target: 'mainMenu' },
         SIGN_OUT: { target: 'mainMenu', actions: 'setSignedOut' },
       },
@@ -211,6 +213,13 @@ export const gameMachine = setup({
     editProfile: {
       on: {
         BACK: { target: 'profile' },
+      },
+    },
+
+    confirmDeleteAccount: {
+      on: {
+        BACK: { target: 'profile' },
+        SIGN_OUT: { target: 'mainMenu', actions: 'setSignedOut' },
       },
     },
     leaderboard: {
