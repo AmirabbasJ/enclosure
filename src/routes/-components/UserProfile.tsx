@@ -15,7 +15,9 @@ export function UserProfile() {
         {progressLoading || !progress ? (
           <LoadingDots />
         ) : (
-          <p className="text-[9px]  text-success">Level {progress!.level_id}</p>
+          <p className="text-[10px]  text-success">
+            {progress.finished ? 'Completed!' : `Level ${progress!.level_id}`}
+          </p>
         )}
       </div>
     </div>

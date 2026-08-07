@@ -44,17 +44,39 @@ const levelUp = createServerOnlyFn(async (levelId: number) => {
   const {
     data: { user },
   } = await client.auth.getUser();
-  if (!user) return null;
+
   const nextLevelId = levelId + 1;
+
+  const lastLevel = await adminClient
+    .from('levels')
+    .select('id')
+    .order('id', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (lastLevel.data?.id === levelId) {
+    const { data, error } = await adminClient
+      .from('progress')
+      .update({ finished: true })
+      .eq('id', user!.id)
+      .select('level_id, finished')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    return data!;
+  }
+
   const { data, error } = await adminClient
     .from('progress')
     .update({ level_id: nextLevelId })
-    .eq('id', user.id)
-    .select('level_id')
+    .eq('id', user!.id)
+    .select('level_id, finished')
     .maybeSingle();
+
   if (error) throw error;
 
-  return data;
+  return data!;
 });
 
 const getStoredSolution = createServerOnlyFn(async (levelId: number) => {
@@ -88,7 +110,7 @@ export const completeLevelFn = createServerFn({
     const isCorrect = compareWalls(solution, answer);
     if (!isCorrect) return { isCorrect: false };
 
-    levelUp(levelId);
+    const progress = await levelUp(levelId);
 
-    return { isCorrect: true };
+    return { isCorrect: true, progress };
   });

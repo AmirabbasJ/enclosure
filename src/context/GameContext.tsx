@@ -10,6 +10,7 @@ import { useAuth } from '@/data/auth/useAuth';
 import { gameMachine } from '#/lib/machines/gameMachine';
 
 import { useMetadata } from '../data/metadata/useMetadata';
+import { useProgress } from '../data/progress/useProgress';
 
 interface GameContextValue {
   isPaused: boolean;
@@ -22,11 +23,16 @@ const GameContext = createContext<GameContextValue | null>(null);
 GameContext.displayName = 'GameContext';
 
 export function GameProvider({ children }: PropsWithChildren) {
-  const { isSignedIn, isLoading } = useAuth();
+  const { isSignedIn } = useAuth();
   const { metadata, setMetadataMutation } = useMetadata();
+  const { progress } = useProgress();
 
   const [state, send, actor] = useMachine(gameMachine, {
-    input: { isSignedIn, metadata: metadata ?? undefined },
+    input: {
+      isSignedIn,
+      metadata: metadata ?? undefined,
+      finished: progress?.finished,
+    },
   });
 
   actor.on('TUTORIAL_COMPLETE', () => {
@@ -34,13 +40,21 @@ export function GameProvider({ children }: PropsWithChildren) {
   });
 
   useEffect(() => {
-    if (isLoading) return;
     if (isSignedIn && !state.context.isSignedIn) {
       send({ type: 'SIGN_IN' });
     } else if (!isSignedIn && state.context.isSignedIn) {
       send({ type: 'SIGN_OUT' });
     }
-  }, [isSignedIn, isLoading, send, state.context.isSignedIn]);
+  }, [isSignedIn, send, state.context.isSignedIn]);
+
+  useEffect(() => {
+    if (
+      progress?.finished !== undefined &&
+      progress.finished !== state.context.finished
+    ) {
+      send({ type: 'PROGRESS_UPDATED', finished: progress.finished });
+    }
+  }, [progress?.finished, send, state.context.finished]);
 
   const value = useMemo<GameContextValue>(
     () => ({

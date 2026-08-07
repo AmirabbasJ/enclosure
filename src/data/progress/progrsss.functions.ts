@@ -14,7 +14,7 @@ export const getProgressFn = createServerFn({ method: 'GET' }).handler(
 
     const { data, error } = await supabase
       .from('progress')
-      .select('level_id')
+      .select('level_id, finished')
       .eq('id', user.id)
       .maybeSingle();
 

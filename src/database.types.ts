@@ -84,16 +84,19 @@ export type Database = {
       progress: {
         Row: {
           completed_at: string
+          finished: boolean
           id: string
           level_id: number
         }
         Insert: {
           completed_at?: string
+          finished?: boolean
           id: string
           level_id: number
         }
         Update: {
           completed_at?: string
+          finished?: boolean
           id?: string
           level_id?: number
         }

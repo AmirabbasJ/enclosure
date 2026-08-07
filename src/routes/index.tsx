@@ -28,10 +28,11 @@ function Game() {
       return;
     }
 
-    const { isCorrect } = await completeLevelMutation.mutateAsync(walls);
+    const { isCorrect, progress } =
+      await completeLevelMutation.mutateAsync(walls);
     if (!isCorrect) return;
 
-    send({ type: 'LEVEL_COMPLETED' });
+    send({ type: 'LEVEL_COMPLETED', finished: progress.finished });
   };
 
   useEffect(() => {

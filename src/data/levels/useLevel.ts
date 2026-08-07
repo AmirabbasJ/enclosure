@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 
-import type { Progress } from '../../domain/progress';
 import type { WallInput } from '../../domain/walls';
 
 import { useProgress } from '../progress/useProgress';
@@ -27,18 +26,10 @@ export function useLevel() {
       completeLevel({
         data: { answer: walls, levelId: String(level!.id) },
       }),
-    onSuccess: ({ isCorrect }) => {
+    onSuccess: ({ isCorrect, progress: newProgress }) => {
       if (!isCorrect) return;
-      queryClient.setQueryData(
-        queryKeys.user.progress.queryKey,
-        (old: Progress | null) => {
-          if (!old) return null;
-          return {
-            ...old,
-            level_id: old.level_id + 1,
-          };
-        }
-      );
+
+      queryClient.setQueryData(queryKeys.user.progress.queryKey, newProgress);
       queryClient.invalidateQueries({
         queryKey: queryKeys.user.progress.queryKey,
       });

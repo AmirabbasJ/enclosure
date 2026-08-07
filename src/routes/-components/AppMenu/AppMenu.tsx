@@ -98,6 +98,24 @@ function MenuContent() {
 
   if (state.matches('playing')) return null;
 
+  if (state.matches('gameCompleted')) {
+    return (
+      <>
+        <div className="bg-foreground pixelated p-4 gap-3">
+          <p className="mb-3 text-center text-text-light ">
+            You have completed all available levels.
+          </p>
+          <p className="mb-3 text-center text-text-light ">
+            More sectors are under construction.
+          </p>
+        </div>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>
+          Main Menu
+        </MenuButton>
+      </>
+    );
+  }
+
   if (state.matches('levelCompleted')) {
     const passedLevel = progress!.level_id - 1;
     return (

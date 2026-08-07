@@ -12,12 +12,13 @@ export type GameEvent =
   | { type: 'EDIT_PROFILE' }
   | { type: 'HELP' }
   | { type: 'LEADERBOARD' }
-  | { type: 'LEVEL_COMPLETED' }
+  | { type: 'LEVEL_COMPLETED'; finished: boolean }
   | { type: 'NEXT_LEVEL' }
   | { type: 'OPEN_SIGN_IN' }
   | { type: 'PAUSE' }
   | { type: 'PLAY' }
   | { type: 'PROFILE' }
+  | { type: 'PROGRESS_UPDATED'; finished: boolean }
   | { type: 'RULES' }
   | { type: 'SETTINGS' }
   | { type: 'SIGN_IN' }
@@ -33,6 +34,7 @@ export type PendingAction = 'play' | 'profile';
 export interface GameMachineContext {
   metadata: Metadata;
   isSignedIn: boolean;
+  finished: boolean;
   tutorialBackTo: 'help' | 'mainMenu';
   pendingAction: PendingAction | null;
 }
@@ -45,11 +47,15 @@ export const gameMachine = setup({
     input: {} as {
       metadata?: Metadata;
       isSignedIn?: boolean;
+      finished?: boolean;
     },
     emitted: {} as { type: 'TUTORIAL_COMPLETE' },
   },
   guards: {
+    hasFinishedGame: ({ context }) => context.finished,
     hasViewedTutorial: ({ context }) => context.metadata.hasViewedTutorial,
+    isLastLevel: ({ event }) =>
+      event.type === 'LEVEL_COMPLETED' && event.finished,
     isSignedIn: ({ context }) => context.isSignedIn,
     tutorialFromHelp: ({ context }) => context.tutorialBackTo === 'help',
   },
@@ -61,7 +67,12 @@ export const gameMachine = setup({
       }),
     }),
     setSignedIn: assign({ isSignedIn: true }),
-    setSignedOut: assign({ isSignedIn: false }),
+    setSignedOut: assign({ isSignedIn: false, finished: false }),
+    setFinishedFromProgress: assign({
+      finished: ({ context, event }) =>
+        event.type === 'PROGRESS_UPDATED' ? event.finished : context.finished,
+    }),
+    markGameFinished: assign({ finished: true }),
 
     setTutorialBackToMain: assign({ tutorialBackTo: 'mainMenu' as const }),
     setTutorialBackToHelp: assign({ tutorialBackTo: 'help' as const }),
@@ -76,17 +87,23 @@ export const gameMachine = setup({
   context: ({ input }) => ({
     metadata: input.metadata ?? defaultMetadata,
     isSignedIn: input.isSignedIn ?? false,
+    finished: input.finished ?? false,
     tutorialBackTo: 'mainMenu',
     pendingAction: null,
   }),
   on: {
     SIGN_IN: { actions: 'setSignedIn' },
     SIGN_OUT: { actions: 'setSignedOut' },
+    PROGRESS_UPDATED: { actions: 'setFinishedFromProgress' },
   },
   states: {
     mainMenu: {
       on: {
         PLAY: [
+          {
+            guard: 'hasFinishedGame',
+            target: 'gameCompleted',
+          },
           {
             guard: and(['isSignedIn', 'hasViewedTutorial']),
             target: 'playing',
@@ -173,7 +190,14 @@ export const gameMachine = setup({
 
     playing: {
       on: {
-        LEVEL_COMPLETED: { target: 'levelCompleted' },
+        LEVEL_COMPLETED: [
+          {
+            guard: 'isLastLevel',
+            target: 'gameCompleted',
+            actions: 'markGameFinished',
+          },
+          { target: 'levelCompleted' },
+        ],
         PAUSE: { target: 'paused' },
         BACK: { target: 'mainMenu' },
       },
@@ -189,6 +213,12 @@ export const gameMachine = setup({
     levelCompleted: {
       on: {
         NEXT_LEVEL: { target: 'playing' },
+        BACK: { target: 'mainMenu' },
+      },
+    },
+
+    gameCompleted: {
+      on: {
         BACK: { target: 'mainMenu' },
       },
     },
