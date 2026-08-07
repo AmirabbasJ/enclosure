@@ -3,7 +3,7 @@ import type * as THREE from 'three/webgpu';
 import { useFrame } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import type { LevelInput } from '#/domain/level';
+import type { LevelInput, WallInput } from '#/domain/level';
 
 import { useGameAudio } from '#/context/GameAudioContext';
 import { useGame } from '#/context/GameContext';
@@ -18,8 +18,7 @@ import {
   wallCornerWorldPositions,
   wallOccupiedSlotKeys,
 } from '#/domain/board';
-import { resolveLevel, serializeLevel } from '#/domain/level';
-import { DEFAULT_ORB_INPUTS } from '#/domain/orb';
+import { resolveLevel, serializeWalls } from '#/domain/level';
 import { TILE_POSITIONS, TILE_SIZE } from '#/domain/tiles';
 import {
   getWallCornerLocals,
@@ -61,23 +60,25 @@ function randomWallDelays(count: number): number[] {
 interface GameSceneProps {
   level?: LevelInput;
   snapWallsToGrooves?: boolean;
+  onWallsChange: (walls: WallInput[]) => void;
 }
 
 export function GameScene({
   level,
   snapWallsToGrooves = true,
+  onWallsChange,
 }: GameSceneProps) {
   const { isPaused, send } = useGame();
   const { orbs, walls: spawnWalls } = useMemo(
     () => resolveLevel(level, { snapWallsToGrooves }),
     [level, snapWallsToGrooves]
   );
+
   const [walls, setWalls] = useState(spawnWalls);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const { playRandomHit } = useGameAudio();
   const wallsRef = useRef(walls);
   wallsRef.current = walls;
-  const orbInputs = level?.orbs ?? DEFAULT_ORB_INPUTS;
 
   const boardRef = useRef<THREE.Group>(null);
   const introRef = useRef<THREE.Group>(null);
@@ -212,8 +213,8 @@ export function GameScene({
     setWalls(wallsRef.current);
   };
 
-  const logLevelState = () => {
-    console.log(serializeLevel({ orbs: orbInputs, walls: wallsRef.current }));
+  const onPlaceWalls = () => {
+    onWallsChange(serializeWalls(wallsRef.current));
   };
 
   const onKeyDown = useCallback(
@@ -375,7 +376,7 @@ export function GameScene({
               onPositionChange={(position) => moveWall(wall.id, position)}
               onYawChange={(yaw) => rotateWall(wall.id, yaw)}
               onGroundHit={playRandomHit}
-              onPlace={logLevelState}
+              onPlace={onPlaceWalls}
               onDeselect={() => setSelectedWallId(null)}
             />
           </group>

@@ -1,3 +1,5 @@
+import { z as zod } from 'zod';
+
 import {
   BOARD_BASE_SIZE,
   GROUND_WALL_Y,
@@ -33,6 +35,17 @@ export interface WallInput {
   row: number;
   yawQuarters: YawQuarters;
 }
+export const WallInputSchema = zod.object({
+  id: zod.enum(['snake', 'steps', 'u', 'zigzagTall']),
+  col: zod.number(),
+  row: zod.number(),
+  yawQuarters: zod.union([
+    zod.literal(0),
+    zod.literal(1),
+    zod.literal(2),
+    zod.literal(3),
+  ]),
+});
 
 export const DIR_DELTA: Record<WallDir, readonly [number, number]> = {
   D: [0, 1],
@@ -80,6 +93,21 @@ export interface WallSegFootprint {
   x: number;
   z: number;
   horizontal: boolean;
+}
+
+export function compareWalls(
+  walls1: WallInput[],
+  walls2: WallInput[]
+): boolean {
+  return walls1.every((w) => {
+    return walls2.some(
+      (w2) =>
+        w2.id === w.id &&
+        w2.col === w.col &&
+        w2.row === w.row &&
+        w2.yawQuarters === w.yawQuarters
+    );
+  });
 }
 
 export function yawFromQuarters(yawQuarters: YawQuarters): number {

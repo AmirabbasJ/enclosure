@@ -1,7 +1,7 @@
 import type { OrbInput, OrbSpawn } from '#/domain/orb';
 import type { WallInput, WallPiece } from '#/domain/walls';
 
-import { buildOrbSpawns, DEFAULT_ORB_INPUTS } from '#/domain/orb';
+import { buildOrbSpawns } from '#/domain/orb';
 import { resolveWalls, wallToInput } from '#/domain/walls';
 
 export type { YawQuarters } from '#/domain/walls';
@@ -29,17 +29,8 @@ export function resolveLevel(
   };
 }
 
-export function serializeLevel({
-  orbs,
-  walls,
-}: {
-  orbs?: readonly OrbInput[];
-  walls: readonly WallPiece[];
-}): LevelInput {
-  return {
-    orbs: [...(orbs ?? DEFAULT_ORB_INPUTS)],
-    walls: walls
-      .map(wallToInput)
-      .filter((wall): wall is WallInput => wall != null),
-  };
+export function serializeWalls(walls: WallPiece[]): WallInput[] {
+  return walls
+    .map(wallToInput)
+    .filter((wall): wall is WallInput => wall != null);
 }
