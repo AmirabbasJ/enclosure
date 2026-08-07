@@ -20,7 +20,9 @@ export function useLevel() {
 
   const checkLevelCompletionMutation = useMutation({
     mutationFn: (walls: WallInput[]) =>
-      checkLevelCompletion({ data: { answer: walls } }),
+      checkLevelCompletion({
+        data: { answer: walls, levelId: String(level!.id) },
+      }),
   });
 
   return { level, checkLevelCompletionMutation };
