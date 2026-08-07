@@ -21,6 +21,7 @@ import { Tutorial } from '../Tutorial/Tutorial';
 import { UserProfile } from '../UserProfile';
 import { AuthForm } from './AuthForm';
 import { TopBar } from './TopBar';
+import { UpgradeAccountForm } from './UpgradeAccountForm';
 
 function MenuButton(props: ButtonProps) {
   return (
@@ -47,7 +48,7 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
         <RangeSlider
           disabled={!musicAudioState.isOn}
           label={
-            <Button noStyling variant="icon" onClick={toggleMusic}>
+            <Button noStyling size="icon" onClick={toggleMusic}>
               {musicAudioState.isOn ? (
                 <IconMusic width={25} height={25} />
               ) : (
@@ -62,7 +63,7 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
         <RangeSlider
           disabled={!sfxAudioState.isOn}
           label={
-            <Button noStyling variant="icon" onClick={toggleSfx}>
+            <Button noStyling size="icon" onClick={toggleSfx}>
               {sfxAudioState.isOn ? (
                 <IconSoundMedium width={25} height={25} />
               ) : (
@@ -139,16 +140,24 @@ function MenuContent() {
             <UserProfile />
           </div>
         ) : null}
+        {user?.type === 'guest' ? (
+          <MenuButton onClick={() => send({ type: 'UPGRADE_ACCOUNT' })}>
+            Upgrade
+          </MenuButton>
+        ) : null}
+        {user?.type === 'auth' ? (
+          <MenuButton
+            isLoading={signOutMutation.isPending}
+            onClick={async () => {
+              await signOutMutation.mutateAsync();
+              send({ type: 'SIGN_OUT' });
+            }}
+          >
+            Sign Out
+          </MenuButton>
+        ) : null}
         <MenuButton
-          isLoading={signOutMutation.isPending}
-          onClick={async () => {
-            await signOutMutation.mutateAsync();
-            send({ type: 'SIGN_OUT' });
-          }}
-        >
-          Sign Out
-        </MenuButton>
-        <MenuButton
+          variant="danger"
           isLoading={deleteAccountMutation.isPending}
           onClick={async () => {
             const error = await deleteAccountMutation.mutateAsync();
@@ -160,6 +169,10 @@ function MenuContent() {
         <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
+  }
+
+  if (state.matches('upgradeAccount')) {
+    return <UpgradeAccountForm onBack={() => send({ type: 'BACK' })} />;
   }
 
   if (state.matches('tutorial')) {
@@ -214,7 +227,7 @@ function MenuContent() {
     return (
       <>
         <p className="mb-3 text-center text-base opacity-80">
-          Sign in to save your scores (optional)
+          Sign in to save your progress on cloud (optional)
         </p>
         <AuthForm onSuccess={() => send({ type: 'SIGN_IN' })} />
         <MenuButton onClick={() => send({ type: 'SKIP_SIGN_IN' })}>
@@ -350,7 +363,7 @@ export function AppMenu() {
                 </p>
               </div>
             )}
-            <div className="flex max-w-105 flex-col justify-center gap-3 p-3">
+            <div className="flex max-w-105 flex-col justify-center gap-3 p-3 ">
               <MenuContent />
             </div>
           </div>

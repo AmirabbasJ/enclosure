@@ -21,7 +21,8 @@ export type GameEvent =
   | { type: 'SIGN_UP' }
   | { type: 'SKIP_SIGN_IN' }
   | { type: 'TUTORIAL_COMPLETE' }
-  | { type: 'TUTORIAL' };
+  | { type: 'TUTORIAL' }
+  | { type: 'UPGRADE_ACCOUNT' };
 
 export type PendingAction = 'play' | 'profile';
 
@@ -193,11 +194,17 @@ export const gameMachine = setup({
 
     profile: {
       on: {
+        UPGRADE_ACCOUNT: { target: 'upgradeAccount' },
         BACK: { target: 'mainMenu' },
         SIGN_OUT: { target: 'mainMenu', actions: 'setSignedOut' },
       },
     },
 
+    upgradeAccount: {
+      on: {
+        BACK: { target: 'profile' },
+      },
+    },
     leaderboard: {
       on: {
         BACK: { target: 'mainMenu' },

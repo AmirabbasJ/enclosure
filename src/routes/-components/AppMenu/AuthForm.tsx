@@ -39,7 +39,7 @@ export function AuthForm({ initialMode = 'signIn', onSuccess }: AuthFormProps) {
         void submit();
       }}
     >
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 pixelated bg-foreground px-4 py-6">
         <TextField
           autoComplete="username"
           disabled={pending}

@@ -19,7 +19,7 @@ export function TopBar() {
     <div className="grid w-full grid-cols-2 items-center border-b border-surface-light bg-foreground/20 px-4 py-2">
       {user ? <UserProfile /> : <div />}
       <div className="flex items-center justify-end gap-2">
-        <Button variant="icon" onClick={toggleMusic}>
+        <Button size="icon" onClick={toggleMusic}>
           {musicAudioState.isOn ? (
             <IconMusic width={25} height={25} />
           ) : (
@@ -27,7 +27,7 @@ export function TopBar() {
           )}
         </Button>
 
-        <Button variant="icon" onClick={toggleSfx}>
+        <Button size="icon" onClick={toggleSfx}>
           {sfxAudioState.isOn ? (
             <IconSoundMedium width={25} height={25} />
           ) : (

@@ -17,12 +17,21 @@ import {
   signIn,
   signUp as signUpFn,
   signUpGuestFn,
+  upgradeAccountFn,
 } from './auth.functions';
 
 export interface AuthValue {
   user: User | null;
   isLoading: boolean;
   isSignedIn: boolean;
+  upgradeAccountMutation: UseMutationResult<
+    null,
+    Error,
+    {
+      username: string;
+      password: string;
+    }
+  >;
   signInMutation: UseMutationResult<
     Session | null,
     Error,
@@ -52,11 +61,11 @@ export function useAuth(): AuthValue {
   const getCurrentUser = useServerFn(getSessionFn);
   const signUpGuest = useServerFn(signUpGuestFn);
   const deleteAccount = useServerFn(deleteAccountFn);
+  const upgradeAccount = useServerFn(upgradeAccountFn);
 
   const currentUserQuery = useQuery({
     queryKey: queryKeys.user.me.queryKey,
     queryFn: () => {
-      console.log('called nigga');
       return getCurrentUser().then((d) => d?.user ?? null);
     },
     staleTime: Infinity,
@@ -155,6 +164,23 @@ export function useAuth(): AuthValue {
     },
   });
 
+  const upgradeAccountMutation = useMutation({
+    mutationFn: async ({
+      username,
+      password,
+    }: {
+      username: string;
+      password: string;
+    }) => {
+      return upgradeAccount({ data: { username, password } });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.user._def,
+      });
+    },
+  });
+
   return {
     user,
     deleteAccountMutation,
@@ -164,5 +190,6 @@ export function useAuth(): AuthValue {
     signUpGuestMutation,
     signUpMutation,
     signOutMutation,
+    upgradeAccountMutation,
   };
 }

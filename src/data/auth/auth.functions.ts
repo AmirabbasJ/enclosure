@@ -197,3 +197,19 @@ export const deleteAccountFn = createServerFn({ method: 'POST' }).handler(
     return null;
   }
 );
+
+export const upgradeAccountFn = createServerFn({ method: 'POST' })
+  .validator(credentialsSchema)
+  .handler(async ({ data: { username, password } }) => {
+    const client = createServerClient();
+
+    const d = await client.auth.updateUser({
+      email: usernameToEmail(username),
+      password,
+      data: {
+        username,
+      },
+    });
+
+    return null;
+  });
