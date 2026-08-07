@@ -51,6 +51,11 @@ function mapAuthError(message: string): string {
   return message;
 }
 
+export interface Credentials {
+  username: string;
+  password: string;
+}
+
 function parseCredentials(username: string, password: string) {
   const result = credentialsSchema.safeParse({ username, password });
 
@@ -109,10 +114,10 @@ export const getSessionFn = createServerFn({ method: 'GET' }).handler(
   }
 );
 
-export const signIn = async (
-  username: string,
-  password: string
-): Promise<Session | null> => {
+export const signIn = async ({
+  username,
+  password,
+}: Credentials): Promise<Session | null> => {
   const parsed = parseCredentials(username, password);
 
   if (!parsed.data) {
@@ -135,7 +140,7 @@ export const signUpGuestFn = createServerFn({ method: 'POST' }).handler(
   async (): Promise<string | null> => {
     const client = createServerClient();
     const { error, data } = await client.auth.signInAnonymously();
-    if (error) return error.message;
+    if (error) throw new Error(error.message);
 
     return data.user?.id ?? null;
   }
@@ -196,7 +201,7 @@ export const deleteAccountFn = createServerFn({ method: 'POST' }).handler(
 
 export const upgradeAccountFn = createServerFn({ method: 'POST' })
   .validator(credentialsSchema)
-  .handler(async ({ data: { username, password } }) => {
+  .handler(async ({ data: { username, password } }: { data: Credentials }) => {
     const client = createServerClient();
 
     await client.auth.updateUser({

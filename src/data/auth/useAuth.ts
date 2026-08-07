@@ -5,6 +5,8 @@ import { useEffect } from 'react';
 
 import { useSupabase } from '@/lib/supabase/useSupabase';
 
+import type { Credentials } from './auth.functions';
+
 import { queryKeys } from '../queryKeys';
 import {
   deleteAccountFn,
@@ -18,8 +20,9 @@ import {
 
 export function useAuth() {
   const { user: currentUser } = useRouteContext({ from: '__root__' });
-  const supabase = useSupabase();
+  const supabaseClient = useSupabase();
   const queryClient = useQueryClient();
+
   const createUser = useServerFn(signUpFn);
   const getCurrentUser = useServerFn(getSessionFn);
   const signUpGuest = useServerFn(signUpGuestFn);
@@ -29,36 +32,28 @@ export function useAuth() {
 
   const currentUserQuery = useQuery({
     queryKey: queryKeys.user.me.queryKey,
-    queryFn: () => {
-      return getCurrentUser().then((d) => d?.user ?? null);
-    },
+    queryFn: () => getCurrentUser().then((d) => d?.user ?? null),
     staleTime: Infinity,
     initialData: currentUser ?? null,
   });
 
+  const user = currentUserQuery.data ?? null;
+
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
+    } = supabaseClient.auth.onAuthStateChange((event) => {
       if (event === 'INITIAL_SESSION') return;
       void queryClient.invalidateQueries({
         queryKey: queryKeys.user.me.queryKey,
       });
     });
     return () => subscription.unsubscribe();
-  }, [supabase, queryClient]);
-
-  const user = currentUserQuery.data ?? null;
+  }, [supabaseClient, queryClient]);
 
   const signInMutation = useMutation({
-    mutationFn: async ({
-      username,
-      password,
-    }: {
-      username: string;
-      password: string;
-    }) => {
-      return signIn(username, password);
+    mutationFn: async ({ username, password }: Credentials) => {
+      return signIn({ username, password });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({
@@ -68,13 +63,7 @@ export function useAuth() {
   });
 
   const signUpMutation = useMutation({
-    mutationFn: async ({
-      username,
-      password,
-    }: {
-      username: string;
-      password: string;
-    }) => {
+    mutationFn: async ({ username, password }: Credentials) => {
       const createError = await createUser({ data: { username, password } });
       if (createError) return createError;
       return signInMutation.mutateAsync({ username, password });
@@ -98,7 +87,7 @@ export function useAuth() {
   });
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut();
 
     if (error) return error.message;
 
@@ -129,13 +118,7 @@ export function useAuth() {
   });
 
   const upgradeAccountMutation = useMutation({
-    mutationFn: async ({
-      username,
-      password,
-    }: {
-      username: string;
-      password: string;
-    }) => {
+    mutationFn: async ({ username, password }: Credentials) => {
       return upgradeAccount({ data: { username, password } });
     },
     onSuccess: async () => {

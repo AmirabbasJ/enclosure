@@ -123,6 +123,13 @@ export type Database = {
     }
     Functions: {
       is_username_available: { Args: { desired: string }; Returns: boolean }
+      level_up: {
+        Args: { completed_level_id: number }
+        Returns: {
+          finished: boolean
+          level_id: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
