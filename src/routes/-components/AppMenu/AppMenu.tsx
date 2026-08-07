@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import { useGameAudio } from '@/context/GameAudioContext';
 import { useGame } from '@/context/GameContext';
@@ -14,11 +14,11 @@ import {
   IconSoundMedium,
   IconSoundOff,
 } from '../../../lib/icons';
-import { Avatar } from '../../../ui/avatar';
 import Button from '../../../ui/button';
 import PixelBlast from '../../../ui/pixel-blast';
 import RangeSlider from '../../../ui/range-slider';
 import { Tutorial } from '../Tutorial/Tutorial';
+import { UserProfile } from '../UserProfile';
 import { AuthForm } from './AuthForm';
 import { TopBar } from './TopBar';
 
@@ -90,9 +90,9 @@ function SettingsMenu({ onBack }: { onBack: () => void }) {
 
 function MenuContent() {
   const { state, send } = useGame();
-  const { signUpGuestMutation, user } = useAuth();
+  const { signUpGuestMutation, user, deleteAccountMutation, signOutMutation } =
+    useAuth();
   const { progress } = useProgress();
-  const [signingOut, setSigningOut] = useState(false);
 
   if (state.matches('playing')) return null;
 
@@ -113,22 +113,9 @@ function MenuContent() {
       <>
         <MenuButton onClick={() => send({ type: 'PLAY' })}>Play</MenuButton>
         <MenuButton onClick={() => send({ type: 'HELP' })}>Help</MenuButton>
-        {/* FIXME use mutation loading */}
         <MenuButton
-          isLoading={signingOut}
           onClick={() => {
             send({ type: 'PROFILE' });
-            // if (isSignedIn) {
-            //   setSigningOut(true);
-            //   void signOut()
-            //     .then((error) => {
-            //       if (!error) send({ type: 'SIGN_OUT' });
-            //     })
-            //     .finally(() => setSigningOut(false));
-            //   return;
-            // }
-
-            // send({ type: 'OPEN_SIGN_IN' });
           }}
         >
           Profile
@@ -147,17 +134,28 @@ function MenuContent() {
     return (
       <>
         <p className="mb-3 text-center text-base opacity-80">Profile</p>
-        <div className="flex items-center gap-2 bg-foreground p-4 pixelated">
-          <Avatar size={50} seed={user!.username ?? ''} />
-          <div className="flex flex-col gap-1">
-            <p className="text-sm">{user!.username}</p>
-            <p className="text-[9px]  text-success">
-              Level {progress!.level_id}
-            </p>
+        {user && progress ? (
+          <div className="bg-foreground p-4 pixelated">
+            <UserProfile />
           </div>
-        </div>
-        <MenuButton onClick={() => send({ type: 'SIGN_OUT' })}>
+        ) : null}
+        <MenuButton
+          isLoading={signOutMutation.isPending}
+          onClick={async () => {
+            await signOutMutation.mutateAsync();
+            send({ type: 'SIGN_OUT' });
+          }}
+        >
           Sign Out
+        </MenuButton>
+        <MenuButton
+          isLoading={deleteAccountMutation.isPending}
+          onClick={async () => {
+            const error = await deleteAccountMutation.mutateAsync();
+            if (!error) send({ type: 'SIGN_OUT' });
+          }}
+        >
+          Delete Account
         </MenuButton>
         <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>

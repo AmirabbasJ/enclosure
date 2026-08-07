@@ -194,6 +194,7 @@ export const gameMachine = setup({
     profile: {
       on: {
         BACK: { target: 'mainMenu' },
+        SIGN_OUT: { target: 'mainMenu', actions: 'setSignedOut' },
       },
     },
 

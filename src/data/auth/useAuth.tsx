@@ -1,3 +1,4 @@
+import type { Session } from '@supabase/supabase-js';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -11,8 +12,9 @@ import type { User } from '../../domain/User';
 
 import { queryKeys } from '../queryKeys';
 import {
+  deleteAccountFn,
   getSessionFn,
-  signIn as signInFn,
+  signIn,
   signUp as signUpFn,
   signUpGuestFn,
 } from './auth.functions';
@@ -21,10 +23,25 @@ export interface AuthValue {
   user: User | null;
   isLoading: boolean;
   isSignedIn: boolean;
-  signIn: (username: string, password: string) => Promise<string | null>;
-  signUp: (username: string, password: string) => Promise<string | null>;
+  signInMutation: UseMutationResult<
+    Session | null,
+    Error,
+    {
+      username: string;
+      password: string;
+    }
+  >;
+  signUpMutation: UseMutationResult<
+    string | Session | null,
+    Error,
+    {
+      username: string;
+      password: string;
+    }
+  >;
   signUpGuestMutation: UseMutationResult<string | null, Error, void>;
-  signOut: () => Promise<string | null>;
+  deleteAccountMutation: UseMutationResult<string | null, Error, void>;
+  signOutMutation: UseMutationResult<string | null, Error, void>;
 }
 
 export function useAuth(): AuthValue {
@@ -34,10 +51,14 @@ export function useAuth(): AuthValue {
   const createUser = useServerFn(signUpFn);
   const getCurrentUser = useServerFn(getSessionFn);
   const signUpGuest = useServerFn(signUpGuestFn);
+  const deleteAccount = useServerFn(deleteAccountFn);
 
   const currentUserQuery = useQuery({
-    queryKey: queryKeys.auth.currentUser.queryKey,
-    queryFn: () => getCurrentUser().then((d) => d?.user),
+    queryKey: queryKeys.user.me.queryKey,
+    queryFn: () => {
+      console.log('called nigga');
+      return getCurrentUser().then((d) => d?.user ?? null);
+    },
     staleTime: Infinity,
     initialData: currentUser ?? null,
   });
@@ -48,7 +69,7 @@ export function useAuth(): AuthValue {
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'INITIAL_SESSION') return;
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.auth.currentUser.queryKey,
+        queryKey: queryKeys.user.me.queryKey,
       });
     });
     return () => subscription.unsubscribe();
@@ -56,15 +77,22 @@ export function useAuth(): AuthValue {
 
   const user = currentUserQuery.data ?? null;
 
-  const signIn = async (username: string, password: string) => {
-    const { error } = await signInFn(username, password);
-    if (error) return error;
-
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.auth.currentUser.queryKey,
-    });
-    return null;
-  };
+  const signInMutation = useMutation({
+    mutationFn: async ({
+      username,
+      password,
+    }: {
+      username: string;
+      password: string;
+    }) => {
+      return signIn(username, password);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.user._def,
+      });
+    },
+  });
 
   const signUpMutation = useMutation({
     mutationFn: async ({
@@ -76,30 +104,65 @@ export function useAuth(): AuthValue {
     }) => {
       const createError = await createUser({ data: { username, password } });
       if (createError) return createError;
-      return signIn(username, password);
+      return signInMutation.mutateAsync({ username, password });
+    },
+    onSuccess: () => {
+      return queryClient.invalidateQueries({
+        queryKey: queryKeys.user._def,
+      });
     },
   });
 
   const signUpGuestMutation = useMutation({
-    mutationFn: () => signUpGuest(),
+    mutationFn: () => {
+      return signUpGuest();
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.user._def,
+      });
+    },
   });
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
+
     if (error) return error.message;
 
-    queryClient.setQueryData(queryKeys.auth.currentUser.queryKey, null);
+    queryClient.setQueryData(queryKeys.user.me.queryKey, null);
     return null;
   };
 
+  const signOutMutation = useMutation({
+    mutationFn: () => {
+      return signOut();
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.user._def,
+      });
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => {
+      return deleteAccount();
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.user._def,
+      });
+    },
+  });
+
   return {
     user,
-    isLoading: currentUserQuery.isPending,
+    deleteAccountMutation,
+    isLoading: currentUserQuery.isLoading,
     isSignedIn: Boolean(user),
-    signIn,
+    signInMutation,
     signUpGuestMutation,
-    signUp: (username, password) =>
-      signUpMutation.mutateAsync({ username, password }),
-    signOut,
+    signUpMutation,
+    signOutMutation,
   };
 }

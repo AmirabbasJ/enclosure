@@ -116,12 +116,11 @@ export const getSessionFn = createServerFn({ method: 'GET' }).handler(
 export const signIn = async (
   username: string,
   password: string
-): Promise<{ error: string | null; session: Session | null }> => {
+): Promise<Session | null> => {
   const parsed = parseCredentials(username, password);
-  console.log('wow what is this?');
 
   if (!parsed.data) {
-    return { error: parsed.error, session: null };
+    throw new Error(parsed.error);
   }
 
   const { username: normalized, password: validPassword } = parsed.data;
@@ -131,16 +130,15 @@ export const signIn = async (
     password: validPassword,
   });
 
-  if (error) return { error: mapAuthError(error.message), session: null };
+  if (error) throw new Error(mapAuthError(error.message));
 
-  return { error: null, session: data.session };
+  return data.session;
 };
 
 export const signUpGuestFn = createServerFn({ method: 'POST' }).handler(
   async (): Promise<string | null> => {
     const client = createServerClient();
     const { error, data } = await client.auth.signInAnonymously();
-    console.log('signUpGuestFn', { error, data });
     if (error) return error.message;
 
     return data.user?.id ?? null;
@@ -175,3 +173,27 @@ export const signUp = createServerFn({ method: 'POST' })
     if (error) return mapAuthError(error.message);
     return null;
   });
+
+export const deleteAccountFn = createServerFn({ method: 'POST' }).handler(
+  async (): Promise<string | null> => {
+    const client = createServerClient();
+    const adminClient = createAdminClient();
+    const {
+      data: { user },
+    } = await client.auth.getUser();
+
+    if (!user) return 'no user is signed in';
+
+    const { error } = await client.auth.signOut();
+
+    if (error) return error.message;
+
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(
+      user.id
+    );
+
+    if (deleteError) return deleteError.message;
+
+    return null;
+  }
+);

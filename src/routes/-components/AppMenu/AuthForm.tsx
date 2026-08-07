@@ -11,7 +11,7 @@ interface AuthFormProps {
 
 // FIXME can submit empty and no error validation
 export function AuthForm({ initialMode = 'signIn', onSuccess }: AuthFormProps) {
-  const { signIn, signUp } = useAuth();
+  const { signInMutation, signUpMutation } = useAuth();
   const [mode, setMode] = useState<'signIn' | 'signUp'>(initialMode);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -22,17 +22,11 @@ export function AuthForm({ initialMode = 'signIn', onSuccess }: AuthFormProps) {
     setPending(true);
     setError(null);
 
-    const message =
-      mode === 'signIn'
-        ? await signIn(username, password)
-        : await signUp(username, password);
+    if (mode === 'signIn')
+      await signInMutation.mutateAsync({ username, password });
+    else await signUpMutation.mutateAsync({ username, password });
 
     setPending(false);
-
-    if (message) {
-      setError(message);
-      return;
-    }
 
     onSuccess?.();
   };

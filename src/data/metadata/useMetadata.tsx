@@ -14,8 +14,8 @@ export function useMetadata() {
   const setMetadata = useServerFn(setMetadataFn);
 
   const { data: metadata } = useQuery({
-    queryKey: queryKeys.metadata.current.queryKey,
-    queryFn: () => getSessionFn().then((d) => d?.metadata),
+    queryKey: queryKeys.user.metadata.queryKey,
+    queryFn: () => getSessionFn().then((d) => d?.metadata ?? null),
     initialData: initialMetadata ?? null,
   });
 

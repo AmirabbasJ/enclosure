@@ -10,11 +10,11 @@ export function useProgress() {
 
   const getProgress = useServerFn(getProgressFn);
 
-  const { data: progress } = useQuery({
-    queryKey: queryKeys.progress.current.queryKey,
+  const { data: progress, isLoading } = useQuery({
+    queryKey: queryKeys.user.progress.queryKey,
     queryFn: () => getProgress(),
     initialData: initialProgress ?? null,
   });
 
-  return { progress };
+  return { progress, isLoading: isLoading as boolean };
 }
