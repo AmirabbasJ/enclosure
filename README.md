@@ -4,7 +4,7 @@
 
 A pixel puzzle game about walls and containment. Place four walls on a board so blue orbs stay enclosed and red cones stay free.
 
-![Enclosure logo](./public/logo.svg)
+![Enclosure gameplay](./public/screenshot.png)
 
 ## How to play
 
