@@ -1,8 +1,9 @@
 import { useState } from 'react';
 
-import { useAuth } from '../../../data/auth/useAuth';
-import Button from '../../../ui/button';
-import TextField from '../../../ui/text-field';
+import { validateCredentials } from '@/data/auth/auth.functions';
+import { useAuth } from '@/data/auth/useAuth';
+import Button from '@/ui/button';
+import TextField from '@/ui/text-field';
 
 interface UpgradeAccountFormProps {
   onBack: () => void;
@@ -14,14 +15,25 @@ export function UpgradeAccountForm({ onBack }: UpgradeAccountFormProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+
+  const pending = upgradeAccountMutation.isPending;
 
   const submit = async () => {
-    setPending(true);
     setError(null);
 
-    await upgradeAccountMutation.mutateAsync({ username, password });
-    onBack();
+    const parsed = validateCredentials(username, password);
+
+    if (!parsed.data) {
+      setError(parsed.error);
+      return;
+    }
+
+    try {
+      await upgradeAccountMutation.mutateAsync(parsed.data);
+      onBack();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    }
   };
 
   return (

@@ -204,19 +204,26 @@ export const deleteAccountFn = createServerFn({ method: 'POST' }).handler(
 
 export const upgradeAccountFn = createServerFn({ method: 'POST' })
   .validator(credentialsSchema)
-  .handler(async ({ data: { username, password } }: { data: Credentials }) => {
-    const client = createServerClient();
+  .handler(
+    async ({
+      data: { username, password },
+    }: {
+      data: Credentials;
+    }): Promise<string | null> => {
+      const client = createServerClient();
 
-    await client.auth.updateUser({
-      email: usernameToEmail(username),
-      password,
-      data: {
-        username,
-      },
-    });
+      const { error } = await client.auth.updateUser({
+        email: usernameToEmail(username),
+        password,
+        data: {
+          username,
+        },
+      });
 
-    return null;
-  });
+      if (error) return mapAuthError(error.message);
+      return null;
+    }
+  );
 
 export const updateUsernameFn = createServerFn({ method: 'POST' })
   .validator(z.object({ username: usernameSchema }))

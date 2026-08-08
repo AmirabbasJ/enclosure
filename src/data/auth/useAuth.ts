@@ -119,7 +119,10 @@ export function useAuth() {
 
   const upgradeAccountMutation = useMutation({
     mutationFn: async ({ username, password }: Credentials) => {
-      return upgradeAccount({ data: { username, password } });
+      const upgradeError = await upgradeAccount({
+        data: { username, password },
+      });
+      if (upgradeError) throw new Error(upgradeError);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
