@@ -44,7 +44,11 @@ function Game() {
       <div className=" items-center h-screen w-screen">
         {started && level ? (
           <PixelSceneRenderer>
-            <GameScene onWallsChange={checkSolution} level={level.question} />
+            <GameScene
+              key={level.id}
+              onWallsChange={checkSolution}
+              level={level.question}
+            />
           </PixelSceneRenderer>
         ) : null}
       </div>

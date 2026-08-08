@@ -68,7 +68,8 @@ export function GameScene({
   snapWallsToGrooves = true,
   onWallsChange,
 }: GameSceneProps) {
-  const { isPaused, send } = useGame();
+  const { state, send } = useGame();
+  const canInteract = state.matches('playing');
   const { orbs, walls: spawnWalls } = useMemo(
     () => resolveLevel(level, { snapWallsToGrooves }),
     [level, snapWallsToGrooves]
@@ -226,10 +227,10 @@ export function GameScene({
           setSelectedWallId(null);
           return;
         }
-        if (!isPaused) send({ type: 'PAUSE' });
+        if (canInteract) send({ type: 'PAUSE' });
         return;
       }
-      if (isPaused) return;
+      if (!canInteract) return;
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         boardYawTargetRef.current += Math.PI / 4;
@@ -246,7 +247,7 @@ export function GameScene({
         setSelectedWallId(null);
       }
     },
-    [isPaused, selectedWallId, send]
+    [canInteract, selectedWallId, send]
   );
 
   const onBlur = () => setSelectedWallId(null);
@@ -372,7 +373,7 @@ export function GameScene({
               occupiedCorners={blockedKeysByWall[wall.id].occupiedCorners}
               filledCorners={hasFilledCorners(wall.id)}
               selected={selectedWallId === wall.id}
-              draggable={!isPaused && !wall.locked}
+              draggable={canInteract && !wall.locked}
               onPositionChange={(position) => moveWall(wall.id, position)}
               onYawChange={(yaw) => rotateWall(wall.id, yaw)}
               onGroundHit={playRandomHit}

@@ -6,6 +6,7 @@ import { useAuth } from '@/data/auth/useAuth';
 
 import type { ButtonProps } from '../../../ui/button';
 
+import { useLevel } from '../../../data/levels/useLevel';
 import { useMetadata } from '../../../data/metadata/useMetadata';
 import { useProgress } from '../../../data/progress/useProgress';
 import {
@@ -95,12 +96,21 @@ function MenuContent() {
   const { signUpGuestMutation, user, deleteAccountMutation, signOutMutation } =
     useAuth();
   const { progress } = useProgress();
+  const { level } = useLevel();
 
   if (state.matches('playing')) return null;
 
+  if (state.matches('celebrating')) {
+    return (
+      <p className="level-complete-banner title-shadow text-center font-pixel text-[22px] tracking-[2px] text-accent-hover">
+        {state.context.finished ? 'SECTOR CLEARED' : 'LEVEL COMPLETE'}
+      </p>
+    );
+  }
+
   if (state.matches('gameCompleted')) {
     return (
-      <>
+      <div className="level-complete-panel flex flex-col items-center gap-3">
         <div className="bg-foreground pixelated p-4 gap-3">
           <p className="mb-3 text-center text-text-light ">
             You have completed all available levels.
@@ -109,27 +119,38 @@ function MenuContent() {
             More sectors are under construction.
           </p>
         </div>
-        <MenuButton onClick={() => send({ type: 'BACK' })}>
+        <MenuButton
+          onClick={() => {
+            send({ type: 'BACK' });
+          }}
+        >
           Main Menu
         </MenuButton>
-      </>
+      </div>
     );
   }
 
   if (state.matches('levelCompleted')) {
-    const passedLevel = progress!.level_id - 1;
     return (
-      <>
+      <div className="level-complete-panel flex flex-col items-center gap-3">
         <p className="mb-3 text-center text-base opacity-80">
-          Level {passedLevel} Completed
+          Level {level!.id} Completed
         </p>
-        <MenuButton onClick={() => send({ type: 'NEXT_LEVEL' })}>
+        <MenuButton
+          onClick={() => {
+            send({ type: 'NEXT_LEVEL' });
+          }}
+        >
           Next Level
         </MenuButton>
-        <MenuButton onClick={() => send({ type: 'BACK' })}>
+        <MenuButton
+          onClick={() => {
+            send({ type: 'BACK' });
+          }}
+        >
           Main Menu
         </MenuButton>
-      </>
+      </div>
     );
   }
   if (state.matches('paused')) {
@@ -262,7 +283,10 @@ function MenuContent() {
         <p className="mb-3 text-center text-base opacity-80">
           Play as guest or create an account
         </p>
-        <MenuButton onClick={() => send({ type: 'SIGN_UP' })}>
+        <MenuButton
+          disabled={signUpGuestMutation.isPending}
+          onClick={() => send({ type: 'SIGN_UP' })}
+        >
           Sign Up
         </MenuButton>
         <MenuButton
@@ -274,7 +298,12 @@ function MenuContent() {
         >
           Continue as Guest
         </MenuButton>
-        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
+        <MenuButton
+          disabled={signUpGuestMutation.isPending}
+          onClick={() => send({ type: 'BACK' })}
+        >
+          Back
+        </MenuButton>
       </>
     );
   }
@@ -369,10 +398,14 @@ export function AppMenu() {
   const isSceneActive =
     state.matches('paused') ||
     state.matches('playing') ||
-    state.matches('levelCompleted');
+    state.matches('celebrating') ||
+    state.matches('levelCompleted') ||
+    state.matches('gameCompleted');
   const goBack = useCallback(
     (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
+
+      if (state.matches('celebrating')) return;
 
       if (state.matches('paused')) {
         send({ type: 'PLAY' });

@@ -193,10 +193,10 @@ export const gameMachine = setup({
         LEVEL_COMPLETED: [
           {
             guard: 'isLastLevel',
-            target: 'gameCompleted',
+            target: 'celebrating',
             actions: 'markGameFinished',
           },
-          { target: 'levelCompleted' },
+          { target: 'celebrating' },
         ],
         PAUSE: { target: 'paused' },
         BACK: { target: 'mainMenu' },
@@ -207,6 +207,15 @@ export const gameMachine = setup({
       on: {
         PLAY: { target: 'playing' },
         BACK: { target: 'mainMenu' },
+      },
+    },
+
+    celebrating: {
+      after: {
+        1600: [
+          { guard: 'hasFinishedGame', target: 'gameCompleted' },
+          { target: 'levelCompleted' },
+        ],
       },
     },
 
