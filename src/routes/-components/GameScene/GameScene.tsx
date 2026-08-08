@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Vector3 } from 'three/webgpu';
 
 import type { LevelInput, WallInput } from '#/domain/level';
+import type { WallId } from '#/domain/walls';
 
 import { useGameAudio } from '#/context/GameAudioContext';
 import { useGame } from '#/context/GameContext';
@@ -38,6 +39,7 @@ import {
   Wall,
   wallOriginFromCenter,
 } from './components/Wall';
+import { WallDropHint } from './components/WallDropHint';
 
 const ISO_CAM_POS = new Vector3(0, CAM_Y, CAM_DIST);
 const TOP_CAM_POS = new Vector3(0, Math.hypot(CAM_Y, CAM_DIST), 0);
@@ -81,12 +83,22 @@ interface GameSceneProps {
   level?: LevelInput;
   snapWallsToGrooves?: boolean;
   onWallsChange: (walls: WallInput[]) => void;
+  /** When set, only these wall ids can be dragged/selected. */
+  allowedWallIds?: readonly WallId[] | null;
+  /** When false, arrow keys do not rotate the board. */
+  allowBoardRotate?: boolean;
+  dropHintWall?: WallInput | null;
+  onBoardRotated?: () => void;
 }
 
 export function GameScene({
   level,
   snapWallsToGrooves = true,
   onWallsChange,
+  allowedWallIds = null,
+  allowBoardRotate = true,
+  dropHintWall = null,
+  onBoardRotated,
 }: GameSceneProps) {
   const { state, send } = useGame();
   const canInteract = state.matches('playing');
@@ -107,6 +119,12 @@ export function GameScene({
   const { playRandomHit } = useGameAudio();
   const wallsRef = useRef(walls);
   wallsRef.current = walls;
+  const onBoardRotatedRef = useRef(onBoardRotated);
+  onBoardRotatedRef.current = onBoardRotated;
+  const allowBoardRotateRef = useRef(allowBoardRotate);
+  allowBoardRotateRef.current = allowBoardRotate;
+  const allowedWallIdsRef = useRef(allowedWallIds);
+  allowedWallIdsRef.current = allowedWallIds;
 
   const boardRef = useRef<THREE.Group>(null);
   const introRef = useRef<THREE.Group>(null);
@@ -271,16 +289,18 @@ export function GameScene({
         return;
       }
       if (!canInteract) return;
-      if (e.key === 'ArrowRight') {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        if (!allowBoardRotateRef.current) return;
         e.preventDefault();
-        boardYawTargetRef.current += Math.PI / 4;
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        boardYawTargetRef.current -= Math.PI / 4;
+        boardYawTargetRef.current +=
+          e.key === 'ArrowRight' ? Math.PI / 4 : -Math.PI / 4;
+        onBoardRotatedRef.current?.();
       } else if (wallToNumberKeyMap[e.key]) {
         e.preventDefault();
-        const id = wallToNumberKeyMap[e.key];
+        const id = wallToNumberKeyMap[e.key] as WallId;
         if (lockedWallIdsRef.current.has(id)) return;
+        const allowed = allowedWallIdsRef.current;
+        if (allowed && !allowed.includes(id)) return;
         setSelectedWallId((prev) => (prev === id ? null : id));
       } else if (e.key === 'Enter') {
         e.preventDefault();
@@ -437,43 +457,48 @@ export function GameScene({
           showBorder={false}
           receiveShadow
         />
-        {walls.map((wall, index) => (
-          <group
-            key={wall.id}
-            ref={(node) => {
-              wallIntroRef.current[index] = node;
+        {walls.map((wall, index) => {
+          const wallAllowed =
+            !allowedWallIds || allowedWallIds.includes(wall.id as WallId);
+          return (
+            <group
+              key={wall.id}
+              ref={(node) => {
+                wallIntroRef.current[index] = node;
 
-              if (
-                node &&
-                !introDoneRef.current &&
-                introElapsedRef.current === 0
-              ) {
-                node.position.set(...wallIntroOffset());
-              }
-            }}
-          >
-            <Wall
-              path={wall.path}
-              wallId={wall.id}
-              position={wall.position}
-              rotation={[0, wall.yaw, 0]}
-              snapToGrooves={snapWallsToGrooves}
-              blockedKeys={blockedKeysByWall[wall.id].grooves}
-              blockedFilledCorners={
-                blockedKeysByWall[wall.id].blockedFilledCorners
-              }
-              occupiedCorners={blockedKeysByWall[wall.id].occupiedCorners}
-              filledCorners={hasFilledCorners(wall.id)}
-              selected={selectedWallId === wall.id}
-              draggable={canInteract && !wall.locked}
-              onPositionChange={(position) => moveWall(wall.id, position)}
-              onYawChange={(yaw) => rotateWall(wall.id, yaw)}
-              onGroundHit={playRandomHit}
-              onPlace={onPlaceWalls}
-              onDeselect={() => setSelectedWallId(null)}
-            />
-          </group>
-        ))}
+                if (
+                  node &&
+                  !introDoneRef.current &&
+                  introElapsedRef.current === 0
+                ) {
+                  node.position.set(...wallIntroOffset());
+                }
+              }}
+            >
+              <Wall
+                path={wall.path}
+                wallId={wall.id}
+                position={wall.position}
+                rotation={[0, wall.yaw, 0]}
+                snapToGrooves={snapWallsToGrooves}
+                blockedKeys={blockedKeysByWall[wall.id].grooves}
+                blockedFilledCorners={
+                  blockedKeysByWall[wall.id].blockedFilledCorners
+                }
+                occupiedCorners={blockedKeysByWall[wall.id].occupiedCorners}
+                filledCorners={hasFilledCorners(wall.id)}
+                selected={selectedWallId === wall.id}
+                draggable={canInteract && !wall.locked && wallAllowed}
+                onPositionChange={(position) => moveWall(wall.id, position)}
+                onYawChange={(yaw) => rotateWall(wall.id, yaw)}
+                onGroundHit={playRandomHit}
+                onPlace={onPlaceWalls}
+                onDeselect={() => setSelectedWallId(null)}
+              />
+            </group>
+          );
+        })}
+        {dropHintWall ? <WallDropHint wall={dropHintWall} /> : null}
         <group ref={introRef} position={[0, INTRO_START_Y, 0]}>
           <BorderBox
             size={BOARD_BASE_SIZE}

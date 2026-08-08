@@ -19,6 +19,14 @@ export const TUTORIAL_ANSWER_WALLS = [
   { id: 'steps', col: 2, row: 1, yawQuarters: 0 },
 ] as const satisfies readonly WallInput[];
 
+export const TUTORIAL_STEPS_ANSWER = TUTORIAL_ANSWER_WALLS.find(
+  (wall) => wall.id === 'steps'
+)!;
+
+export const TUTORIAL_ZIGZAG_ANSWER = TUTORIAL_ANSWER_WALLS.find(
+  (wall) => wall.id === 'zigzagTall'
+)!;
+
 export const TUTORIAL_ANSWER: LevelInput = {
   orbs: TUTORIAL_QUESTION.orbs,
   walls: [...(TUTORIAL_QUESTION.walls ?? []), ...TUTORIAL_ANSWER_WALLS],

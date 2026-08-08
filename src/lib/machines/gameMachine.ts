@@ -34,6 +34,7 @@ export interface GameMachineContext {
   metadata: Metadata;
   isSignedIn: boolean;
   finished: boolean;
+  isTutorial: boolean;
   tutorialBackTo: 'help' | 'mainMenu';
   pendingAction: PendingAction | null;
 }
@@ -56,6 +57,7 @@ export const gameMachine = setup({
     isLastLevel: ({ event }) =>
       event.type === 'LEVEL_COMPLETED' && event.finished,
     isSignedIn: ({ context }) => context.isSignedIn,
+    isTutorial: ({ context }) => context.isTutorial,
     tutorialFromHelp: ({ context }) => context.tutorialBackTo === 'help',
   },
   actions: {
@@ -66,12 +68,19 @@ export const gameMachine = setup({
       }),
     }),
     setSignedIn: assign({ isSignedIn: true }),
-    setSignedOut: assign({ isSignedIn: false, finished: false }),
+    setSignedOut: assign({
+      isSignedIn: false,
+      finished: false,
+      isTutorial: false,
+    }),
     setFinishedFromProgress: assign({
       finished: ({ context, event }) =>
         event.type === 'PROGRESS_UPDATED' ? event.finished : context.finished,
     }),
     markGameFinished: assign({ finished: true }),
+
+    setIsTutorial: assign({ isTutorial: true }),
+    clearIsTutorial: assign({ isTutorial: false }),
 
     setTutorialBackToMain: assign({ tutorialBackTo: 'mainMenu' as const }),
     setTutorialBackToHelp: assign({ tutorialBackTo: 'help' as const }),
@@ -87,6 +96,7 @@ export const gameMachine = setup({
     metadata: input.metadata ?? defaultMetadata,
     isSignedIn: input.isSignedIn ?? false,
     finished: input.finished ?? false,
+    isTutorial: false,
     tutorialBackTo: 'mainMenu',
     pendingAction: null,
   }),
@@ -106,11 +116,12 @@ export const gameMachine = setup({
           {
             guard: and(['isSignedIn', 'hasViewedTutorial']),
             target: 'playing',
+            actions: 'clearIsTutorial',
           },
           {
             guard: 'isSignedIn',
-            target: 'tutorial',
-            actions: 'setTutorialBackToMain',
+            target: 'playing',
+            actions: ['setIsTutorial', 'setTutorialBackToMain'],
           },
           {
             target: 'askGuestOrSignUp',
@@ -162,21 +173,17 @@ export const gameMachine = setup({
         {
           guard: 'hasViewedTutorial',
           target: 'playing',
-          actions: 'clearPendingAction',
+          actions: ['clearIsTutorial', 'clearPendingAction'],
         },
         {
-          target: 'tutorial',
-          actions: ['setTutorialBackToMain', 'clearPendingAction'],
+          target: 'playing',
+          actions: ['setIsTutorial', 'setTutorialBackToMain', 'clearPendingAction'],
         },
       ],
     },
 
     tutorial: {
       on: {
-        TUTORIAL_COMPLETE: {
-          target: 'playing',
-          actions: ['markTutorialSeen', emit({ type: 'TUTORIAL_COMPLETE' })],
-        },
         BACK: [
           { guard: 'tutorialFromHelp', target: 'help' },
           { target: 'mainMenu' },
@@ -188,6 +195,15 @@ export const gameMachine = setup({
       on: {
         LEVEL_COMPLETED: [
           {
+            guard: 'isTutorial',
+            target: 'celebrating',
+            actions: [
+              'markTutorialSeen',
+              'clearIsTutorial',
+              emit({ type: 'TUTORIAL_COMPLETE' }),
+            ],
+          },
+          {
             guard: 'isLastLevel',
             target: 'celebrating',
             actions: 'markGameFinished',
@@ -195,14 +211,28 @@ export const gameMachine = setup({
           { target: 'celebrating' },
         ],
         PAUSE: { target: 'paused' },
-        BACK: { target: 'mainMenu' },
+        BACK: [
+          {
+            guard: and(['isTutorial', 'tutorialFromHelp']),
+            target: 'help',
+            actions: 'clearIsTutorial',
+          },
+          { target: 'mainMenu', actions: 'clearIsTutorial' },
+        ],
       },
     },
 
     paused: {
       on: {
         PLAY: { target: 'playing' },
-        BACK: { target: 'mainMenu' },
+        BACK: [
+          {
+            guard: and(['isTutorial', 'tutorialFromHelp']),
+            target: 'help',
+            actions: 'clearIsTutorial',
+          },
+          { target: 'mainMenu', actions: 'clearIsTutorial' },
+        ],
       },
     },
 
@@ -266,8 +296,8 @@ export const gameMachine = setup({
       initial: 'menu',
       on: {
         TUTORIAL: {
-          target: '#game.tutorial',
-          actions: 'setTutorialBackToHelp',
+          target: '#game.playing',
+          actions: ['setIsTutorial', 'setTutorialBackToHelp'],
         },
       },
       states: {

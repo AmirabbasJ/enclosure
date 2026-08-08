@@ -334,15 +334,7 @@ function MenuContent() {
   }
 
   if (state.matches('tutorial')) {
-    const fromHelp = state.context.tutorialBackTo === 'help';
-    return (
-      <Tutorial
-        onComplete={
-          fromHelp ? undefined : () => send({ type: 'TUTORIAL_COMPLETE' })
-        }
-        onBack={() => send({ type: 'BACK' })}
-      />
-    );
+    return <Tutorial onBack={() => send({ type: 'BACK' })} />;
   }
 
   if (state.matches('askGuestOrSignUp')) {
@@ -401,6 +393,9 @@ function MenuContent() {
           Controls
         </MenuButton>
         <MenuButton onClick={() => send({ type: 'RULES' })}>Rules</MenuButton>
+        <MenuButton onClick={() => send({ type: 'TUTORIAL' })}>
+          Replay Tutorial
+        </MenuButton>
         <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </>
     );
