@@ -104,7 +104,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     const audioState = await getAudioStateFn();
     const cookieMetadata = await getMetadataCookieFn();
     const progress = await getProgressFn();
-    const level = await getLevelFn();
+    const level = await getLevelFn({ data: {} });
 
     const metadata = cookieMetadata ?? currentUserData?.metadata;
     return {

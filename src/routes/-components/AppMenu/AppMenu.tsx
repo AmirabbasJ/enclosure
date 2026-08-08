@@ -161,7 +161,7 @@ function MenuContent() {
   const { signUpGuestMutation, user, deleteAccountMutation, signOutMutation } =
     useAuth();
   const { progress } = useProgress();
-  const { level } = useLevel();
+  const { level, commitPendingProgress } = useLevel();
 
   if (state.matches('playing')) return null;
 
@@ -175,7 +175,7 @@ function MenuContent() {
 
   if (state.matches('gameCompleted')) {
     return (
-      <div className="level-complete-panel flex flex-col items-center gap-3">
+      <div className="level-complete-panel flex w-full max-w-75 flex-col items-center gap-3">
         <div className="bg-foreground pixelated p-4 gap-3">
           <p className="mb-3 text-center text-text-light ">
             You have completed all available levels.
@@ -187,6 +187,7 @@ function MenuContent() {
         <MenuButton
           onClick={() => {
             send({ type: 'BACK' });
+            commitPendingProgress();
           }}
         >
           Main Menu
@@ -197,13 +198,14 @@ function MenuContent() {
 
   if (state.matches('levelCompleted')) {
     return (
-      <div className="level-complete-panel flex flex-col items-center gap-3">
-        <p className="mb-3 text-center text-base opacity-80">
+      <div className="level-complete-panel flex w-full max-w-75 flex-col items-center gap-3">
+        <p className="text-center text-base opacity-80">
           Level {level!.id} Completed
         </p>
         <MenuButton
           onClick={() => {
             send({ type: 'NEXT_LEVEL' });
+            commitPendingProgress();
           }}
         >
           Next Level
@@ -211,6 +213,7 @@ function MenuContent() {
         <MenuButton
           onClick={() => {
             send({ type: 'BACK' });
+            commitPendingProgress();
           }}
         >
           Main Menu
@@ -440,9 +443,14 @@ function MenuContent() {
 
 export function AppMenu() {
   const { state, send } = useGame();
+  const { commitPendingProgress } = useLevel();
   const isSceneActive =
     state.matches('paused') ||
     state.matches('playing') ||
+    state.matches('celebrating') ||
+    state.matches('levelCompleted') ||
+    state.matches('gameCompleted');
+  const showingSolution =
     state.matches('celebrating') ||
     state.matches('levelCompleted') ||
     state.matches('gameCompleted');
@@ -457,9 +465,15 @@ export function AppMenu() {
         return;
       }
 
+      if (state.matches('levelCompleted') || state.matches('gameCompleted')) {
+        send({ type: 'BACK' });
+        commitPendingProgress();
+        return;
+      }
+
       send({ type: 'BACK' });
     },
-    [send, state]
+    [commitPendingProgress, send, state]
   );
 
   useEffect(() => {
@@ -472,10 +486,22 @@ export function AppMenu() {
   useMetadata();
 
   return (
-    <div className="absolute backdrop-blur-xs inset-x-0 bottom-0 flex h-full w-full flex-col items-center justify-center pb-2">
-      <div className="relative flex h-full w-full flex-col items-center justify-center">
-        <TopBar />
-        <div className="relative w-full flex h-full flex-col items-center justify-center gap-4">
+    <div
+      className={`absolute inset-x-0 bottom-0 flex h-full w-full flex-col items-center pb-2 ${
+        showingSolution ? '' : 'backdrop-blur-xs'
+      }`}
+    >
+      <div className="relative flex h-full w-full flex-col items-center">
+        {!showingSolution ? <TopBar /> : null}
+        <div
+          className={`relative flex h-full w-full flex-col items-center gap-4 ${
+            showingSolution
+              ? state.matches('celebrating')
+                ? 'justify-start pt-16'
+                : 'justify-end'
+              : 'justify-center'
+          }`}
+        >
           {!isSceneActive ? (
             <div className="absolute w-full h-full blur-[3px]">
               <PixelBlast

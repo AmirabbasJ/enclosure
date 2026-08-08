@@ -12,12 +12,12 @@ export const NORMAL_EDGE = 0.3;
 export const DEPTH_EDGE = 0;
 export const PIXEL_ALIGNED_PANNING = true;
 
-const PLAY_ZOOM = 1;
+export const PLAY_ZOOM = 1;
 const INTRO_START_ZOOM = 0.8;
 const INTRO_DURATION = 1.8;
 
-const CAM_DIST = 5;
-const CAM_Y = CAM_DIST * Math.tan(Math.PI / 6);
+export const CAM_DIST = 5;
+export const CAM_Y = CAM_DIST * Math.tan(Math.PI / 6);
 
 function easeInOutCubic(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;

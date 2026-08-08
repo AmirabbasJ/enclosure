@@ -9,8 +9,9 @@ import { createAdminClient } from '../../lib/supabase/admin.functions';
 import { createServerClient } from '../../lib/supabase/client.server';
 import { levelSolutionCache } from './levelSolutionCache.server';
 
-export const getLevelFn = createServerFn({ method: 'POST' }).handler(
-  async () => {
+export const getLevelFn = createServerFn({ method: 'POST' })
+  .validator(z.object({ levelId: z.number().int().positive().optional() }))
+  .handler(async ({ data }) => {
     const adminClient = createAdminClient();
     const client = createServerClient();
     const {
@@ -18,25 +19,36 @@ export const getLevelFn = createServerFn({ method: 'POST' }).handler(
     } = await client.auth.getUser();
     if (!user) return null;
 
-    const { data } = await adminClient
-      .from('progress')
-      .select('levels(question, answer, id)')
-      .eq('id', user.id)
-      .maybeSingle();
-    if (!data?.levels) return null;
+    let levelId = data.levelId;
 
-    const solution = data.levels.answer as any as WallInput[];
+    if (levelId == null) {
+      const { data: progress } = await adminClient
+        .from('progress')
+        .select('level_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (!progress?.level_id) return null;
+      levelId = progress.level_id;
+    }
+
+    const { data: levelRow } = await adminClient
+      .from('levels')
+      .select('question, answer, id')
+      .eq('id', levelId)
+      .maybeSingle();
+    if (!levelRow) return null;
+
+    const solution = levelRow.answer as any as WallInput[];
 
     const level = {
-      question: data.levels.question as any as LevelInput,
-      id: data.levels.id,
+      question: levelRow.question as any as LevelInput,
+      id: levelRow.id,
     };
 
     levelSolutionCache.set(String(level.id), solution);
 
     return level;
-  }
-);
+  });
 
 const levelUp = createServerOnlyFn(async (levelId: number) => {
   const client = createServerClient();

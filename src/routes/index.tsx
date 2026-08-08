@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
+import type { LevelInput } from '../domain/level';
 import type { WallInput } from '../domain/walls';
 
 import { useGameAudio } from '../context/GameAudioContext';
@@ -14,27 +15,45 @@ export const Route = createFileRoute('/')({
   component: Game,
 });
 
+interface SceneLevel {
+  id: number;
+  question: LevelInput;
+}
+
 function Game() {
   const { state, send } = useGame();
   const { playMusic, playLevelComplete } = useGameAudio();
   const { level, completeLevelMutation } = useLevel();
-  const inScene = state.matches('playing') || state.matches('paused');
+  const [solvedLevel, setSolvedLevel] = useState<SceneLevel | null>(null);
+
+  const showingSolution =
+    state.matches('celebrating') ||
+    state.matches('levelCompleted') ||
+    state.matches('gameCompleted');
+  const inScene =
+    state.matches('playing') || state.matches('paused') || showingSolution;
   const showMenu = !state.matches('playing');
+  const sceneLevel = showingSolution && solvedLevel ? solvedLevel : level;
 
   const checkSolution = async (walls: WallInput[]) => {
     const isAllWallsPlaced = walls.length === 4;
 
-    if (!isAllWallsPlaced) {
+    if (!isAllWallsPlaced || !level) {
       return;
     }
 
-    const { isCorrect, progress } =
-      await completeLevelMutation.mutateAsync(walls);
-    if (!isCorrect) return;
+    const completed = level;
+    const result = await completeLevelMutation.mutateAsync(walls);
+    if (!result.isCorrect) return;
 
+    setSolvedLevel(completed);
     playLevelComplete();
-    send({ type: 'LEVEL_COMPLETED', finished: progress.finished });
+    send({ type: 'LEVEL_COMPLETED', finished: result.progress.finished });
   };
+
+  useEffect(() => {
+    if (!showingSolution) setSolvedLevel(null);
+  }, [showingSolution]);
 
   useEffect(() => {
     playMusic();
@@ -43,12 +62,11 @@ function Game() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 bg-bg text-text-light ">
       <div className=" items-center h-screen w-screen">
-        {inScene && level ? (
-          <PixelSceneRenderer>
+        {inScene && sceneLevel ? (
+          <PixelSceneRenderer key={sceneLevel.id}>
             <GameScene
-              key={level.id}
               onWallsChange={checkSolution}
-              level={level.question}
+              level={sceneLevel.question}
             />
           </PixelSceneRenderer>
         ) : null}

@@ -1,7 +1,8 @@
 import type * as THREE from 'three/webgpu';
 
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Vector3 } from 'three/webgpu';
 
 import type { LevelInput, WallInput } from '#/domain/level';
 
@@ -26,6 +27,7 @@ import {
   hasFilledCorners,
   wallToNumberKeyMap,
 } from '#/domain/walls';
+import { CAM_DIST, CAM_Y, PLAY_ZOOM } from '#/PixelSceneRenderer';
 import { palette } from '#/theme/palette';
 import { easeInOutCubic } from '#/utils/easeInOutCubic';
 
@@ -36,6 +38,24 @@ import {
   Wall,
   wallOriginFromCenter,
 } from './components/Wall';
+
+const ISO_CAM_POS = new Vector3(0, CAM_Y, CAM_DIST);
+const TOP_CAM_POS = new Vector3(0, Math.hypot(CAM_Y, CAM_DIST), 0);
+const ISO_CAM_UP = new Vector3(0, 1, 0);
+const TOP_CAM_UP = new Vector3(0, 0, -1);
+const CLEAR_ZOOM = 0.72;
+const CLEAR_PAN_Z = 0.3;
+const PLAY_AMBIENT = 0.72;
+const CLEAR_AMBIENT = 1.05;
+const PLAY_DIR_INTENSITY = 0.48;
+const CLEAR_DIR_INTENSITY = 1.15;
+
+function shortestYawToZero(current: number) {
+  const twoPi = Math.PI * 2;
+  let delta = (((0 - current) % twoPi) + twoPi) % twoPi;
+  if (delta > Math.PI) delta -= twoPi;
+  return current + delta;
+}
 
 const INTRO_BOARD_DURATION = 1.8;
 const INTRO_WALL_DURATION = 1.4;
@@ -70,6 +90,13 @@ export function GameScene({
 }: GameSceneProps) {
   const { state, send } = useGame();
   const canInteract = state.matches('playing');
+  const showTopDown =
+    state.matches('celebrating') ||
+    state.matches('levelCompleted') ||
+    state.matches('gameCompleted');
+  const pinBoardHigh =
+    state.matches('levelCompleted') || state.matches('gameCompleted');
+  const { camera } = useThree();
   const { orbs, walls: spawnWalls } = useMemo(
     () => resolveLevel(level, { snapWallsToGrooves }),
     [level, snapWallsToGrooves]
@@ -86,6 +113,14 @@ export function GameScene({
   const wallIntroRef = useRef<(THREE.Group | null)[]>([]);
   const boardYawRef = useRef(Math.PI / 4);
   const boardYawTargetRef = useRef(Math.PI / 4);
+  const viewBlendRef = useRef(0);
+  const panBlendRef = useRef(0);
+  const camPosRef = useRef(new Vector3());
+  const camUpRef = useRef(new Vector3());
+  const lookAtRef = useRef(new Vector3());
+  const ambientLightRef = useRef<THREE.AmbientLight>(null);
+  const playLightRef = useRef<THREE.DirectionalLight>(null);
+  const clearLightRef = useRef<THREE.DirectionalLight>(null);
   const introElapsedRef = useRef(0);
   const introDoneRef = useRef(false);
   const wallDelaysRef = useRef<number[]>([]);
@@ -106,6 +141,11 @@ export function GameScene({
 
     if (introRef.current) introRef.current.position.y = INTRO_START_Y;
   }, [spawnWalls]);
+
+  useEffect(() => {
+    if (!showTopDown) return;
+    boardYawTargetRef.current = shortestYawToZero(boardYawRef.current);
+  }, [showTopDown]);
 
   const blockedKeysByWall = useMemo(() => {
     const occupiedById: Record<string, string[]> = {};
@@ -262,6 +302,8 @@ export function GameScene({
     };
   }, [onKeyDown]);
 
+  // R3F: animate board clear view on the live camera each frame.
+  // eslint-disable-next-line @eslint-react/immutability -- camera pose/zoom
   useFrame((_, delta) => {
     const group = boardRef.current;
     if (!group) return;
@@ -269,6 +311,45 @@ export function GameScene({
     boardYawRef.current +=
       (boardYawTargetRef.current - boardYawRef.current) * t;
     group.rotation.y = boardYawRef.current;
+
+    const viewTarget = showTopDown ? 1 : 0;
+    viewBlendRef.current += (viewTarget - viewBlendRef.current) * t;
+    const u = viewBlendRef.current;
+
+    const panTarget = pinBoardHigh ? 1 : 0;
+    panBlendRef.current += (panTarget - panBlendRef.current) * t;
+    const panZ = CLEAR_PAN_Z * panBlendRef.current * u;
+
+    camera.position
+      .copy(camPosRef.current.lerpVectors(ISO_CAM_POS, TOP_CAM_POS, u))
+      .add(lookAtRef.current.set(0, 0, panZ));
+    camera.up.copy(camUpRef.current.lerpVectors(ISO_CAM_UP, TOP_CAM_UP, u));
+    camera.lookAt(lookAtRef.current.set(0, 0, panZ));
+
+    if (introDoneRef.current || showTopDown) {
+      const ortho = camera as THREE.OrthographicCamera;
+      // eslint-disable-next-line @eslint-react/immutability -- ortho zoom for clear view
+      ortho.zoom = PLAY_ZOOM + (CLEAR_ZOOM - PLAY_ZOOM) * u;
+      ortho.updateProjectionMatrix();
+    }
+
+    const ambient = ambientLightRef.current;
+
+    if (ambient) {
+      ambient.intensity = PLAY_AMBIENT + (CLEAR_AMBIENT - PLAY_AMBIENT) * u;
+    }
+
+    const playLight = playLightRef.current;
+
+    if (playLight) {
+      playLight.intensity = PLAY_DIR_INTENSITY * (1 - u);
+    }
+
+    const clearLight = clearLightRef.current;
+
+    if (clearLight) {
+      clearLight.intensity = CLEAR_DIR_INTENSITY * u;
+    }
 
     if (introDoneRef.current) return;
 
@@ -313,10 +394,15 @@ export function GameScene({
   return (
     <>
       <color attach="background" args={[palette.surface]} />
-      <ambientLight intensity={0.72} color="#4895ef" />
+      <ambientLight
+        ref={ambientLightRef}
+        intensity={PLAY_AMBIENT}
+        color="#4895ef"
+      />
       <directionalLight
+        ref={playLightRef}
         castShadow
-        intensity={0.48}
+        intensity={PLAY_DIR_INTENSITY}
         color="#c8d6e5"
         position={[4, 8, 5]}
         shadow-mapSize={[2048, 2048]}
@@ -329,6 +415,12 @@ export function GameScene({
         shadow-camera-right={8}
         shadow-camera-top={8}
         shadow-camera-bottom={-8}
+      />
+      <directionalLight
+        ref={clearLightRef}
+        intensity={0}
+        color="#f2f7ff"
+        position={[0, 20, 0]}
       />
 
       <group
