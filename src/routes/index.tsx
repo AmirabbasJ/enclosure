@@ -16,9 +16,9 @@ export const Route = createFileRoute('/')({
 
 function Game() {
   const { state, send } = useGame();
-  const { playMusic } = useGameAudio();
+  const { playMusic, playLevelComplete } = useGameAudio();
   const { level, completeLevelMutation } = useLevel();
-  const started = state.matches('playing') || state.matches('paused');
+  const inScene = state.matches('playing') || state.matches('paused');
   const showMenu = !state.matches('playing');
 
   const checkSolution = async (walls: WallInput[]) => {
@@ -32,6 +32,7 @@ function Game() {
       await completeLevelMutation.mutateAsync(walls);
     if (!isCorrect) return;
 
+    playLevelComplete();
     send({ type: 'LEVEL_COMPLETED', finished: progress.finished });
   };
 
@@ -42,7 +43,7 @@ function Game() {
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 bg-bg text-text-light ">
       <div className=" items-center h-screen w-screen">
-        {started && level ? (
+        {inScene && level ? (
           <PixelSceneRenderer>
             <GameScene
               key={level.id}

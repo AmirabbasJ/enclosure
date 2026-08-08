@@ -22,6 +22,7 @@ interface GameAudioContextValue {
   setMusicAudioVolume: (volume: number) => void;
   resetAudioState: VoidFunction;
   playButtonClick: VoidFunction;
+  playLevelComplete: VoidFunction;
   musicAudioState: AudioState['music'];
   sfxAudioState: AudioState['sfx'];
 }
@@ -113,6 +114,10 @@ export function GameAudioProvider({
     volume: sfxAudioState.isOn ? sfxAudioState.volume : 0,
   });
 
+  const [playLevelComplete] = useSound('/audios/level-complete.mp3', {
+    volume: sfxAudioState.isOn ? sfxAudioState.volume : 0,
+  });
+
   const resetAudioState = useCallback(() => {
     setAudioState(() => defaultAudioState);
   }, [setAudioState]);
@@ -120,6 +125,7 @@ export function GameAudioProvider({
   const value = useMemo(
     () => ({
       playButtonClick,
+      playLevelComplete,
       playMusic,
       musicAudioState,
       stopMusic,
@@ -133,6 +139,7 @@ export function GameAudioProvider({
     }),
     [
       playButtonClick,
+      playLevelComplete,
       playRandomHit,
       playMusic,
       stopMusic,
