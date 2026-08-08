@@ -24,7 +24,6 @@ export type GameEvent =
   | { type: 'SIGN_IN' }
   | { type: 'SIGN_OUT' }
   | { type: 'SIGN_UP' }
-  | { type: 'SKIP_SIGN_IN' }
   | { type: 'TUTORIAL_COMPLETE' }
   | { type: 'TUTORIAL' }
   | { type: 'UPGRADE_ACCOUNT' };
@@ -118,10 +117,7 @@ export const gameMachine = setup({
             actions: 'setPendingPlay',
           },
         ],
-        LEADERBOARD: [
-          { guard: 'isSignedIn', target: 'leaderboard' },
-          { target: 'askSignIn' },
-        ],
+        LEADERBOARD: { target: 'leaderboard' },
         HELP: { target: 'help' },
         OPEN_SIGN_IN: { target: 'signIn' },
         SETTINGS: { target: 'settings' },
@@ -228,17 +224,6 @@ export const gameMachine = setup({
 
     gameCompleted: {
       on: {
-        BACK: { target: 'mainMenu' },
-      },
-    },
-
-    askSignIn: {
-      on: {
-        SIGN_IN: {
-          target: 'leaderboard',
-          actions: 'setSignedIn',
-        },
-        SKIP_SIGN_IN: { target: 'leaderboard' },
         BACK: { target: 'mainMenu' },
       },
     },

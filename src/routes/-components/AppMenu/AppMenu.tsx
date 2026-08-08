@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { useGameAudio } from '@/context/GameAudioContext';
 import { useGame } from '@/context/GameContext';
@@ -6,6 +6,7 @@ import { useAuth } from '@/data/auth/useAuth';
 
 import type { ButtonProps } from '../../../ui/button';
 
+import { useLeaderboard } from '../../../data/leaderboard/useLeaderboard';
 import { useLevel } from '../../../data/levels/useLevel';
 import { useMetadata } from '../../../data/metadata/useMetadata';
 import { useProgress } from '../../../data/progress/useProgress';
@@ -15,7 +16,9 @@ import {
   IconSoundMedium,
   IconSoundOff,
 } from '../../../lib/icons';
+import { Avatar } from '../../../ui/avatar';
 import Button from '../../../ui/button';
+import { LoadingDots } from '../../../ui/LoadingDots';
 import PixelBlast from '../../../ui/pixel-blast';
 import RangeSlider from '../../../ui/range-slider';
 import { Tutorial } from '../Tutorial/Tutorial';
@@ -28,6 +31,68 @@ import { UpgradeAccountForm } from './UpgradeAccountForm';
 function MenuButton(props: ButtonProps) {
   return (
     <Button {...props} className="flex min-w-75 items-center justify-center" />
+  );
+}
+
+// FIXME I should probably put every menu in a separate component
+
+function LeaderboardMenu({ onBack }: { onBack: () => void }) {
+  const { user } = useAuth();
+  const { leaderboard, isLoading } = useLeaderboard();
+  const youRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isLoading || !youRef.current) return;
+    youRef.current.scrollIntoView({ block: 'center' });
+  }, [isLoading, leaderboard, user?.username]);
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <p className="mb-3 text-center text-base opacity-80">Leaderboard</p>
+      <div className="flex max-h-[50vh] min-w-75 w-full flex-col gap-1 overflow-y-auto bg-foreground pixelated p-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        {isLoading ? (
+          <div className="flex justify-center py-6">
+            <LoadingDots />
+          </div>
+        ) : leaderboard.length === 0 ? (
+          <p className="py-6 text-center font-pixel text-[10px] text-text-light">
+            No rankings yet
+          </p>
+        ) : (
+          leaderboard.map((entry) => {
+            const isYou = user?.username === entry.username;
+            return (
+              <div
+                key={`${entry.rank}-${entry.username}`}
+                ref={isYou ? youRef : undefined}
+                className={`flex items-center justify-between gap-3 px-2 py-1.5 ${
+                  isYou ? 'bg-accent/20' : ''
+                }`}
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="w-6 shrink-0 font-pixel text-[10px] text-text-light">
+                    {entry.rank}
+                  </span>
+                  <Avatar
+                    seed={entry.username}
+                    size={28}
+                    className="shrink-0"
+                  />
+                  <span className="truncate font-pixel text-xs text-text-light">
+                    {entry.username}
+                    {isYou ? ' (you)' : ''}
+                  </span>
+                </div>
+                <span className="shrink-0 font-pixel text-[10px] text-success">
+                  {entry.finished ? 'Done' : `Lv ${entry.level_id}`}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+      <MenuButton onClick={onBack}>Back</MenuButton>
+    </div>
   );
 }
 
@@ -321,28 +386,8 @@ function MenuContent() {
     );
   }
 
-  if (state.matches('askSignIn')) {
-    return (
-      <>
-        <p className="mb-3 text-center text-base opacity-80">
-          Sign in to save your progress on cloud (optional)
-        </p>
-        <AuthForm onSuccess={() => send({ type: 'SIGN_IN' })} />
-        <MenuButton onClick={() => send({ type: 'SKIP_SIGN_IN' })}>
-          Skip
-        </MenuButton>
-        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
-      </>
-    );
-  }
-
   if (state.matches('leaderboard')) {
-    return (
-      <>
-        <p className="mb-3 text-center text-base opacity-80">Leaderboard</p>
-        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
-      </>
-    );
+    return <LeaderboardMenu onBack={() => send({ type: 'BACK' })} />;
   }
 
   if (state.matches({ help: 'menu' })) {
@@ -468,7 +513,7 @@ export function AppMenu() {
                 </p>
               </div>
             )}
-            <div className="flex max-w-105 flex-col justify-center gap-3 p-3 ">
+            <div className="flex max-w-120 flex-col justify-center gap-3 p-3 ">
               <MenuContent />
             </div>
           </div>

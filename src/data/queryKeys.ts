@@ -8,4 +8,7 @@ export const queryKeys = createQueryKeyStore({
     level: (levelId?: number | null) =>
       levelId == null ? (['level'] as const) : ['level', levelId],
   },
+  leaderboard: {
+    list: null,
+  },
 });

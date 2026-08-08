@@ -122,6 +122,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_leaderboard: {
+        Args: never
+        Returns: {
+          finished: boolean
+          is_guest: boolean
+          level_id: number
+          rank: number
+          username: string
+        }[]
+      }
       is_username_available: { Args: { desired: string }; Returns: boolean }
       level_up: {
         Args: { completed_level_id: number }
