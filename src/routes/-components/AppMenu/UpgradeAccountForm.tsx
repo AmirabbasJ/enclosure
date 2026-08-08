@@ -77,7 +77,7 @@ export function UpgradeAccountForm({ onBack }: UpgradeAccountFormProps) {
           </Button>
           <Button
             className="flex items-center justify-center"
-            isLoading={pending}
+            disabled={pending}
             type="button"
             onClick={onBack}
           >
