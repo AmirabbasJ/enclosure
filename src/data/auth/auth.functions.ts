@@ -56,7 +56,10 @@ export interface Credentials {
   password: string;
 }
 
-function parseCredentials(username: string, password: string) {
+export function validateCredentials(
+  username: string,
+  password: string
+): { error: null; data: Credentials } | { error: string; data: null } {
   const result = credentialsSchema.safeParse({ username, password });
 
   if (!result.success) {
@@ -118,7 +121,7 @@ export const signIn = async ({
   username,
   password,
 }: Credentials): Promise<Session | null> => {
-  const parsed = parseCredentials(username, password);
+  const parsed = validateCredentials(username, password);
 
   if (!parsed.data) {
     throw new Error(parsed.error);

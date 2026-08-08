@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { validateCredentials } from '@/data/auth/auth.functions';
 import { useAuth } from '@/data/auth/useAuth';
 import Button from '@/ui/button';
 import TextField from '@/ui/text-field';
@@ -9,26 +10,36 @@ interface AuthFormProps {
   onSuccess?: () => void;
 }
 
-// FIXME can submit empty and no error validation
 export function AuthForm({ initialMode = 'signIn', onSuccess }: AuthFormProps) {
   const { signInMutation, signUpMutation } = useAuth();
   const [mode, setMode] = useState<'signIn' | 'signUp'>(initialMode);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+
+  const pending = signInMutation.isPending || signUpMutation.isPending;
 
   const submit = async () => {
-    setPending(true);
     setError(null);
 
-    if (mode === 'signIn')
-      await signInMutation.mutateAsync({ username, password });
-    else await signUpMutation.mutateAsync({ username, password });
+    const parsed = validateCredentials(username, password);
 
-    setPending(false);
+    if (!parsed.data) {
+      setError(parsed.error);
+      return;
+    }
 
-    onSuccess?.();
+    try {
+      if (mode === 'signIn') {
+        await signInMutation.mutateAsync(parsed.data);
+      } else {
+        await signUpMutation.mutateAsync(parsed.data);
+      }
+
+      onSuccess?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    }
   };
 
   return (

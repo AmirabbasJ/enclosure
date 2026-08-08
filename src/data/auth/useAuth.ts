@@ -65,7 +65,7 @@ export function useAuth() {
   const signUpMutation = useMutation({
     mutationFn: async ({ username, password }: Credentials) => {
       const createError = await createUser({ data: { username, password } });
-      if (createError) return createError;
+      if (createError) throw new Error(createError);
       return signInMutation.mutateAsync({ username, password });
     },
     onSuccess: () => {
