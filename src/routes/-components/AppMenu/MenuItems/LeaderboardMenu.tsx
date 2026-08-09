@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react';
 
+import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
 import { useLeaderboard } from '@/data/leaderboard/useLeaderboard';
 import { Avatar } from '@/ui/avatar';
 import { LoadingDots } from '@/ui/LoadingDots';
 
-import { MenuButton } from './MenuButton';
+import { MenuButton } from './components/MenuButton';
 
-export function LeaderboardMenu({ onBack }: { onBack: () => void }) {
+export function LeaderboardMenu() {
+  const { send } = useGame();
   const { user } = useAuth();
   const { leaderboard, isLoading } = useLeaderboard();
   const youRef = useRef<HTMLDivElement>(null);
@@ -62,7 +64,7 @@ export function LeaderboardMenu({ onBack }: { onBack: () => void }) {
           })
         )}
       </div>
-      <MenuButton onClick={onBack}>Back</MenuButton>
+      <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
     </div>
   );
 }

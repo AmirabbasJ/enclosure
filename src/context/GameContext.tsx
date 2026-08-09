@@ -13,10 +13,11 @@ import { useMetadata } from '../data/metadata/useMetadata';
 import { useProgress } from '../data/progress/useProgress';
 
 interface GameContextValue {
-  isPaused: boolean;
   state: SnapshotFrom<typeof gameMachine>;
   context: GameMachineContext;
   send: (event: GameEvent) => void;
+  isGameSceneActive: boolean;
+  isShowingSolution: boolean;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -49,21 +50,34 @@ export function GameProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (
-      progress?.finished !== undefined &&
+      progress?.finished != null &&
       progress.finished !== state.context.finished
     ) {
       send({ type: 'PROGRESS_UPDATED', finished: progress.finished });
     }
   }, [progress?.finished, send, state.context.finished]);
 
+  const isGameSceneActive =
+    state.matches('paused') ||
+    state.matches('playing') ||
+    state.matches('celebrating') ||
+    state.matches('levelCompleted') ||
+    state.matches('gameCompleted');
+
+  const isShowingSolution =
+    state.matches('celebrating') ||
+    state.matches('levelCompleted') ||
+    state.matches('gameCompleted');
+
   const value = useMemo<GameContextValue>(
     () => ({
-      isPaused: state.matches('paused'),
+      isGameSceneActive,
+      isShowingSolution,
       state,
       context: state.context,
       send,
     }),
-    [state, send]
+    [state, send, isGameSceneActive, isShowingSolution]
   );
 
   return <GameContext value={value}>{children}</GameContext>;

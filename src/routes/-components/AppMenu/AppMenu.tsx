@@ -9,20 +9,13 @@ import { MenuItems } from './MenuItems/MenuItems';
 import { TopBar } from './TopBar';
 
 export function AppMenu() {
-  const { state, send } = useGame();
+  const {
+    state,
+    send,
+    isGameSceneActive,
+    isShowingSolution: showingSolution,
+  } = useGame();
   const { commitPendingProgress } = useLevel();
-
-  const isSceneActive =
-    state.matches('paused') ||
-    state.matches('playing') ||
-    state.matches('celebrating') ||
-    state.matches('levelCompleted') ||
-    state.matches('gameCompleted');
-
-  const showingSolution =
-    state.matches('celebrating') ||
-    state.matches('levelCompleted') ||
-    state.matches('gameCompleted');
 
   const goBack = useCallback(
     (event: KeyboardEvent) => {
@@ -72,7 +65,7 @@ export function AppMenu() {
               : 'justify-center'
           }`}
         >
-          {!isSceneActive ? (
+          {!isGameSceneActive ? (
             <div className="absolute w-full h-full blur-[3px]">
               <MenuBackgroundBlast />
             </div>

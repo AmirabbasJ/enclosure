@@ -1,4 +1,5 @@
 import { useGameAudio } from '@/context/GameAudioContext';
+import { useGame } from '@/context/GameContext';
 import {
   IconMusic,
   IconMusicOff,
@@ -8,9 +9,10 @@ import {
 import Button from '@/ui/button';
 import RangeSlider from '@/ui/range-slider';
 
-import { MenuButton } from './MenuButton';
+import { MenuButton } from './components/MenuButton';
 
-export function SettingsMenu({ onBack }: { onBack: () => void }) {
+export function SettingsMenu() {
+  const { send } = useGame();
   const {
     musicAudioState,
     sfxAudioState,
@@ -64,7 +66,7 @@ export function SettingsMenu({ onBack }: { onBack: () => void }) {
       </div>
       <div className="flex flex-col gap-3">
         <MenuButton onClick={resetAudioState}>Reset</MenuButton>
-        <MenuButton onClick={onBack}>Back</MenuButton>
+        <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
       </div>
     </div>
   );
