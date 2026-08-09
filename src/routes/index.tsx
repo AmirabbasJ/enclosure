@@ -103,7 +103,11 @@ function Game() {
 
       setSolvedLevel(TUTORIAL_SCENE);
       playLevelComplete();
-      send({ type: 'LEVEL_COMPLETED', finished: false });
+      send({
+        type: 'LEVEL_COMPLETED',
+        finished: false,
+        levelId: TUTORIAL_SCENE.id,
+      });
       return;
     }
 
@@ -116,7 +120,11 @@ function Game() {
 
     setSolvedLevel(completed);
     playLevelComplete();
-    send({ type: 'LEVEL_COMPLETED', finished: result.progress.finished });
+    send({
+      type: 'LEVEL_COMPLETED',
+      finished: result.progress.finished,
+      levelId: completed.id,
+    });
   };
 
   useEffect(() => {

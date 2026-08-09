@@ -161,7 +161,7 @@ function MenuContent() {
   const { signUpGuestMutation, user, deleteAccountMutation, signOutMutation } =
     useAuth();
   const { progress } = useProgress();
-  const { level, commitPendingProgress } = useLevel();
+  const { commitPendingProgress } = useLevel();
 
   if (state.matches('playing')) return null;
 
@@ -197,10 +197,13 @@ function MenuContent() {
   }
 
   if (state.matches('levelCompleted')) {
+    const { completedLevelId } = state.context;
     return (
       <div className="level-complete-panel flex w-full max-w-75 flex-col items-center gap-3">
         <p className="text-center text-base opacity-80">
-          Level {level!.id} Completed
+          {completedLevelId != null && completedLevelId > 0
+            ? `Level ${String(completedLevelId)} Completed`
+            : 'Level Completed'}
         </p>
         <MenuButton
           onClick={() => {

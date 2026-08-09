@@ -12,7 +12,7 @@ export type GameEvent =
   | { type: 'EDIT_PROFILE' }
   | { type: 'HELP' }
   | { type: 'LEADERBOARD' }
-  | { type: 'LEVEL_COMPLETED'; finished: boolean }
+  | { type: 'LEVEL_COMPLETED'; finished: boolean; levelId: number }
   | { type: 'NEXT_LEVEL' }
   | { type: 'OPEN_SIGN_IN' }
   | { type: 'PAUSE' }
@@ -34,6 +34,7 @@ export interface GameMachineContext {
   metadata: Metadata;
   isSignedIn: boolean;
   finished: boolean;
+  completedLevelId: number | null;
   isTutorial: boolean;
   tutorialBackTo: 'help' | 'mainMenu';
   pendingAction: PendingAction | null;
@@ -78,6 +79,11 @@ export const gameMachine = setup({
         event.type === 'PROGRESS_UPDATED' ? event.finished : context.finished,
     }),
     markGameFinished: assign({ finished: true }),
+    setCompletedLevelId: assign({
+      completedLevelId: ({ event }) =>
+        event.type === 'LEVEL_COMPLETED' ? event.levelId : null,
+    }),
+    clearCompletedLevelId: assign({ completedLevelId: null }),
 
     setIsTutorial: assign({ isTutorial: true }),
     clearIsTutorial: assign({ isTutorial: false }),
@@ -96,6 +102,7 @@ export const gameMachine = setup({
     metadata: input.metadata ?? defaultMetadata,
     isSignedIn: input.isSignedIn ?? false,
     finished: input.finished ?? false,
+    completedLevelId: null,
     isTutorial: false,
     tutorialBackTo: 'mainMenu',
     pendingAction: null,
@@ -198,6 +205,7 @@ export const gameMachine = setup({
             guard: 'isTutorial',
             target: 'celebrating',
             actions: [
+              'setCompletedLevelId',
               'markTutorialSeen',
               'clearIsTutorial',
               emit({ type: 'TUTORIAL_COMPLETE' }),
@@ -206,9 +214,12 @@ export const gameMachine = setup({
           {
             guard: 'isLastLevel',
             target: 'celebrating',
-            actions: 'markGameFinished',
+            actions: ['setCompletedLevelId', 'markGameFinished'],
           },
-          { target: 'celebrating' },
+          {
+            target: 'celebrating',
+            actions: 'setCompletedLevelId',
+          },
         ],
         PAUSE: { target: 'paused' },
         BACK: [
@@ -247,14 +258,17 @@ export const gameMachine = setup({
 
     levelCompleted: {
       on: {
-        NEXT_LEVEL: { target: 'playing' },
-        BACK: { target: 'mainMenu' },
+        NEXT_LEVEL: {
+          target: 'playing',
+          actions: 'clearCompletedLevelId',
+        },
+        BACK: { target: 'mainMenu', actions: 'clearCompletedLevelId' },
       },
     },
 
     gameCompleted: {
       on: {
-        BACK: { target: 'mainMenu' },
+        BACK: { target: 'mainMenu', actions: 'clearCompletedLevelId' },
       },
     },
 
