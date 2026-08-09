@@ -11,6 +11,7 @@ import {
   KbdD,
   KbdEnter,
   KbdMouseLeft,
+  KbdQ,
   KbdS,
   KbdSpace,
   KbdW,
@@ -25,6 +26,7 @@ const KBD = {
   A: { src: KbdA, w: 17, h: 16, label: 'A' },
   S: { src: KbdS, w: 17, h: 16, label: 'S' },
   D: { src: KbdD, w: 17, h: 16, label: 'D' },
+  Q: { src: KbdQ, w: 17, h: 16, label: 'Q' },
   ArrowLeft: { src: KbdArrowLeft, w: 17, h: 16, label: 'Left arrow' },
   ArrowRight: {
     src: KbdArrowRight,

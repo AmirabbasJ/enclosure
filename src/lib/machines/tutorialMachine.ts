@@ -12,10 +12,16 @@ import { compareWalls } from '#/domain/walls';
 export const TUTORIAL_LEVEL_ID = -1;
 
 export type TutorialStep =
-  'goal' | 'placeSteps' | 'placeZigzag' | 'rotateBoard' | 'solved';
+  | 'goal'
+  | 'placeSteps'
+  | 'placeZigzag'
+  | 'rotateBoard'
+  | 'toggleTopDown'
+  | 'solved';
 
 export type TutorialEvent =
   | { type: 'BOARD_ROTATED' }
+  | { type: 'VIEW_TOGGLED' }
   | { type: 'CONTINUE' }
   | { type: 'WALLS_CHANGED'; walls: WallInput[] };
 
@@ -80,7 +86,14 @@ export const tutorialMachine = setup({
     rotateBoard: {
       entry: 'lockWallsToNone',
       on: {
-        BOARD_ROTATED: { target: 'goal' },
+        BOARD_ROTATED: { target: 'toggleTopDown' },
+      },
+    },
+
+    toggleTopDown: {
+      entry: 'lockWallsToNone',
+      on: {
+        VIEW_TOGGLED: { target: 'goal' },
       },
     },
 

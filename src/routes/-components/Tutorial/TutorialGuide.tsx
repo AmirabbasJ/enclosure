@@ -19,6 +19,13 @@ export function TutorialGuide({ step, onContinue }: TutorialGuideProps) {
           </p>
         ) : null}
 
+        {step === 'toggleTopDown' ? (
+          <p className="text-sm leading-5 text-text-light">
+            Press <Kbd k="Q" className="align-middle" /> to switch to top-down
+            view.
+          </p>
+        ) : null}
+
         {step === 'goal' ? (
           <>
             <p className="text-sm leading-5 text-text-light">

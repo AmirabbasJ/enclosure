@@ -55,6 +55,7 @@ function ControlsCheatSheet() {
       ),
       label: 'Turn board',
     },
+    { keys: <Kbd k="Q" />, label: 'Top-down view' },
     { keys: <Kbd k="Enter" />, label: 'Drop' },
   ];
 

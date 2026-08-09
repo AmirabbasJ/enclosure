@@ -87,6 +87,7 @@ interface GameSceneProps {
   allowedWallIds?: readonly WallId[] | null;
   dropHintWall?: WallInput | null;
   onBoardRotated?: () => void;
+  onViewToggled?: () => void;
 }
 
 export function GameScene({
@@ -96,13 +97,16 @@ export function GameScene({
   allowedWallIds = null,
   dropHintWall = null,
   onBoardRotated,
+  onViewToggled,
 }: GameSceneProps) {
   const { state, send } = useGame();
   const canInteract = state.matches('playing');
-  const showTopDown =
+  const [topDownManual, setTopDownManual] = useState(false);
+  const forcedTopDown =
     state.matches('celebrating') ||
     state.matches('levelCompleted') ||
     state.matches('gameCompleted');
+  const showTopDown = topDownManual || forcedTopDown;
   const pinBoardHigh =
     state.matches('levelCompleted') || state.matches('gameCompleted');
   const { camera } = useThree();
@@ -118,6 +122,8 @@ export function GameScene({
   wallsRef.current = walls;
   const onBoardRotatedRef = useRef(onBoardRotated);
   onBoardRotatedRef.current = onBoardRotated;
+  const onViewToggledRef = useRef(onViewToggled);
+  onViewToggledRef.current = onViewToggled;
   const allowedWallIdsRef = useRef(allowedWallIds);
   allowedWallIdsRef.current = allowedWallIds;
 
@@ -144,6 +150,7 @@ export function GameScene({
 
   useEffect(() => {
     setWalls(spawnWalls);
+    setTopDownManual(false);
     introElapsedRef.current = 0;
     introDoneRef.current = false;
     wallDelaysRef.current = randomWallDelays(spawnWalls.length);
@@ -156,9 +163,9 @@ export function GameScene({
   }, [spawnWalls]);
 
   useEffect(() => {
-    if (!showTopDown) return;
+    if (!forcedTopDown) return;
     boardYawTargetRef.current = shortestYawToZero(boardYawRef.current);
-  }, [showTopDown]);
+  }, [forcedTopDown]);
 
   const blockedKeysByWall = useMemo(() => {
     const occupiedById: Record<string, string[]> = {};
@@ -289,6 +296,10 @@ export function GameScene({
         boardYawTargetRef.current +=
           e.key === 'ArrowRight' ? Math.PI / 4 : -Math.PI / 4;
         onBoardRotatedRef.current?.();
+      } else if (e.code === 'KeyQ') {
+        e.preventDefault();
+        setTopDownManual((prev) => !prev);
+        onViewToggledRef.current?.();
       } else if (wallToNumberKeyMap[e.key]) {
         e.preventDefault();
         const id = wallToNumberKeyMap[e.key] as WallId;
@@ -327,6 +338,9 @@ export function GameScene({
 
     const viewTarget = showTopDown ? 1 : 0;
     viewBlendRef.current += (viewTarget - viewBlendRef.current) * t;
+    if (Math.abs(viewTarget - viewBlendRef.current) < 1e-3) {
+      viewBlendRef.current = viewTarget;
+    }
     const u = viewBlendRef.current;
 
     const panTarget = pinBoardHigh ? 1 : 0;
@@ -339,7 +353,7 @@ export function GameScene({
     camera.up.copy(camUpRef.current.lerpVectors(ISO_CAM_UP, TOP_CAM_UP, u));
     camera.lookAt(lookAtRef.current.set(0, 0, panZ));
 
-    if (introDoneRef.current || showTopDown) {
+    if (introDoneRef.current || showTopDown || u > 0) {
       const ortho = camera as THREE.OrthographicCamera;
       // eslint-disable-next-line @eslint-react/immutability -- ortho zoom for clear view
       ortho.zoom = PLAY_ZOOM + (CLEAR_ZOOM - PLAY_ZOOM) * u;

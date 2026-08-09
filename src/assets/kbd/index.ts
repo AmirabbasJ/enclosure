@@ -8,6 +8,7 @@ export { default as KbdArrowRight } from './ARROWRIGHT.png';
 export { default as KbdD } from './D.png';
 export { default as KbdEnter } from './ENTERALTERNATIVE.png';
 export { default as KbdMouseLeft } from './Mouse-left-click.png';
+export { default as KbdQ } from './Q.png';
 export { default as KbdS } from './S.png';
 export { default as KbdSpace } from './SPACEALTERNATIVE.png';
 export { default as KbdW } from './W.png';

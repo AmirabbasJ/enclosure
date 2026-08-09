@@ -63,6 +63,7 @@ export function TutorialGame() {
               allowedWallIds={allowedWallIds}
               dropHintWall={dropHintWall}
               onBoardRotated={() => tutorialSend({ type: 'BOARD_ROTATED' })}
+              onViewToggled={() => tutorialSend({ type: 'VIEW_TOGGLED' })}
             />
           </PixelSceneRenderer>
         ) : null}
