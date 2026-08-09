@@ -1,8 +1,7 @@
+import type { TutorialStep } from '@/lib/machines/tutorialMachine';
+
 import Button from '@/ui/button';
 import { Kbd } from '@/ui/kbd';
-
-export type TutorialStep =
-  'goal' | 'placeSteps' | 'placeZigzag' | 'rotateBoard';
 
 interface TutorialGuideProps {
   step: TutorialStep;

@@ -7,13 +7,11 @@ import type { WallInput } from '../domain/walls';
 import { useGameAudio } from '../context/GameAudioContext';
 import { useGame } from '../context/GameContext';
 import { useLevel } from '../data/levels/useLevel';
+import { TUTORIAL_LEVEL_ID } from '../lib/machines/tutorialMachine';
 import { PixelSceneRenderer } from '../PixelSceneRenderer';
 import { AppMenu } from './-components/AppMenu/AppMenu';
 import { GameScene } from './-components/GameScene/GameScene';
-import {
-  TUTORIAL_LEVEL_ID,
-  TutorialGame,
-} from './-components/Tutorial/TutorialGame';
+import { TutorialGame } from './-components/Tutorial/TutorialGame';
 
 export const Route = createFileRoute('/')({
   component: Game,
