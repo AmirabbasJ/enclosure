@@ -184,7 +184,11 @@ export const gameMachine = setup({
         },
         {
           target: 'playing',
-          actions: ['setIsTutorial', 'setTutorialBackToMain', 'clearPendingAction'],
+          actions: [
+            'setIsTutorial',
+            'setTutorialBackToMain',
+            'clearPendingAction',
+          ],
         },
       ],
     },

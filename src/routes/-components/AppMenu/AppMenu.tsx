@@ -203,7 +203,9 @@ function MenuContent() {
         <p className="text-center text-base opacity-80">
           {completedLevelId != null && completedLevelId > 0
             ? `Level ${String(completedLevelId)} Completed`
-            : 'Level Completed'}
+            : completedLevelId === -1
+              ? 'Tutorial Completed'
+              : 'Level Completed'}
         </p>
         <MenuButton
           onClick={() => {

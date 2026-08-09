@@ -85,8 +85,6 @@ interface GameSceneProps {
   onWallsChange: (walls: WallInput[]) => void;
   /** When set, only these wall ids can be dragged/selected. */
   allowedWallIds?: readonly WallId[] | null;
-  /** When false, arrow keys do not rotate the board. */
-  allowBoardRotate?: boolean;
   dropHintWall?: WallInput | null;
   onBoardRotated?: () => void;
 }
@@ -96,7 +94,6 @@ export function GameScene({
   snapWallsToGrooves = true,
   onWallsChange,
   allowedWallIds = null,
-  allowBoardRotate = true,
   dropHintWall = null,
   onBoardRotated,
 }: GameSceneProps) {
@@ -121,8 +118,6 @@ export function GameScene({
   wallsRef.current = walls;
   const onBoardRotatedRef = useRef(onBoardRotated);
   onBoardRotatedRef.current = onBoardRotated;
-  const allowBoardRotateRef = useRef(allowBoardRotate);
-  allowBoardRotateRef.current = allowBoardRotate;
   const allowedWallIdsRef = useRef(allowedWallIds);
   allowedWallIdsRef.current = allowedWallIds;
 
@@ -290,7 +285,6 @@ export function GameScene({
       }
       if (!canInteract) return;
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-        if (!allowBoardRotateRef.current) return;
         e.preventDefault();
         boardYawTargetRef.current +=
           e.key === 'ArrowRight' ? Math.PI / 4 : -Math.PI / 4;
@@ -322,7 +316,6 @@ export function GameScene({
     };
   }, [onKeyDown]);
 
-  // R3F: animate board clear view on the live camera each frame.
   // eslint-disable-next-line @eslint-react/immutability -- camera pose/zoom
   useFrame((_, delta) => {
     const group = boardRef.current;
