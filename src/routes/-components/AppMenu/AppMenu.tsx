@@ -19,11 +19,11 @@ import {
 import { Avatar } from '../../../ui/avatar';
 import Button from '../../../ui/button';
 import { LoadingDots } from '../../../ui/LoadingDots';
-import PixelBlast from '../../../ui/pixel-blast';
 import RangeSlider from '../../../ui/range-slider';
 import { Tutorial } from '../Tutorial/Tutorial';
 import { UserProfile } from '../UserProfile';
 import { AuthForm } from './AuthForm';
+import { MenuBackgroundBlast } from './MenuBackgroundBlast';
 import { TopBar } from './TopBar';
 import { UpdateProfileForm } from './updateProfile';
 import { UpgradeAccountForm } from './UpgradeAccountForm';
@@ -444,16 +444,19 @@ function MenuContent() {
 export function AppMenu() {
   const { state, send } = useGame();
   const { commitPendingProgress } = useLevel();
+
   const isSceneActive =
     state.matches('paused') ||
     state.matches('playing') ||
     state.matches('celebrating') ||
     state.matches('levelCompleted') ||
     state.matches('gameCompleted');
+
   const showingSolution =
     state.matches('celebrating') ||
     state.matches('levelCompleted') ||
     state.matches('gameCompleted');
+
   const goBack = useCallback(
     (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -504,25 +507,7 @@ export function AppMenu() {
         >
           {!isSceneActive ? (
             <div className="absolute w-full h-full blur-[3px]">
-              <PixelBlast
-                variant="square"
-                pixelSize={5}
-                color="#72ceff"
-                patternScale={3}
-                patternDensity={1}
-                pixelSizeJitter={0}
-                enableRipples
-                rippleSpeed={0.4}
-                rippleThickness={0.12}
-                rippleIntensityScale={1.5}
-                liquid={false}
-                liquidStrength={0.12}
-                liquidRadius={1.2}
-                liquidWobbleSpeed={5}
-                speed={0.5}
-                edgeFade={0.1}
-                transparent
-              />
+              <MenuBackgroundBlast />
             </div>
           ) : null}
           <div className="z-2">
