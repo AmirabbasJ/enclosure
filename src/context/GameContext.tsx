@@ -57,17 +57,13 @@ export function GameProvider({ children }: PropsWithChildren) {
     }
   }, [progress?.finished, send, state.context.finished]);
 
-  const isGameSceneActive =
-    state.matches('paused') ||
-    state.matches('playing') ||
-    state.matches('celebrating') ||
-    state.matches('levelCompleted') ||
-    state.matches('gameCompleted');
-
   const isShowingSolution =
     state.matches('celebrating') ||
     state.matches('levelCompleted') ||
     state.matches('gameCompleted');
+
+  const isGameSceneActive =
+    state.matches('paused') || state.matches('playing') || isShowingSolution;
 
   const value = useMemo<GameContextValue>(
     () => ({

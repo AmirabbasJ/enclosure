@@ -23,22 +23,12 @@ interface SceneLevel {
 }
 
 function Game() {
-  const { state, send, context } = useGame();
+  const { send, context, isShowingSolution, isGameSceneActive } = useGame();
   const { playMusic, playLevelComplete } = useGameAudio();
   const { level, completeLevelMutation } = useLevel();
   const [solvedLevel, setSolvedLevel] = useState<SceneLevel | null>(null);
 
-  const showingSolution =
-    state.matches('celebrating') ||
-    state.matches('levelCompleted') ||
-    state.matches('gameCompleted');
-
-  const inScene =
-    state.matches('playing') || state.matches('paused') || showingSolution;
-
-  const showMenu = !state.matches('playing');
-
-  const sceneLevel = showingSolution && solvedLevel ? solvedLevel : level;
+  const sceneLevel = isShowingSolution && solvedLevel ? solvedLevel : level;
 
   const checkSolution = async (walls: WallInput[]) => {
     if (!sceneLevel) return;
@@ -69,7 +59,7 @@ function Game() {
         <TutorialGame />
       ) : (
         <div className=" items-center h-screen w-screen">
-          {inScene && sceneLevel ? (
+          {isGameSceneActive && sceneLevel ? (
             <PixelSceneRenderer key={sceneLevel.id}>
               <GameScene
                 onWallsChange={checkSolution}
@@ -80,7 +70,7 @@ function Game() {
         </div>
       )}
 
-      {showMenu ? <AppMenu /> : null}
+      <AppMenu />
     </div>
   );
 }
