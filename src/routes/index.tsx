@@ -23,7 +23,8 @@ interface SceneLevel {
 }
 
 function Game() {
-  const { send, context, isShowingSolution, isGameSceneActive } = useGame();
+  const { send, context, isShowingSolution, isGameSceneActive, state } =
+    useGame();
   const { playMusic, playLevelComplete } = useGameAudio();
   const { level, completeLevelMutation } = useLevel();
   const [solvedLevel, setSolvedLevel] = useState<SceneLevel | null>(null);
@@ -70,7 +71,7 @@ function Game() {
         </div>
       )}
 
-      <AppMenu />
+      {!state.matches('playing') ? <AppMenu /> : null}
     </div>
   );
 }
