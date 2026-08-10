@@ -48,8 +48,6 @@ export function AppMenu() {
   }, [goBack]);
   useMetadata();
 
-  if (state.matches('playing')) return null;
-
   return (
     <div
       className={`absolute inset-x-0 bottom-0 flex h-full w-full flex-col items-center pb-2 ${

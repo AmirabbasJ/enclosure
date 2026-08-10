@@ -8,7 +8,6 @@ import {
   TUTORIAL_LEVEL_ID,
   tutorialMachine,
 } from '@/lib/machines/tutorialMachine';
-import { PixelSceneRenderer } from '@/PixelSceneRenderer';
 
 import { GameScene } from '../GameScene/GameScene';
 import { TutorialGuide } from './TutorialGuide';
@@ -54,18 +53,18 @@ export function TutorialGame() {
     <>
       <div className="items-center h-screen w-screen">
         {inScene ? (
-          <PixelSceneRenderer key={TUTORIAL_LEVEL_ID}>
-            <GameScene
-              onWallsChange={(walls) =>
-                tutorialSend({ type: 'WALLS_CHANGED', walls })
-              }
-              level={TUTORIAL_QUESTION}
-              allowedWallIds={allowedWallIds}
-              dropHintWall={dropHintWall}
-              onBoardRotated={() => tutorialSend({ type: 'BOARD_ROTATED' })}
-              onViewToggled={() => tutorialSend({ type: 'VIEW_TOGGLED' })}
-            />
-          </PixelSceneRenderer>
+          <GameScene
+            key={TUTORIAL_LEVEL_ID}
+            levelId={TUTORIAL_LEVEL_ID}
+            level={TUTORIAL_QUESTION}
+            onWallsChange={(walls) =>
+              tutorialSend({ type: 'WALLS_CHANGED', walls })
+            }
+            allowedWallIds={allowedWallIds}
+            dropHintWall={dropHintWall}
+            onBoardRotated={() => tutorialSend({ type: 'BOARD_ROTATED' })}
+            onViewToggled={() => tutorialSend({ type: 'VIEW_TOGGLED' })}
+          />
         ) : null}
       </div>
 

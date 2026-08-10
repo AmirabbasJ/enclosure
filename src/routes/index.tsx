@@ -8,7 +8,6 @@ import { useGameAudio } from '../context/GameAudioContext';
 import { useGame } from '../context/GameContext';
 import { useLevel } from '../data/levels/useLevel';
 import { TUTORIAL_LEVEL_ID } from '../lib/machines/tutorialMachine';
-import { PixelSceneRenderer } from '../PixelSceneRenderer';
 import { AppMenu } from './-components/AppMenu/AppMenu';
 import { GameScene } from './-components/GameScene/GameScene';
 import { TutorialGame } from './-components/Tutorial/TutorialGame';
@@ -61,12 +60,12 @@ function Game() {
       ) : (
         <div className=" items-center h-screen w-screen">
           {isGameSceneActive && sceneLevel ? (
-            <PixelSceneRenderer key={sceneLevel.id}>
-              <GameScene
-                onWallsChange={checkSolution}
-                level={sceneLevel.question}
-              />
-            </PixelSceneRenderer>
+            <GameScene
+              key={sceneLevel.id}
+              levelId={sceneLevel.id}
+              level={sceneLevel.question}
+              onWallsChange={checkSolution}
+            />
           ) : null}
         </div>
       )}
