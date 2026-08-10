@@ -23,8 +23,13 @@ export function AppMenu() {
 
       if (state.matches('celebrating')) return;
 
-      if (state.matches('paused')) {
+      if (state.matches({ paused: 'menu' })) {
         send({ type: 'PLAY' });
+        return;
+      }
+
+      if (state.matches('paused')) {
+        send({ type: 'BACK' });
         return;
       }
 

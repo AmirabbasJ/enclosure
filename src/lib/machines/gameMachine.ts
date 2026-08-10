@@ -238,16 +238,46 @@ export const gameMachine = setup({
     },
 
     paused: {
-      on: {
-        PLAY: { target: 'playing' },
-        BACK: [
-          {
-            guard: and(['isTutorial', 'tutorialFromHelp']),
-            target: 'help',
-            actions: 'clearIsTutorial',
+      initial: 'menu',
+      states: {
+        menu: {
+          on: {
+            PLAY: { target: '#game.playing' },
+            SETTINGS: { target: 'settings' },
+            HELP: { target: 'help' },
+            BACK: [
+              {
+                guard: and(['isTutorial', 'tutorialFromHelp']),
+                target: '#game.help',
+                actions: 'clearIsTutorial',
+              },
+              { target: '#game.mainMenu', actions: 'clearIsTutorial' },
+            ],
           },
-          { target: 'mainMenu', actions: 'clearIsTutorial' },
-        ],
+        },
+        settings: {
+          on: {
+            BACK: { target: 'menu' },
+          },
+        },
+        help: {
+          initial: 'menu',
+          states: {
+            menu: {
+              on: {
+                CONTROLS: { target: 'controls' },
+                RULES: { target: 'rules' },
+                BACK: { target: '#game.paused.menu' },
+              },
+            },
+            controls: {
+              on: { BACK: { target: 'menu' } },
+            },
+            rules: {
+              on: { BACK: { target: 'menu' } },
+            },
+          },
+        },
       },
     },
 
