@@ -51,7 +51,7 @@ export function TutorialGame() {
 
   return (
     <>
-      <div className="items-center h-screen w-screen">
+      <div className="fixed inset-x-0 top-0 h-svh w-screen items-center">
         {inScene ? (
           <GameScene
             key={TUTORIAL_LEVEL_ID}

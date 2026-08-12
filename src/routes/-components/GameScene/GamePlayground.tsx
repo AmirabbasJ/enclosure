@@ -28,7 +28,7 @@ import {
   hasFilledCorners,
   wallToNumberKeyMap,
 } from '#/domain/walls';
-import { CAM_DIST, CAM_Y, PLAY_ZOOM } from '#/PixelSceneRenderer';
+import { CAM_DIST, CAM_Y, fitZoom, PLAY_ZOOM } from '#/PixelSceneRenderer';
 import { palette } from '#/theme/palette';
 import { easeInOutCubic } from '#/utils/easeInOutCubic';
 
@@ -112,7 +112,7 @@ export function GamePlayground({
   const showTopDown = topDownManual || forcedTopDown;
   const pinBoardHigh =
     state.matches('levelCompleted') || state.matches('gameCompleted');
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const { orbs, walls: spawnWalls } = useMemo(
     () => resolveLevel(level, { snapWallsToGrooves }),
     [level, snapWallsToGrooves]
@@ -360,9 +360,12 @@ export function GamePlayground({
     camera.lookAt(lookAtRef.current.set(0, 0, panZ));
 
     if (introDoneRef.current || showTopDown || u > 0) {
+      const aspect = size.width / Math.max(size.height, 1);
+      const playZoom = fitZoom(PLAY_ZOOM, aspect);
+      const clearZoom = fitZoom(CLEAR_ZOOM, aspect);
       const ortho = camera as THREE.OrthographicCamera;
       // eslint-disable-next-line @eslint-react/immutability -- ortho zoom for clear view
-      ortho.zoom = PLAY_ZOOM + (CLEAR_ZOOM - PLAY_ZOOM) * u;
+      ortho.zoom = playZoom + (clearZoom - playZoom) * u;
       ortho.updateProjectionMatrix();
     }
 

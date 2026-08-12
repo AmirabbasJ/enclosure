@@ -24,13 +24,13 @@ export function GameTopBar({
 
   return (
     <>
-      <div className=" p-4 absolute top-0 left-0 z-10 flex gap-4 items-center">
+      <div className="absolute top-0 left-0 z-10 flex items-center gap-2 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pl-[max(0.5rem,env(safe-area-inset-left))] sm:gap-4 sm:p-4">
         <Button onClick={() => send({ type: 'PAUSE' })} size="icon">
           <IconPause width={25} height={25} />
         </Button>
         <p>level {level?.id}</p>
       </div>
-      <div className=" p-4 absolute top-0 right-0 z-10 flex gap-4 items-center">
+      <div className="absolute top-0 right-0 z-10 flex items-center gap-2 p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pr-[max(0.5rem,env(safe-area-inset-right))] sm:gap-4 sm:p-4">
         <Button onClick={onRotateLeft} size="icon">
           <IconArrowLeft width={25} height={25} />
         </Button>

@@ -23,10 +23,9 @@ import {
   getWallFootprints,
   GROOVE_SNAP_DIST,
   GROOVE_SNAP_RELEASE,
-  WALL_DRAG_HALF_X,
-  WALL_DRAG_HALF_Z,
   WALL_HEIGHT,
   WALL_THICKNESS,
+  wallDragHalf,
   wallOriginFromCenter,
 } from '#/domain/walls';
 import { palette } from '#/theme/palette';
@@ -311,6 +310,12 @@ export function Wall({
   onPlace,
   onDeselect,
 }: WallProps) {
+  const { camera, gl, size } = useThree();
+  const dragHalfRef = useRef(wallDragHalf(1));
+  dragHalfRef.current = wallDragHalf(
+    size.width / Math.max(size.height, 1)
+  );
+
   const groupRef = useRef<Group>(null);
   const spinRef = useRef<Group>(null);
   const draggingRef = useRef(false);
@@ -352,7 +357,12 @@ export function Wall({
   const segFootprintsRef = useRef<WallSegFootprint[]>([]);
 
   if (!draggingRef.current && liftMode.current === 'idle') {
-    positionRef.current = position;
+    const { x: halfX, z: halfZ } = dragHalfRef.current;
+    positionRef.current = [
+      Math.min(halfX, Math.max(-halfX, position[0])),
+      position[1],
+      Math.min(halfZ, Math.max(-halfZ, position[2])),
+    ];
   }
   onPositionChangeRef.current = onPositionChange;
   onYawChangeRef.current = onYawChange;
@@ -444,8 +454,6 @@ export function Wall({
       liftMode.current = 'falling';
     }
   }, [selected]);
-
-  const { camera, gl } = useThree();
 
   useEffect(() => {
     if (!selected || draggingRef.current) return;
@@ -597,27 +605,31 @@ export function Wall({
     return offset;
   }, [segments]);
 
-  const clampToDragBounds = (x: number, z: number) => ({
-    x: Math.min(WALL_DRAG_HALF_X, Math.max(-WALL_DRAG_HALF_X, x)),
-    z: Math.min(WALL_DRAG_HALF_Z, Math.max(-WALL_DRAG_HALF_Z, z)),
-  });
+  const clampToDragBounds = (x: number, z: number) => {
+    const { x: halfX, z: halfZ } = dragHalfRef.current;
+    return {
+      x: Math.min(halfX, Math.max(-halfX, x)),
+      z: Math.min(halfZ, Math.max(-halfZ, z)),
+    };
+  };
 
   const bounceInsideBounds = (x: number, z: number) => {
     let nx = x;
     let nz = z;
+    const { x: halfX, z: halfZ } = dragHalfRef.current;
 
-    if (nx < -WALL_DRAG_HALF_X) {
-      nx = -WALL_DRAG_HALF_X;
+    if (nx < -halfX) {
+      nx = -halfX;
       velX.current = Math.abs(velX.current) * EDGE_BOUNCE;
-    } else if (nx > WALL_DRAG_HALF_X) {
-      nx = WALL_DRAG_HALF_X;
+    } else if (nx > halfX) {
+      nx = halfX;
       velX.current = -Math.abs(velX.current) * EDGE_BOUNCE;
     }
-    if (nz < -WALL_DRAG_HALF_Z) {
-      nz = -WALL_DRAG_HALF_Z;
+    if (nz < -halfZ) {
+      nz = -halfZ;
       velZ.current = Math.abs(velZ.current) * EDGE_BOUNCE;
-    } else if (nz > WALL_DRAG_HALF_Z) {
-      nz = WALL_DRAG_HALF_Z;
+    } else if (nz > halfZ) {
+      nz = halfZ;
       velZ.current = -Math.abs(velZ.current) * EDGE_BOUNCE;
     }
 
@@ -801,6 +813,7 @@ export function Wall({
     if (!draggable) return;
     if (!(e.object instanceof THREE.Mesh)) return;
     e.stopPropagation();
+    e.nativeEvent.preventDefault();
 
     const group = groupRef.current;
     const parent = group?.parent;
@@ -817,6 +830,14 @@ export function Wall({
       local.current.x - base[0],
       local.current.z - base[2]
     );
+
+    const pointerId = e.pointerId;
+    const canvas = gl.domElement;
+    try {
+      canvas.setPointerCapture(pointerId);
+    } catch {
+      // ignore — capture unsupported
+    }
 
     onDeselect?.();
 
@@ -837,13 +858,16 @@ export function Wall({
     draggingRef.current = true;
     document.body.style.cursor = 'grabbing';
 
+    const drag = new AbortController();
+
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
       ev.preventDefault();
       const g = groupRef.current;
       const p = g?.parent;
       if (!g || !p) return;
 
-      const rect = gl.domElement.getBoundingClientRect();
+      const rect = canvas.getBoundingClientRect();
       ndc.current.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
       ndc.current.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.current.setFromCamera(ndc.current, camera);
@@ -900,17 +924,20 @@ export function Wall({
       positionRef.current = wallPos(x, z);
     };
 
-    const onUp = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-      window.removeEventListener('keydown', onSpace);
+    const finishDrag = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      drag.abort();
+      try {
+        if (canvas.hasPointerCapture?.(pointerId)) {
+          canvas.releasePointerCapture(pointerId);
+        }
+      } catch {
+        // ignore
+      }
       endDrag();
     };
 
-    const onSpace = (ev: KeyboardEvent) => {
-      if (ev.code !== 'Space' || ev.repeat) return;
-      ev.preventDefault();
+    const rotateWhileDragging = () => {
       yawTargetRef.current += HALF_PI;
       onYawChangeRef.current?.(yawTargetRef.current);
 
@@ -922,10 +949,31 @@ export function Wall({
       }
     };
 
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
-    window.addEventListener('keydown', onSpace);
+    const onSecondFinger = (ev: PointerEvent) => {
+      if (ev.pointerId === pointerId) return;
+      ev.preventDefault();
+      rotateWhileDragging();
+    };
+
+    const onSpace = (ev: KeyboardEvent) => {
+      if (ev.code !== 'Space' || ev.repeat) return;
+      ev.preventDefault();
+      rotateWhileDragging();
+    };
+
+    window.addEventListener('pointermove', onMove, {
+      passive: false,
+      signal: drag.signal,
+    });
+    window.addEventListener('pointerup', finishDrag, { signal: drag.signal });
+    window.addEventListener('pointercancel', finishDrag, {
+      signal: drag.signal,
+    });
+    window.addEventListener('pointerdown', onSecondFinger, {
+      passive: false,
+      signal: drag.signal,
+    });
+    window.addEventListener('keydown', onSpace, { signal: drag.signal });
   };
 
   return (

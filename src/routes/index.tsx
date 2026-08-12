@@ -54,11 +54,11 @@ function Game() {
   }, [playMusic]);
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center gap-4 bg-bg text-text-light ">
+    <div className="relative flex min-h-svh flex-col items-center justify-center gap-4 bg-bg text-text-light ">
       {context.isTutorial || context.completedLevelId === TUTORIAL_LEVEL_ID ? (
         <TutorialGame />
       ) : (
-        <div className=" items-center h-screen w-screen">
+        <div className="fixed inset-x-0 top-0 h-svh w-screen items-center">
           {isGameSceneActive && sceneLevel ? (
             <GameScene
               key={sceneLevel.id}

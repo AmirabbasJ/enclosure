@@ -19,34 +19,44 @@ const INTRO_DURATION = 1.8;
 export const CAM_DIST = 5;
 export const CAM_Y = CAM_DIST * Math.tan(Math.PI / 6);
 
+/** Match square-viewport horizontal coverage on portrait; leave landscape alone. */
+export function fitZoom(baseZoom: number, aspect: number) {
+  return baseZoom * Math.min(1, aspect);
+}
+
 function easeInOutCubic(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
 function IntroCameraZoom() {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const elapsedRef = useRef(0);
   const doneRef = useRef(false);
 
   useEffect(() => {
+    const aspect = size.width / Math.max(size.height, 1);
     const ortho = camera as THREE.OrthographicCamera;
-    ortho.zoom = INTRO_START_ZOOM;
+    ortho.zoom = fitZoom(INTRO_START_ZOOM, aspect);
     ortho.updateProjectionMatrix();
-  }, [camera]);
+  }, [camera, size.width, size.height]);
 
   useFrame((_, delta) => {
     if (doneRef.current) return;
 
+    const aspect = size.width / Math.max(size.height, 1);
+    const startZoom = fitZoom(INTRO_START_ZOOM, aspect);
+    const endZoom = fitZoom(PLAY_ZOOM, aspect);
+
     elapsedRef.current = Math.min(INTRO_DURATION, elapsedRef.current + delta);
     const t = easeInOutCubic(elapsedRef.current / INTRO_DURATION);
-    const zoom = INTRO_START_ZOOM + (PLAY_ZOOM - INTRO_START_ZOOM) * t;
+    const zoom = startZoom + (endZoom - startZoom) * t;
 
     const orthoCam = camera as THREE.OrthographicCamera;
     orthoCam.zoom = zoom;
     orthoCam.updateProjectionMatrix();
 
     if (elapsedRef.current >= INTRO_DURATION) {
-      orthoCam.zoom = PLAY_ZOOM;
+      orthoCam.zoom = endZoom;
       orthoCam.updateProjectionMatrix();
       doneRef.current = true;
     }
@@ -205,9 +215,15 @@ export function PixelSceneRenderer({ children }: PropsWithChildren) {
       onCreated={({ camera, gl }) => {
         gl.shadowMap.enabled = true;
         gl.shadowMap.type = THREE.PCFSoftShadowMap;
+        gl.domElement.style.touchAction = 'none';
         camera.lookAt(0, 0, 0);
       }}
-      style={{ width: '100%', height: '100%', display: 'block' }}
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'block',
+        touchAction: 'none',
+      }}
     >
       {children}
       <IntroCameraZoom />

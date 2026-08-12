@@ -7,6 +7,10 @@ import { defineConfig } from 'vite';
 import svgr from 'vite-plugin-svgr';
 
 const config = defineConfig({
+  server: {
+    host: '0.0.0.0',
+  },
+
   resolve: { tsconfigPaths: true },
   plugins: [
     devtools(),

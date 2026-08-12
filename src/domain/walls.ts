@@ -20,6 +20,19 @@ export const WALL_OFFSET_Z = BOARD_BASE_SIZE[2] / 2 + TILE_SPACING + 0.5;
 export const WALL_DRAG_HALF_X = WALL_OFFSET_X;
 export const WALL_DRAG_HALF_Z = WALL_OFFSET_Z;
 
+/** Portrait: keep walls closer to the board so they stay on-screen. */
+const MOBILE_WALL_PAD = TILE_SPACING * 0.45;
+
+export function wallDragHalf(aspect: number): { x: number; z: number } {
+  if (aspect >= 1) {
+    return { x: WALL_DRAG_HALF_X, z: WALL_DRAG_HALF_Z };
+  }
+  return {
+    x: BOARD_BASE_SIZE[0] / 2 + MOBILE_WALL_PAD,
+    z: BOARD_BASE_SIZE[2] / 2 + MOBILE_WALL_PAD,
+  };
+}
+
 export const GROOVE_SNAP_DIST = TILE_SPACING * 0.4;
 export const GROOVE_SNAP_RELEASE = GROOVE_SNAP_DIST * 1.85;
 
