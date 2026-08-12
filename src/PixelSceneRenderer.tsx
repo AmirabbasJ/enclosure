@@ -8,6 +8,8 @@ import { uniform } from 'three/tsl';
 import * as THREE from 'three/webgpu';
 
 export const PIXEL_SIZE = 2.5;
+/** Reference viewport the pixel look is tuned for (height drives scaling). */
+export const REF_VIEW_HEIGHT = 832;
 export const NORMAL_EDGE = 0.3;
 export const DEPTH_EDGE = 0;
 export const PIXEL_ALIGNED_PANNING = true;
@@ -22,6 +24,13 @@ export const CAM_Y = CAM_DIST * Math.tan(Math.PI / 6);
 /** Match square-viewport horizontal coverage on portrait; leave landscape alone. */
 export function fitZoom(baseZoom: number, aspect: number) {
   return baseZoom * Math.min(1, aspect);
+}
+
+/** Keep world-space pixel density equal to REF_VIEW at PIXEL_SIZE. */
+export function pixelSizeForView(width: number, height: number) {
+  const aspect = width / Math.max(height, 1);
+  const zoom = fitZoom(PLAY_ZOOM, aspect);
+  return (height * zoom * PIXEL_SIZE) / REF_VIEW_HEIGHT;
 }
 
 function easeInOutCubic(t: number) {
@@ -103,14 +112,12 @@ function pixelAlignFrustum({
 }
 
 interface PixelationPipelineProps {
-  pixelSize: number;
   normalEdgeStrength: number;
   depthEdgeStrength: number;
   pixelAlignedPanning: boolean;
 }
 
 export function PixelationPipeline({
-  pixelSize,
   normalEdgeStrength,
   depthEdgeStrength,
   pixelAlignedPanning,
@@ -120,7 +127,7 @@ export function PixelationPipeline({
 
   const uniforms = useMemo(
     () => ({
-      pixelSize: uniform(pixelSize),
+      pixelSize: uniform(PIXEL_SIZE),
       normalEdgeStrength: uniform(normalEdgeStrength),
       depthEdgeStrength: uniform(depthEdgeStrength),
     }),
@@ -153,12 +160,13 @@ export function PixelationPipeline({
   }, [camera, size.width, size.height]);
 
   useFrame(() => {
+    gl.getSize(sizeVec);
+    const pixelSize = pixelSizeForView(sizeVec.x, sizeVec.y);
     uniforms.pixelSize.value = pixelSize;
     uniforms.normalEdgeStrength.value = normalEdgeStrength;
     uniforms.depthEdgeStrength.value = depthEdgeStrength;
 
     const ortho = camera as THREE.OrthographicCamera;
-    gl.getSize(sizeVec);
     const aspect = sizeVec.x / Math.max(sizeVec.y, 1);
 
     if (pixelAlignedPanning) {
@@ -228,7 +236,6 @@ export function PixelSceneRenderer({ children }: PropsWithChildren) {
       {children}
       <IntroCameraZoom />
       <PixelationPipeline
-        pixelSize={PIXEL_SIZE}
         normalEdgeStrength={NORMAL_EDGE}
         depthEdgeStrength={DEPTH_EDGE}
         pixelAlignedPanning={PIXEL_ALIGNED_PANNING}
