@@ -115,7 +115,7 @@ export function GamePlayground({
   const showTopDown = topDownManual || forcedTopDown;
   const pinBoardHigh =
     state.matches('levelCompleted') || state.matches('gameCompleted');
-  const { camera, size } = useThree();
+  const { camera, size, gl } = useThree();
   const { orbs, walls: spawnWalls } = useMemo(
     () => resolveLevel(level, { snapWallsToGrooves }),
     [level, snapWallsToGrooves]
@@ -373,6 +373,69 @@ export function GamePlayground({
       window.removeEventListener('blur', onBlur);
     };
   }, [onKeyDown]);
+
+  const canInteractRef = useRef(canInteract);
+  canInteractRef.current = canInteract;
+
+  useEffect(() => {
+    const el = gl.domElement;
+    const SWIPE_PX = 48;
+    let pointerId: number | null = null;
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+    let rotated = false;
+
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return;
+      if (!canInteractRef.current) return;
+      pointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+      tracking = true;
+      rotated = false;
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (!tracking || rotated || e.pointerId !== pointerId) return;
+      // Wall drag sets body cursor to grabbing and captures the pointer.
+      if (document.body.style.cursor === 'grabbing') {
+        tracking = false;
+        return;
+      }
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.abs(dx) < SWIPE_PX && Math.abs(dy) < SWIPE_PX) return;
+
+      if (Math.abs(dx) <= Math.abs(dy)) {
+        tracking = false;
+        return;
+      }
+
+      rotated = true;
+      tracking = false;
+      onRotateBoardRef.current(dx > 0 ? 1 : -1);
+    };
+
+    const onUp = (e: PointerEvent) => {
+      if (e.pointerId !== pointerId) return;
+      tracking = false;
+      pointerId = null;
+    };
+
+    el.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+
+    return () => {
+      el.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [gl]);
 
   // eslint-disable-next-line @eslint-react/immutability -- camera pose/zoom
   useFrame((_, delta) => {
