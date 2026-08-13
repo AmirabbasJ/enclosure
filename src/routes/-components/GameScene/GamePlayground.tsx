@@ -76,11 +76,17 @@ const INTRO_WALL_STAGGER = 1.2;
 const INTRO_DURATION =
   INTRO_BOARD_DURATION + INTRO_WALL_DURATION + INTRO_WALL_STAGGER;
 const INTRO_START_Y = 14;
+/** Portrait frustum is taller (fitZoom); start further up so walls begin off-screen. */
+const INTRO_START_Y_MOBILE = 28;
 const PLAY_Y = 0;
 
-function wallIntroOffset(u = 0): [number, number, number] {
+function wallIntroStartY(aspect: number) {
+  return isMobileWallLayout(aspect) ? INTRO_START_Y_MOBILE : INTRO_START_Y;
+}
+
+function wallIntroOffset(u = 0, aspect = 1): [number, number, number] {
   const k = 1 - u;
-  return [0, INTRO_START_Y * k, 0];
+  return [0, wallIntroStartY(aspect) * k, 0];
 }
 
 function randomWallDelays(count: number): number[] {
@@ -187,7 +193,7 @@ export function GamePlayground({
     );
 
     for (let i = 0; i < spawnWalls.length; i += 1) {
-      wallIntroRef.current[i]?.position.set(...wallIntroOffset());
+      wallIntroRef.current[i]?.position.set(...wallIntroOffset(0, aspect));
     }
 
     if (introRef.current) introRef.current.position.y = INTRO_START_Y;
@@ -539,6 +545,8 @@ export function GamePlayground({
       pieces.position.y = INTRO_START_Y + (PLAY_Y - INTRO_START_Y) * uBoard;
     }
 
+    const aspect = size.width / Math.max(size.height, 1);
+
     for (let i = 0; i < spawnWalls.length; i += 1) {
       const slot = wallIntroRef.current[i];
       if (!slot) continue;
@@ -548,7 +556,7 @@ export function GamePlayground({
         localT <= 0
           ? 0
           : easeInOutCubic(Math.min(1, localT / INTRO_WALL_DURATION));
-      const [ox, oy, oz] = wallIntroOffset(uWall);
+      const [ox, oy, oz] = wallIntroOffset(uWall, aspect);
       slot.position.set(ox, oy, oz);
     }
 
@@ -621,7 +629,8 @@ export function GamePlayground({
                   !introDoneRef.current &&
                   introElapsedRef.current === 0
                 ) {
-                  node.position.set(...wallIntroOffset());
+                  const aspect = size.width / Math.max(size.height, 1);
+                  node.position.set(...wallIntroOffset(0, aspect));
                 }
               }}
             >
