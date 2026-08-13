@@ -26,6 +26,8 @@ import {
   getWallCornerLocals,
   getWallFilledCornerLocals,
   hasFilledCorners,
+  isMobileWallLayout,
+  wallToInput,
   wallToNumberKeyMap,
 } from '#/domain/walls';
 import { CAM_DIST, CAM_Y, fitZoom, PLAY_ZOOM } from '#/PixelSceneRenderer';
@@ -40,6 +42,7 @@ import {
   wallOriginFromCenter,
 } from './components/Wall';
 import { WallDropHint } from './components/WallDropHint';
+import { wallDockHome } from './wallDock';
 
 const ISO_CAM_POS = new Vector3(0, CAM_Y, CAM_DIST);
 const TOP_CAM_POS = new Vector3(0, Math.hypot(CAM_Y, CAM_DIST), 0);
@@ -120,6 +123,13 @@ export function GamePlayground({
 
   const [walls, setWalls] = useState(spawnWalls);
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
+  const [dockedWallIds, setDockedWallIds] = useState(() => {
+    const aspect = size.width / Math.max(size.height, 1);
+    if (!isMobileWallLayout(aspect)) return new Set<string>();
+    return new Set(
+      spawnWalls.filter((wall) => !wall.locked).map((wall) => wall.id)
+    );
+  });
   const { playRandomHit } = useGameAudio();
   const wallsRef = useRef(walls);
   wallsRef.current = walls;
@@ -157,12 +167,45 @@ export function GamePlayground({
     introDoneRef.current = false;
     wallDelaysRef.current = randomWallDelays(spawnWalls.length);
 
+    const aspect = size.width / Math.max(size.height, 1);
+    setDockedWallIds(
+      isMobileWallLayout(aspect)
+        ? new Set(
+            spawnWalls.filter((wall) => !wall.locked).map((wall) => wall.id)
+          )
+        : new Set()
+    );
+
     for (let i = 0; i < spawnWalls.length; i += 1) {
       wallIntroRef.current[i]?.position.set(...wallIntroOffset());
     }
 
     if (introRef.current) introRef.current.position.y = INTRO_START_Y;
+    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, [spawnWalls]);
+
+  useEffect(() => {
+    const aspect = size.width / Math.max(size.height, 1);
+
+    if (!isMobileWallLayout(aspect)) {
+      setDockedWallIds(new Set());
+      return;
+    }
+
+    setDockedWallIds((prev) => {
+      const next = new Set<string>();
+
+      for (const wall of wallsRef.current) {
+        if (wall.locked) continue;
+
+        if (prev.has(wall.id) || wallToInput(wall) == null) {
+          next.add(wall.id);
+        }
+      }
+
+      return next;
+    });
+  }, [size.width, size.height]);
 
   useEffect(() => {
     if (forcedTopDown) {
@@ -459,12 +502,7 @@ export function GamePlayground({
         position={[0, 20, 0]}
       />
 
-      <group
-        ref={boardRef}
-        position={[0, 0, 0]}
-        rotation={[0, Math.PI / 4, 0]}
-        scale={BOARD_SCALE}
-      >
+      <group ref={boardRef} position={[0, 0, 0]} scale={BOARD_SCALE}>
         <BorderBox
           size={GROUND_SIZE}
           position={[0, GROUND_Y, 0]}
@@ -476,6 +514,9 @@ export function GamePlayground({
         {walls.map((wall, index) => {
           const wallAllowed =
             !allowedWallIds || allowedWallIds.includes(wall.id as WallId);
+          const mobileDock = isMobileWallLayout(
+            size.width / Math.max(size.height, 1)
+          );
           return (
             <group
               key={wall.id}
@@ -505,6 +546,31 @@ export function GamePlayground({
                 filledCorners={hasFilledCorners(wall.id)}
                 selected={selectedWallId === wall.id}
                 draggable={canInteract && !wall.locked && wallAllowed}
+                docked={mobileDock && dockedWallIds.has(wall.id)}
+                getDockHome={
+                  mobileDock
+                    ? () => {
+                        const board = boardRef.current;
+                        if (!board) return null;
+                        return wallDockHome({
+                          wallId: wall.id as WallId,
+                          camera,
+                          board,
+                        });
+                      }
+                    : undefined
+                }
+                onDock={() => {
+                  setDockedWallIds((prev) => new Set(prev).add(wall.id));
+                }}
+                onUndock={() => {
+                  setDockedWallIds((prev) => {
+                    if (!prev.has(wall.id)) return prev;
+                    const next = new Set(prev);
+                    next.delete(wall.id);
+                    return next;
+                  });
+                }}
                 onPositionChange={(position) => moveWall(wall.id, position)}
                 onYawChange={(yaw) => rotateWall(wall.id, yaw)}
                 onGroundHit={playRandomHit}

@@ -13,6 +13,7 @@ import {
   isOverTileField,
   pickWallCenterInDirection,
   snapWallOriginToGrooves,
+  wallPlacementFitsGrooves,
   wallRestYAtCenter,
 } from '#/domain/board';
 import { CELL_SIZE, TILE_THICKNESS } from '#/domain/tiles';
@@ -23,6 +24,8 @@ import {
   getWallFootprints,
   GROOVE_SNAP_DIST,
   GROOVE_SNAP_RELEASE,
+  WALL_DRAG_HALF_X,
+  WALL_DRAG_HALF_Z,
   WALL_HEIGHT,
   WALL_THICKNESS,
   wallDragHalf,
@@ -277,6 +280,11 @@ interface WallProps {
   onGroundHit?: (impact: number) => void;
   onPlace?: () => void;
   onDeselect?: () => void;
+  /** Mobile dock: follow canvas-corner home while parked. */
+  docked?: boolean;
+  getDockHome?: () => [number, number, number] | null;
+  onDock?: () => void;
+  onUndock?: () => void;
 }
 
 const defaultPosition = [0, 0, 0] as [number, number, number];
@@ -309,12 +317,18 @@ export function Wall({
   onGroundHit,
   onPlace,
   onDeselect,
+  docked = false,
+  getDockHome,
+  onDock,
+  onUndock,
 }: WallProps) {
   const { camera, gl, size } = useThree();
   const dragHalfRef = useRef(wallDragHalf(1));
-  dragHalfRef.current = wallDragHalf(
-    size.width / Math.max(size.height, 1)
-  );
+  const aspect = size.width / Math.max(size.height, 1);
+  // Dock homes sit at canvas corners — past the tight mobile board pad.
+  dragHalfRef.current = getDockHome
+    ? { x: WALL_DRAG_HALF_X * 3, z: WALL_DRAG_HALF_Z * 3 }
+    : wallDragHalf(aspect);
 
   const groupRef = useRef<Group>(null);
   const spinRef = useRef<Group>(null);
@@ -332,6 +346,10 @@ export function Wall({
   const onYawChangeRef = useRef(onYawChange);
   const onPlaceRef = useRef(onPlace);
   const onGroundHitRef = useRef(onGroundHit);
+  const onDockRef = useRef(onDock);
+  const onUndockRef = useRef(onUndock);
+  const getDockHomeRef = useRef(getDockHome);
+  const dockedRef = useRef(docked);
   const snapStepRef = useRef(snapStep);
   const snapToGroovesRef = useRef(snapToGrooves);
   const blockedKeysRef = useRef(blockedKeys);
@@ -356,7 +374,7 @@ export function Wall({
   const centerOffsetRef = useRef({ x: 0, z: 0 });
   const segFootprintsRef = useRef<WallSegFootprint[]>([]);
 
-  if (!draggingRef.current && liftMode.current === 'idle') {
+  if (!draggingRef.current && liftMode.current === 'idle' && !dockedRef.current) {
     const { x: halfX, z: halfZ } = dragHalfRef.current;
     positionRef.current = [
       Math.min(halfX, Math.max(-halfX, position[0])),
@@ -368,6 +386,10 @@ export function Wall({
   onYawChangeRef.current = onYawChange;
   onPlaceRef.current = onPlace;
   onGroundHitRef.current = onGroundHit;
+  onDockRef.current = onDock;
+  onUndockRef.current = onUndock;
+  getDockHomeRef.current = getDockHome;
+  dockedRef.current = docked;
   snapStepRef.current = snapStep;
   snapToGroovesRef.current = snapToGrooves;
   blockedKeysRef.current = blockedKeys;
@@ -425,6 +447,40 @@ export function Wall({
     return { x: snapped[0] + r.x, z: snapped[1] + r.z };
   };
 
+  const isValidPlacementAt = (x: number, z: number): boolean => {
+    if (!snapToGroovesRef.current) return isOverTileField(x, z);
+
+    const off = centerOffsetRef.current;
+    const yaw = yawTargetRef.current;
+    const r = rotateYaw(off.x, off.z, yaw);
+    return wallPlacementFitsGrooves({
+      originX: x - r.x,
+      originZ: z - r.z,
+      yaw,
+      segments: segFootprintsRef.current,
+      blockedKeys: blockedKeysRef.current,
+      corners: cornerLocalsRef.current,
+      filledCorners: filledCornerLocalsRef.current,
+      blockedFilledCorners: blockedFilledCornersRef.current,
+      occupiedCorners: occupiedCornersRef.current,
+    });
+  };
+
+  const returnToDock = () => {
+    const home = getDockHomeRef.current?.();
+    if (!home) return false;
+
+    velX.current = 0;
+    velZ.current = 0;
+    velY.current = 0;
+    positionRef.current = wallPos(home[0], home[2]);
+    displayPosRef.current.x = home[0];
+    displayPosRef.current.z = home[2];
+    onPositionChangeRef.current?.(positionRef.current);
+    onDockRef.current?.();
+    return true;
+  };
+
   useEffect(() => {
     const group = groupRef.current;
     if (!group) return;
@@ -439,6 +495,7 @@ export function Wall({
     if (draggingRef.current) return;
 
     if (selected) {
+      onUndockRef.current?.();
       velX.current = 0;
       velZ.current = 0;
       velY.current = 0;
@@ -642,6 +699,22 @@ export function Wall({
 
     const t = clock.getElapsedTime();
     const dt = Math.min(delta, 0.05);
+
+    if (
+      dockedRef.current &&
+      !draggingRef.current &&
+      liftMode.current === 'idle'
+    ) {
+      const home = getDockHomeRef.current?.();
+
+      if (home) {
+        positionRef.current = wallPos(home[0], home[2]);
+        // Instant — no MOVE_LERP. Board yaw change → wall looks fixed on canvas.
+        displayPosRef.current.x = home[0];
+        displayPosRef.current.z = home[2];
+      }
+    }
+
     const mode = liftMode.current;
 
     if (spinRef.current) {
@@ -720,6 +793,15 @@ export function Wall({
             liftMode.current = 'idle';
             const settled = positionRef.current;
             queueMicrotask(() => {
+              if (
+                getDockHomeRef.current &&
+                !isValidPlacementAt(settled[0], settled[2])
+              ) {
+                returnToDock();
+                onPlaceRef.current?.();
+                return;
+              }
+
               onPositionChangeRef.current?.(settled);
               onPlaceRef.current?.();
             });
@@ -731,16 +813,22 @@ export function Wall({
     }
 
     const [px, , pz] = positionRef.current;
-    const k = 1 - Math.exp(-MOVE_LERP * dt);
-    displayPosRef.current.x += (px - displayPosRef.current.x) * k;
-    displayPosRef.current.z += (pz - displayPosRef.current.z) * k;
 
-    if (
-      Math.hypot(px - displayPosRef.current.x, pz - displayPosRef.current.z) <
-      0.0005
-    ) {
+    if (dockedRef.current && !draggingRef.current && mode === 'idle') {
       displayPosRef.current.x = px;
       displayPosRef.current.z = pz;
+    } else {
+      const k = 1 - Math.exp(-MOVE_LERP * dt);
+      displayPosRef.current.x += (px - displayPosRef.current.x) * k;
+      displayPosRef.current.z += (pz - displayPosRef.current.z) * k;
+
+      if (
+        Math.hypot(px - displayPosRef.current.x, pz - displayPosRef.current.z) <
+        0.0005
+      ) {
+        displayPosRef.current.x = px;
+        displayPosRef.current.z = pz;
+      }
     }
 
     const displayY =
@@ -769,6 +857,33 @@ export function Wall({
 
   const endDrag = () => {
     if (!draggingRef.current) return;
+
+    const dockMode = Boolean(getDockHomeRef.current);
+
+    if (dockMode) {
+      velX.current = 0;
+      velZ.current = 0;
+      velY.current = 0;
+
+      const [px, , pz] = positionRef.current;
+
+      if (isOverTileField(px, pz)) {
+        const pinned = pinToBoardGrid(px, pz);
+        positionRef.current = wallPos(pinned.x, pinned.z);
+      }
+
+      const [qx, , qz] = positionRef.current;
+
+      if (!isValidPlacementAt(qx, qz)) {
+        returnToDock();
+      }
+
+      draggingRef.current = false;
+      groundHitFired.current = false;
+      liftMode.current = 'falling';
+      document.body.style.cursor = '';
+      return;
+    }
 
     let vx = velX.current;
     let vz = velZ.current;
@@ -840,6 +955,7 @@ export function Wall({
     }
 
     onDeselect?.();
+    onUndockRef.current?.();
 
     velX.current = 0;
     velZ.current = 0;

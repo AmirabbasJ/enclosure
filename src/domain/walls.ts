@@ -23,8 +23,12 @@ export const WALL_DRAG_HALF_Z = WALL_OFFSET_Z;
 /** Portrait: keep walls closer to the board so they stay on-screen. */
 const MOBILE_WALL_PAD = TILE_SPACING * 0.45;
 
+export function isMobileWallLayout(aspect: number): boolean {
+  return aspect < 1;
+}
+
 export function wallDragHalf(aspect: number): { x: number; z: number } {
-  if (aspect >= 1) {
+  if (!isMobileWallLayout(aspect)) {
     return { x: WALL_DRAG_HALF_X, z: WALL_DRAG_HALF_Z };
   }
   return {
@@ -32,6 +36,19 @@ export function wallDragHalf(aspect: number): { x: number; z: number } {
     z: BOARD_BASE_SIZE[2] / 2 + MOBILE_WALL_PAD,
   };
 }
+
+export type WallDockCorner = 'bl' | 'br' | 'tl' | 'tr';
+
+/** Canvas-corner docks (NDC). Top inset clears GameTopBar. */
+export const WALL_DOCK_NDC: Record<
+  WallDockCorner,
+  { readonly x: number; readonly y: number }
+> = {
+  tl: { x: -0.62, y: 0.38 },
+  tr: { x: 0.62, y: 0.38 },
+  bl: { x: -0.62, y: -0.7 },
+  br: { x: 0.62, y: -0.7 },
+};
 
 export const GROOVE_SNAP_DIST = TILE_SPACING * 0.4;
 export const GROOVE_SNAP_RELEASE = GROOVE_SNAP_DIST * 1.85;
@@ -41,6 +58,13 @@ export type WallDir = 'D' | 'L' | 'R' | 'U';
 export type YawQuarters = 0 | 1 | 2 | 3;
 
 export type WallId = 'snake' | 'steps' | 'u' | 'zigzagTall';
+
+export const WALL_DOCK_CORNER: Record<WallId, WallDockCorner> = {
+  u: 'tl',
+  zigzagTall: 'tr',
+  snake: 'bl',
+  steps: 'br',
+};
 
 export interface WallInput {
   id: WallId;
