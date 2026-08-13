@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { LevelInput, WallInput } from '#/domain/level';
 import type { WallId } from '#/domain/walls';
@@ -36,9 +36,16 @@ export function GameScene({
   const { state } = useGame();
   const [boardTurns, setBoardTurns] = useState(0);
   const [topDownManual, setTopDownManual] = useState(false);
+  const boardTurnsRef = useRef(boardTurns);
+  boardTurnsRef.current = boardTurns;
+  /** Playground sets this so yaw target updates before React re-renders. */
+  const applyBoardTurnsRef = useRef<((turns: number) => void) | null>(null);
 
   const rotateBoard = (dir: BoardTurns) => {
-    setBoardTurns((n) => n + dir);
+    const next = boardTurnsRef.current + dir;
+    boardTurnsRef.current = next;
+    applyBoardTurnsRef.current?.(next);
+    setBoardTurns(next);
     onBoardRotated?.();
   };
 
@@ -64,6 +71,7 @@ export function GameScene({
           dropHintWall={dropHintWall}
           boardTurns={boardTurns}
           topDownManual={topDownManual}
+          applyBoardTurnsRef={applyBoardTurnsRef}
           onRotateBoard={rotateBoard}
           onToggleTopDown={toggleTopDown}
         />

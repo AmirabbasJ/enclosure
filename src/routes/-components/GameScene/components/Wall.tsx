@@ -853,7 +853,7 @@ export function Wall({
         if (obj instanceof THREE.Mesh) obj.castShadow = cast;
       });
     }
-  });
+  }, 1);
 
   const endDrag = () => {
     if (!draggingRef.current) return;

@@ -1,7 +1,15 @@
+import type { RefObject } from 'react';
 import type * as THREE from 'three/webgpu';
 
 import { useFrame, useThree } from '@react-three/fiber';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Vector3 } from 'three/webgpu';
 
 import type { LevelInput, WallInput } from '#/domain/level';
@@ -91,6 +99,7 @@ export interface GamePlaygroundProps {
   dropHintWall?: WallInput | null;
   boardTurns: number;
   topDownManual: boolean;
+  applyBoardTurnsRef?: RefObject<((turns: number) => void) | null>;
   onRotateBoard: (dir: -1 | 1) => void;
   onToggleTopDown: () => void;
 }
@@ -103,6 +112,7 @@ export function GamePlayground({
   dropHintWall = null,
   boardTurns,
   topDownManual,
+  applyBoardTurnsRef,
   onRotateBoard,
   onToggleTopDown,
 }: GamePlaygroundProps) {
@@ -207,14 +217,32 @@ export function GamePlayground({
     });
   }, [size.width, size.height]);
 
-  useEffect(() => {
+  const forcedTopDownRef = useRef(forcedTopDown);
+  forcedTopDownRef.current = forcedTopDown;
+
+  const setYawFromTurns = (turns: number) => {
+    if (forcedTopDownRef.current) return;
+    boardYawTargetRef.current = Math.PI / 4 + turns * (Math.PI / 4);
+  };
+
+  if (applyBoardTurnsRef) {
+    applyBoardTurnsRef.current = setYawFromTurns;
+  }
+
+  useLayoutEffect(() => {
     if (forcedTopDown) {
       boardYawTargetRef.current = shortestYawToZero(boardYawRef.current);
       return;
     }
 
-    boardYawTargetRef.current = Math.PI / 4 + boardTurns * (Math.PI / 4);
+    setYawFromTurns(boardTurns);
   }, [boardTurns, forcedTopDown]);
+
+  useEffect(() => {
+    return () => {
+      if (applyBoardTurnsRef) applyBoardTurnsRef.current = null;
+    };
+  }, [applyBoardTurnsRef]);
 
   const blockedKeysByWall = useMemo(() => {
     const occupiedById: Record<string, string[]> = {};
@@ -437,6 +465,7 @@ export function GamePlayground({
     };
   }, [gl]);
 
+  // Priority -1: board yaw before docked walls reproject (default 0 / walls at 1).
   // eslint-disable-next-line @eslint-react/immutability -- camera pose/zoom
   useFrame((_, delta) => {
     const group = boardRef.current;
@@ -445,6 +474,7 @@ export function GamePlayground({
     boardYawRef.current +=
       (boardYawTargetRef.current - boardYawRef.current) * t;
     group.rotation.y = boardYawRef.current;
+    group.updateWorldMatrix(true, false);
 
     const viewTarget = showTopDown ? 1 : 0;
     viewBlendRef.current += (viewTarget - viewBlendRef.current) * t;
@@ -531,7 +561,7 @@ export function GamePlayground({
 
       introDoneRef.current = true;
     }
-  });
+  }, -1);
 
   return (
     <>
