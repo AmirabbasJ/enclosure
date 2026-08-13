@@ -1,5 +1,6 @@
 import type { TutorialStep } from '@/lib/machines/tutorialMachine';
 
+import { IconTopDown } from '@/lib/icons';
 import Button from '@/ui/button';
 import { Kbd } from '@/ui/kbd';
 
@@ -13,18 +14,34 @@ export function TutorialGuide({ step, onContinue }: TutorialGuideProps) {
     <div className="pointer-events-none absolute inset-x-0 top-16.75 z-20 flex items-center justify-center px-3 sm:top-3.5 sm:px-4">
       <div className="pointer-events-auto flex max-w-xs flex-col items-center gap-2 bg-foreground/60 pixelated px-3 py-2 text-center text-xs leading-4 shadow-[2px_2px_0_#000] sm:max-w-md sm:gap-3 sm:px-4 sm:py-3 sm:text-sm sm:leading-5">
         {step === 'rotateBoard' ? (
-          <p className="text-text-light">
-            Turn the board with{' '}
-            <Kbd k="ArrowLeft" className="align-middle h-4 w-auto sm:h-8" />{' '}
-            <Kbd k="ArrowRight" className="align-middle h-4 w-auto sm:h-8" />
-          </p>
+          <>
+            <p className="text-text-light sm:hidden">
+              Turn the board with your fingers.
+            </p>
+            <p className="hidden text-text-light sm:block">
+              Turn the board with{' '}
+              <Kbd k="ArrowLeft" className="align-middle h-4 w-auto sm:h-8" />{' '}
+              <Kbd k="ArrowRight" className="align-middle h-4 w-auto sm:h-8" />
+            </p>
+          </>
         ) : null}
 
         {step === 'toggleTopDown' ? (
-          <p className="text-text-light">
-            Press <Kbd k="Q" className="align-middle h-4 w-auto sm:h-8" /> to
-            switch to top-down view.
-          </p>
+          <>
+            <p className="text-text-light sm:hidden">
+              Tap{' '}
+              <IconTopDown
+                width={18}
+                height={18}
+                className="inline-block align-middle"
+              />{' '}
+              to switch to top-down view.
+            </p>
+            <p className="hidden text-text-light sm:block">
+              Press <Kbd k="Q" className="align-middle h-4 w-auto sm:h-8" /> to
+              switch to top-down view.
+            </p>
+          </>
         ) : null}
 
         {step === 'goal' ? (
@@ -51,12 +68,18 @@ export function TutorialGuide({ step, onContinue }: TutorialGuideProps) {
         ) : null}
 
         {step === 'placeZigzag' ? (
-          <p className="text-text-light">
-            Drag <span className="font-bold text-accent">zigzagTall</span> onto
-            the glowing spot. Rotate with{' '}
-            <Kbd k="Space" className="align-middle h-4 w-auto sm:h-8" /> while
-            holding it.
-          </p>
+          <>
+            <p className="text-text-light sm:hidden">
+              Drag <span className="font-bold text-accent">zigzagTall</span>{' '}
+              onto the glowing spot. Tap while holding it to rotate.
+            </p>
+            <p className="hidden text-text-light sm:block">
+              Drag <span className="font-bold text-accent">zigzagTall</span>{' '}
+              onto the glowing spot. Rotate with{' '}
+              <Kbd k="Space" className="align-middle h-4 w-auto sm:h-8" /> while
+              holding it.
+            </p>
+          </>
         ) : null}
       </div>
     </div>

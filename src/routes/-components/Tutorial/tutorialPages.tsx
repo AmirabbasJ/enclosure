@@ -42,6 +42,15 @@ export const tutorialPages = [
   },
   {
     id: 'controls',
-    text: 'Drag a wall to place it, or select one and use the keys above.',
+    text: (
+      <>
+        <span className="sm:hidden">
+          Drag a wall to place it. Use the gestures above.
+        </span>
+        <span className="hidden sm:inline">
+          Drag a wall to place it, or select one and use the keys above.
+        </span>
+      </>
+    ),
   },
 ] as const;

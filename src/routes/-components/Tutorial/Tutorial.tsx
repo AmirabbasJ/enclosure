@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import type { LevelInput } from '#/domain/level';
 
+import { IconTopDown } from '@/lib/icons';
 import Button from '@/ui/button';
 import { Kbd } from '@/ui/kbd';
 import { LevelShot, spaceToOverlayPercent } from '@/ui/LevelShot';
@@ -21,7 +22,7 @@ import type { TutorialPage } from './tutorialPages';
 import { tutorialPages } from './tutorialPages';
 
 function ControlsCheatSheet() {
-  const rows: { keys: ReactNode; label: string }[] = [
+  const desktopRows: { keys: ReactNode; label: string }[] = [
     { keys: <Kbd k="MouseLeft" />, label: 'Grab + place wall' },
     {
       keys: (
@@ -59,12 +60,27 @@ function ControlsCheatSheet() {
     { keys: <Kbd k="Enter" />, label: 'Drop' },
   ];
 
-  return (
-    <div className="mx-auto grid w-fit grid-cols-[auto_auto] items-center gap-x-3 gap-y-2.5 py-1">
+  const mobileRows: { keys: ReactNode; label: string }[] = [
+    { keys: 'Drag', label: 'Grab + place wall' },
+    { keys: 'Tap while holding', label: 'Rotate wall' },
+    { keys: 'Swipe', label: 'Turn board' },
+    {
+      keys: <IconTopDown width={18} height={18} className="inline-block" />,
+      label: 'Top-down view',
+    },
+  ];
+
+  const renderRows = (
+    rows: { keys: ReactNode; label: string }[],
+    className: string
+  ) => (
+    <div
+      className={`mx-auto grid w-fit grid-cols-[auto_auto] items-center gap-x-3 gap-y-2.5 py-1 ${className}`}
+    >
       {rows.flatMap(({ keys, label }) => [
         <div
           key={`${label}-keys`}
-          className="flex flex-wrap items-center justify-end gap-1"
+          className="flex flex-wrap items-center text-end justify-end gap-1 text-xs leading-4 text-text-muted"
         >
           {keys}
         </div>,
@@ -76,6 +92,13 @@ function ControlsCheatSheet() {
         </span>,
       ])}
     </div>
+  );
+
+  return (
+    <>
+      {renderRows(mobileRows, 'sm:hidden')}
+      {renderRows(desktopRows, 'hidden sm:grid')}
+    </>
   );
 }
 
