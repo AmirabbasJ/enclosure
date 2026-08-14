@@ -133,8 +133,8 @@ export function GamePlayground({
     state.matches('levelCompleted') || state.matches('gameCompleted');
   const { camera, size, gl } = useThree();
   const { orbs, walls: spawnWalls } = useMemo(
-    () => resolveLevel(level, { snapWallsToGrooves }),
-    [level, snapWallsToGrooves]
+    () => resolveLevel(level, { snapWallsToGrooves: false }),
+    [level]
   );
 
   const [walls, setWalls] = useState(spawnWalls);
