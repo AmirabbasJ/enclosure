@@ -178,6 +178,11 @@ export const gameMachine = setup({
           actions: 'clearPendingAction',
         },
         {
+          guard: 'hasFinishedGame',
+          target: 'gameCompleted',
+          actions: ['clearIsTutorial', 'clearPendingAction'],
+        },
+        {
           guard: 'hasViewedTutorial',
           target: 'playing',
           actions: ['clearIsTutorial', 'clearPendingAction'],

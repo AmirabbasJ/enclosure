@@ -27,8 +27,8 @@ export function useLevel() {
       getCurrentLevel({
         data: levelId == null ? {} : { levelId },
       }),
-    initialData: initialLevel,
-    enabled: levelId != null,
+    initialData: progress?.finished ? null : initialLevel,
+    enabled: levelId != null && !progress?.finished,
   });
 
   const commitPendingProgress = useCallback(() => {

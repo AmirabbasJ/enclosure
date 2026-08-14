@@ -9,11 +9,14 @@ export function GameCompletedMenu() {
 
   return (
     <div className="level-complete-panel flex w-full max-w-75 flex-col items-center gap-3">
-      <div className="bg-foreground pixelated p-4 gap-3">
-        <p className="mb-3 text-center text-text-light ">
+      <h2 className="title-shadow text-center font-pixel text-[22px] tracking-[2px] text-accent-hover">
+        SECTOR CLEARED
+      </h2>
+      <div className="bg-foreground pixelated flex flex-col gap-3 p-4">
+        <p className="text-center text-text-light">
           You have completed all available levels.
         </p>
-        <p className="mb-3 text-center text-text-light ">
+        <p className="text-center text-text-light">
           More sectors are under construction.
         </p>
       </div>

@@ -58,9 +58,7 @@ export function GameProvider({ children }: PropsWithChildren) {
   }, [progress?.finished, send, state.context.finished]);
 
   const isShowingSolution =
-    state.matches('celebrating') ||
-    state.matches('levelCompleted') ||
-    state.matches('gameCompleted');
+    state.matches('celebrating') || state.matches('levelCompleted');
 
   const isGameSceneActive =
     state.matches('paused') || state.matches('playing') || isShowingSolution;

@@ -19,14 +19,17 @@ export const getLevelFn = createServerFn({ method: 'POST' })
     } = await client.auth.getUser();
     if (!user) return null;
 
-    let levelId = data.levelId;
+    let { levelId } = data;
+
+    const { data: progress } = await adminClient
+      .from('progress')
+      .select('level_id, finished')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (progress?.finished) return null;
 
     if (levelId == null) {
-      const { data: progress } = await adminClient
-        .from('progress')
-        .select('level_id')
-        .eq('id', user.id)
-        .maybeSingle();
       if (!progress?.level_id) return null;
       levelId = progress.level_id;
     }
@@ -89,6 +92,10 @@ export const completeLevelFn = createServerFn({
     const cacheSolution = levelSolutionCache.get(levelId.toString());
     const solution = cacheSolution ?? (await getStoredSolution(levelId));
     if (!solution) throw new Error('solution not found');
+    console.log({
+      solution,
+      answer,
+    });
 
     const isCorrect = compareWalls(solution, answer);
     if (!isCorrect) return { isCorrect: false };
