@@ -92,10 +92,6 @@ export const completeLevelFn = createServerFn({
     const cacheSolution = levelSolutionCache.get(levelId.toString());
     const solution = cacheSolution ?? (await getStoredSolution(levelId));
     if (!solution) throw new Error('solution not found');
-    console.log({
-      solution,
-      answer,
-    });
 
     const isCorrect = compareWalls(solution, answer);
     if (!isCorrect) return { isCorrect: false };
