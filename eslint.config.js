@@ -15,5 +15,5 @@ export default defineConfig({
     '@eslint-react/refs': 'off',
     '@typescript-eslint/no-unnecessary-type-assertion': 'off',
   },
-  ignores: ['./src/database.types.ts', './eslint.config.mjs'],
+  ignores: ['./src/database.types.ts', './eslint.config.js', './scripts/*.js'],
 });

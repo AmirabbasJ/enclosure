@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
-    "check": "prettier --check ."
+    "check": "prettier --check .",
+    "delete-stale-guest-users": "node --env-file=.env scripts/delete-stale-guest-users.js"
   },
   "dependencies": {
     "@lukemorales/query-key-factory": "^1.3.4",
