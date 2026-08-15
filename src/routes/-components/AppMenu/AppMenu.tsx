@@ -89,7 +89,7 @@ export function AppMenu() {
                 </p>
               </div>
             )}
-            <div className="flex max-w-120 flex-col justify-center gap-3 p-3 ">
+            <div className="flex  flex-col justify-center gap-3 p-4 ">
               <MenuItems />
             </div>
           </div>

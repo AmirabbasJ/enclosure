@@ -8,7 +8,7 @@ export function AskGuestOrSignUpMenu() {
   const { signUpGuestMutation } = useAuth();
 
   return (
-    <>
+    <div className="flex flex-col gap-3 max-w-80">
       <p className="mb-3 text-center text-base opacity-80">
         Play as guest or create an account
       </p>
@@ -33,6 +33,6 @@ export function AskGuestOrSignUpMenu() {
       >
         Back
       </MenuButton>
-    </>
+    </div>
   );
 }

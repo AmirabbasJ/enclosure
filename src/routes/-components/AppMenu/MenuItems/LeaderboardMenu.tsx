@@ -23,7 +23,7 @@ export function LeaderboardMenu() {
   return (
     <div className="flex flex-col items-center gap-3">
       <p className="mb-3 text-center text-base opacity-80">Leaderboard</p>
-      <div className="min-w-75 w-full bg-foreground pixelated p-3 ">
+      <div className="sm:min-w-120 w-full bg-foreground pixelated p-3 ">
         <div className="leaderboard-scroll pe-3 flex max-h-[50vh] flex-col gap-1 overflow-y-auto">
           {isLoading ? (
             <div className="flex justify-center py-6">
