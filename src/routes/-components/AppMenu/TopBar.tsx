@@ -8,16 +8,17 @@ import {
   IconSoundOff,
 } from '../../../lib/icons';
 import Button from '../../../ui/button';
+import { LoadingDots } from '../../../ui/LoadingDots';
 import { UserProfile } from '../UserProfile';
 
 export function TopBar() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { toggleMusic, musicAudioState, toggleSfx, sfxAudioState } =
     useGameAudio();
 
   return (
-    <div className="grid w-full grid-cols-2 items-center border-b border-surface-light bg-foreground/20 px-4 py-2">
-      {user ? <UserProfile /> : <div />}
+    <div className="grid w-full grid-cols-2 items-center border-b border-surface-light bg-foreground/20 px-4 py-2 h-16.75">
+      {isLoading ? <LoadingDots /> : user ? <UserProfile /> : <div />}
       <div className="flex items-center justify-end gap-2">
         <Button size="icon" onClick={toggleMusic}>
           {musicAudioState.isOn ? (

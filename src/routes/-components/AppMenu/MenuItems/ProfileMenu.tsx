@@ -1,6 +1,5 @@
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/data/auth/useAuth';
-import { useProgress } from '@/data/progress/useProgress';
 
 import { UserProfile } from '../../UserProfile';
 import { MenuButton } from './components/MenuButton';
@@ -8,13 +7,12 @@ import { MenuButton } from './components/MenuButton';
 export function ProfileMenu() {
   const { send } = useGame();
   const { user, signOutMutation } = useAuth();
-  const { progress } = useProgress();
 
   return (
     <>
       <p className="mb-3 text-center text-base opacity-80">Profile</p>
-      {user && progress ? (
-        <div className="bg-foreground p-4 pixelated">
+      {user ? (
+        <div className="bg-foreground p-4 pixelated ">
           <UserProfile />
         </div>
       ) : null}

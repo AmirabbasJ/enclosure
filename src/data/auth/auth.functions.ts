@@ -1,5 +1,3 @@
-import type { Session } from '@supabase/supabase-js';
-
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 
@@ -117,10 +115,14 @@ export const getSessionFn = createServerFn({ method: 'GET' }).handler(
   }
 );
 
+const emailToUsername = (email: string): string => {
+  return email.split('@')[0];
+};
+
 export const signIn = async ({
   username,
   password,
-}: Credentials): Promise<Session | null> => {
+}: Credentials): Promise<User | null> => {
   const parsed = validateCredentials(username, password);
 
   if (!parsed.data) {
@@ -136,7 +138,11 @@ export const signIn = async ({
 
   if (error) throw new Error(mapAuthError(error.message));
 
-  return data.session;
+  return {
+    id: data.user.id,
+    username: data.user.user_metadata.username as string,
+    type: 'auth',
+  };
 };
 
 export const signUpGuestFn = createServerFn({ method: 'POST' }).handler(
@@ -151,7 +157,7 @@ export const signUpGuestFn = createServerFn({ method: 'POST' }).handler(
 
 export const signUp = createServerFn({ method: 'POST' })
   .validator(credentialsSchema)
-  .handler(async ({ data: { username, password } }): Promise<string | null> => {
+  .handler(async ({ data: { username, password } }): Promise<User> => {
     const admin = createAdminClient();
 
     const { data: available, error: availabilityError } = await admin.rpc(
@@ -161,10 +167,10 @@ export const signUp = createServerFn({ method: 'POST' })
 
     const metadata = (await getMetadataCookieFn()) ?? defaultMetadata;
 
-    if (availabilityError) return availabilityError.message;
-    if (!available) return 'Username is already taken';
+    if (availabilityError) throw new Error(availabilityError.message);
+    if (!available) throw new Error('Username is already taken');
 
-    const { error } = await admin.auth.admin.createUser({
+    const { error, data } = await admin.auth.admin.createUser({
       email: usernameToEmail(username),
       password,
       email_confirm: true,
@@ -174,8 +180,13 @@ export const signUp = createServerFn({ method: 'POST' })
       },
     });
 
-    if (error) return mapAuthError(error.message);
-    return null;
+    if (error) throw new Error(mapAuthError(error.message));
+
+    return {
+      id: data.user.id,
+      username: data.user.user_metadata.username as string,
+      type: 'auth',
+    };
   });
 
 export const deleteAccountFn = createServerFn({ method: 'POST' }).handler(

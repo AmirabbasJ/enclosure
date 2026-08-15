@@ -30,7 +30,6 @@ export function useAuth() {
     ...queryKeys.user.me,
     staleTime: Infinity,
   });
-
   const user = currentUserQuery.data ?? null;
 
   useEffect(() => {
@@ -49,19 +48,23 @@ export function useAuth() {
     mutationFn: async ({ username, password }: Credentials) => {
       return signIn({ username, password });
     },
-    onSuccess: () => {
+    onSuccess: (signedInUser) => {
+      if (signedInUser)
+        queryClient.setQueryData(queryKeys.user.me.queryKey, signedInUser);
+
       void queryClient.invalidateQueries({
         queryKey: queryKeys.user._def,
       });
     },
   });
 
+  const signUp = async ({ username, password }: Credentials) => {
+    await createUser({ data: { username, password } });
+    return signInMutation.mutateAsync({ username, password });
+  };
+
   const signUpMutation = useMutation({
-    mutationFn: async ({ username, password }: Credentials) => {
-      const createError = await createUser({ data: { username, password } });
-      if (createError) throw new Error(createError);
-      return signInMutation.mutateAsync({ username, password });
-    },
+    mutationFn: signUp,
     onSuccess: () => {
       return queryClient.invalidateQueries({
         queryKey: queryKeys.user._def,
