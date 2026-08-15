@@ -6,6 +6,7 @@ import { useLeaderboard } from '@/data/leaderboard/useLeaderboard';
 import { Avatar } from '@/ui/avatar';
 import { LoadingDots } from '@/ui/LoadingDots';
 
+import { Level } from '../../Level';
 import { MenuButton } from './components/MenuButton';
 
 export function LeaderboardMenu() {
@@ -44,7 +45,7 @@ export function LeaderboardMenu() {
                   }`}
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="w-6 shrink-0 font-pixel text-[10px] text-text-light">
+                    <span className="w-6 shrink-0  text-[10px] text-text-light">
                       {entry.rank}
                     </span>
                     <Avatar
@@ -52,14 +53,18 @@ export function LeaderboardMenu() {
                       size={28}
                       className="shrink-0"
                     />
-                    <span className="truncate font-pixel text-xs text-text-light">
+                    <span className="truncate  text-xs text-text-light">
                       {entry.username}
                       {isYou ? ' (you)' : ''}
                     </span>
                   </div>
-                  <span className="shrink-0 font-pixel text-[10px] text-success">
-                    {entry.finished ? 'Done' : `Lv ${entry.level_id}`}
-                  </span>
+                  <Level
+                    progress={{
+                      level_id: entry.level_id,
+                      finished: entry.finished,
+                    }}
+                    className="shrink-0"
+                  />
                 </div>
               );
             })

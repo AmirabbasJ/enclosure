@@ -24,6 +24,8 @@
   --color-danger-hover: #ff8fa3;
   --color-success: #4ade80;
   --color-warning: #f59e0b;
+  --color-blue: #3b82f6;
+  --color-purple: #8b5cf6;
 }
 
 @layer base {

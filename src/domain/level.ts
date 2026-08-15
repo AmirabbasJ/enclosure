@@ -34,3 +34,19 @@ export function serializeWalls(walls: WallPiece[]): WallInput[] {
     .map(wallToInput)
     .filter((wall): wall is WallInput => wall != null);
 }
+
+export const levelColorMap = {
+  noob: 'text-success',
+  junior: 'text-warning',
+  expert: 'text-danger',
+  master: 'text-blue',
+  wizard: 'text-purple',
+};
+
+export const getLevelColor = (level: number) => {
+  if (level <= 12) return 'text-success';
+  if (level <= 24) return 'text-warning';
+  if (level <= 36) return 'text-danger';
+  if (level <= 48) return 'text-blue';
+  return 'text-purple';
+};

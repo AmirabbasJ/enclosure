@@ -2,6 +2,7 @@ import { useAuth } from '../../data/auth/useAuth';
 import { useProgress } from '../../data/progress/useProgress';
 import { Avatar } from '../../ui/avatar';
 import { LoadingDots } from '../../ui/LoadingDots';
+import { Level } from './Level';
 
 export function UserProfile() {
   const { user, isLoading: userLoading } = useAuth();
@@ -15,9 +16,7 @@ export function UserProfile() {
         {progressLoading || !progress ? (
           <LoadingDots />
         ) : (
-          <p className="text-[10px]  text-success">
-            {progress.finished ? 'Completed!' : `Level ${progress!.level_id}`}
-          </p>
+          <Level progress={progress} />
         )}
       </div>
     </div>
