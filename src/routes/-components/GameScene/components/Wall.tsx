@@ -374,7 +374,11 @@ export function Wall({
   const centerOffsetRef = useRef({ x: 0, z: 0 });
   const segFootprintsRef = useRef<WallSegFootprint[]>([]);
 
-  if (!draggingRef.current && liftMode.current === 'idle' && !dockedRef.current) {
+  if (
+    !draggingRef.current &&
+    liftMode.current === 'idle' &&
+    !dockedRef.current
+  ) {
     const { x: halfX, z: halfZ } = dragHalfRef.current;
     positionRef.current = [
       Math.min(halfX, Math.max(-halfX, position[0])),
@@ -382,6 +386,7 @@ export function Wall({
       Math.min(halfZ, Math.max(-halfZ, position[2])),
     ];
   }
+
   onPositionChangeRef.current = onPositionChange;
   onYawChangeRef.current = onYawChange;
   onPlaceRef.current = onPlace;
@@ -447,6 +452,14 @@ export function Wall({
     return { x: snapped[0] + r.x, z: snapped[1] + r.z };
   };
 
+  const clampToDragBounds = (x: number, z: number) => {
+    const { x: halfX, z: halfZ } = dragHalfRef.current;
+    return {
+      x: Math.min(halfX, Math.max(-halfX, x)),
+      z: Math.min(halfZ, Math.max(-halfZ, z)),
+    };
+  };
+
   const isValidPlacementAt = (x: number, z: number): boolean => {
     if (!snapToGroovesRef.current) return isOverTileField(x, z);
 
@@ -488,7 +501,6 @@ export function Wall({
     group.position.set(x, restYAt(x, z), z);
     displayPosRef.current.x = x;
     displayPosRef.current.z = z;
-    // eslint-disable-next-line @eslint-react/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -661,14 +673,6 @@ export function Wall({
     centerOffsetRef.current = offset;
     return offset;
   }, [segments]);
-
-  const clampToDragBounds = (x: number, z: number) => {
-    const { x: halfX, z: halfZ } = dragHalfRef.current;
-    return {
-      x: Math.min(halfX, Math.max(-halfX, x)),
-      z: Math.min(halfZ, Math.max(-halfZ, z)),
-    };
-  };
 
   const bounceInsideBounds = (x: number, z: number) => {
     let nx = x;
@@ -946,8 +950,9 @@ export function Wall({
       local.current.z - base[2]
     );
 
-    const pointerId = e.pointerId;
+    const { pointerId } = e;
     const canvas = gl.domElement;
+
     try {
       canvas.setPointerCapture(pointerId);
     } catch {
@@ -1043,6 +1048,7 @@ export function Wall({
     const finishDrag = (ev: PointerEvent) => {
       if (ev.pointerId !== pointerId) return;
       drag.abort();
+
       try {
         if (canvas.hasPointerCapture?.(pointerId)) {
           canvas.releasePointerCapture(pointerId);
@@ -1050,6 +1056,7 @@ export function Wall({
       } catch {
         // ignore
       }
+
       endDrag();
     };
 
