@@ -36,15 +36,15 @@ export const getLevelFn = createServerFn({ method: 'POST' })
 
     const { data: levelRow } = await adminClient
       .from('levels')
-      .select('question, answer, id')
+      .select('level, solution, id')
       .eq('id', levelId)
       .maybeSingle();
     if (!levelRow) return null;
 
-    const solution = levelRow.answer as any as WallInput[];
+    const solution = levelRow.solution as any as WallInput[];
 
     const level = {
-      question: levelRow.question as any as LevelInput,
+      level: levelRow.level as any as LevelInput,
       id: levelRow.id,
     };
 
@@ -69,13 +69,13 @@ const getStoredSolution = createServerOnlyFn(async (levelId: number) => {
   const adminClient = createAdminClient();
   const { data, error } = await adminClient
     .from('levels')
-    .select('answer')
+    .select('solution')
     .eq('id', levelId)
     .maybeSingle();
 
   if (error) throw error;
 
-  const solution = data?.answer as WallInput[] | null;
+  const solution = data?.solution as WallInput[] | null;
   return solution;
 });
 

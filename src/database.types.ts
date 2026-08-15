@@ -41,22 +41,22 @@ export type Database = {
     Tables: {
       levels: {
         Row: {
-          answer: Json
           created_at: string
           id: number
-          question: Json
+          level: Json
+          solution: Json
         }
         Insert: {
-          answer: Json
           created_at?: string
           id?: number
-          question: Json
+          level: Json
+          solution: Json
         }
         Update: {
-          answer?: Json
           created_at?: string
           id?: number
-          question?: Json
+          level?: Json
+          solution?: Json
         }
         Relationships: []
       }
@@ -122,6 +122,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_stale_guest_users: { Args: never; Returns: number }
       get_leaderboard: {
         Args: never
         Returns: {

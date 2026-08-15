@@ -18,7 +18,7 @@ export const Route = createFileRoute('/')({
 
 interface SceneLevel {
   id: number;
-  question: LevelInput;
+  level: LevelInput;
 }
 
 function Game() {
@@ -63,7 +63,7 @@ function Game() {
             <GameScene
               key={sceneLevel.id}
               levelId={sceneLevel.id}
-              level={sceneLevel.question}
+              level={sceneLevel.level}
               onWallsChange={checkSolution}
             />
           ) : null}
