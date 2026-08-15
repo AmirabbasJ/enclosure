@@ -1,15 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { useServerFn } from '@tanstack/react-start';
 
-import { queryKeys } from '../queryKeys';
-import { getLeaderboardFn } from './leaderboard.functions';
+import { queryKeys } from '../queries';
 
 export function useLeaderboard() {
-  const getLeaderboard = useServerFn(getLeaderboardFn);
-
   const { data: leaderboard = [], isLoading } = useQuery({
-    queryKey: queryKeys.leaderboard.list.queryKey,
-    queryFn: () => getLeaderboard(),
+    ...queryKeys.leaderboard.list,
   });
 
   return { leaderboard, isLoading: isLoading as boolean };

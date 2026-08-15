@@ -1,24 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 
 import type { Metadata } from './metadata.functions';
 
-import { getSessionFn } from '../auth/auth.functions';
-import { queryKeys } from '../queryKeys';
+import { queryKeys } from '../queries';
 import { setMetadataFn } from './metadata.functions';
 
 export function useMetadata() {
-  const { metadata: initialMetadata } = useRouteContext({ from: '__root__' });
   const queryClient = useQueryClient();
 
   const setMetadata = useServerFn(setMetadataFn);
 
-  const { data: metadata } = useQuery({
-    queryKey: queryKeys.user.metadata.queryKey,
-    queryFn: () => getSessionFn().then((d) => d?.metadata ?? null),
-    initialData: initialMetadata ?? null,
-  });
+  const { data: metadata } = useQuery(queryKeys.user.metadata);
 
   const setMetadataMutation = useMutation({
     mutationFn: (data: Metadata) => setMetadata({ data }),

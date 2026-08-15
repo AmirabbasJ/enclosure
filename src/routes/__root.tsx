@@ -12,108 +12,31 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { GameAudioProvider } from '../context/GameAudioContext';
 import { GameProvider } from '../context/GameContext';
 import { getAudioStateFn } from '../data/audio/audio.functions';
-import { getSessionFn } from '../data/auth/auth.functions';
-import { getLevelFn } from '../data/levels/level.functions';
-import { getMetadataCookieFn } from '../data/metadata/metadata.functions';
-import { getProgressFn } from '../data/progress/progrsss.functions';
+import { queryKeys } from '../data/queries';
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools';
-import appCss from '../styles.css?url';
+import { rootHead } from './-metadata';
 
 interface MyRouterContext {
   queryClient: QueryClient;
 }
 
-const APP_TITLE = 'Enclosure';
-const APP_DESCRIPTION =
-  'A pixel puzzle game about walls and containment. Are we being protected, or are we being contained?';
-
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  head: () => ({
-    meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1, viewport-fit=cover',
-      },
-      {
-        title: APP_TITLE,
-      },
-      {
-        name: 'description',
-        content: APP_DESCRIPTION,
-      },
-      {
-        name: 'theme-color',
-        content: '#000F32',
-      },
-      {
-        property: 'og:title',
-        content: APP_TITLE,
-      },
-      {
-        property: 'og:description',
-        content: APP_DESCRIPTION,
-      },
-      {
-        property: 'og:type',
-        content: 'website',
-      },
-      {
-        property: 'og:image',
-        content: '/logo.svg',
-      },
-      {
-        name: 'twitter:card',
-        content: 'summary',
-      },
-      {
-        name: 'twitter:title',
-        content: APP_TITLE,
-      },
-      {
-        name: 'twitter:description',
-        content: APP_DESCRIPTION,
-      },
-      {
-        name: 'twitter:image',
-        content: '/logo.svg',
-      },
-    ],
-    links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
-      {
-        rel: 'icon',
-        type: 'image/svg+xml',
-        href: '/logo.svg',
-      },
-      {
-        rel: 'apple-touch-icon',
-        href: '/logo.svg',
-      },
-    ],
-  }),
+  head: () => rootHead,
   component: RootProviders,
   shellComponent: RootDocument,
-  beforeLoad: async () => {
-    const currentUserData = await getSessionFn();
-    const audioState = await getAudioStateFn();
-    const cookieMetadata = await getMetadataCookieFn();
-    const progress = await getProgressFn();
-    const level = await getLevelFn({ data: {} });
+  beforeLoad: async ({ context: { queryClient } }) => {
+    await queryClient.ensureQueryData(queryKeys.user.me);
+    await queryClient.ensureQueryData(queryKeys.user.metadata);
+    const progress = await queryClient.ensureQueryData(queryKeys.user.progress);
 
-    const metadata = cookieMetadata ?? currentUserData?.metadata;
-    return {
-      user: currentUserData?.user,
-      metadata,
-      audioState,
-      progress,
-      level,
-    };
+    if (progress?.level_id != null && !progress.finished) {
+      await queryClient.ensureQueryData(
+        queryKeys.user.level(progress.level_id)
+      );
+    }
+
+    const audioState = await getAudioStateFn();
+    return { audioState };
   },
 });
 

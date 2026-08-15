@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouteContext } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useEffect } from 'react';
 
@@ -7,10 +6,9 @@ import { useSupabase } from '@/lib/supabase/useSupabase';
 
 import type { Credentials } from './auth.functions';
 
-import { queryKeys } from '../queryKeys';
+import { queryKeys } from '../queries';
 import {
   deleteAccountFn,
-  getSessionFn,
   signIn,
   signUp as signUpFn,
   signUpGuestFn,
@@ -19,22 +17,18 @@ import {
 } from './auth.functions';
 
 export function useAuth() {
-  const { user: currentUser } = useRouteContext({ from: '__root__' });
   const supabaseClient = useSupabase();
   const queryClient = useQueryClient();
 
   const createUser = useServerFn(signUpFn);
-  const getCurrentUser = useServerFn(getSessionFn);
   const signUpGuest = useServerFn(signUpGuestFn);
   const deleteAccount = useServerFn(deleteAccountFn);
   const upgradeAccount = useServerFn(upgradeAccountFn);
   const updateUsername = useServerFn(updateUsernameFn);
 
   const currentUserQuery = useQuery({
-    queryKey: queryKeys.user.me.queryKey,
-    queryFn: () => getCurrentUser().then((d) => d?.user ?? null),
+    ...queryKeys.user.me,
     staleTime: Infinity,
-    initialData: currentUser ?? null,
   });
 
   const user = currentUserQuery.data ?? null;
