@@ -127,10 +127,11 @@ export type Database = {
         Args: never
         Returns: {
           finished: boolean
+          id: string
           is_guest: boolean
           level_id: number
           rank: number
-          username: string
+          username: string | null
         }[]
       }
       is_username_available: { Args: { desired: string }; Returns: boolean }

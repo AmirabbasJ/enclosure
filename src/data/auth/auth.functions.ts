@@ -7,8 +7,9 @@ import { createAdminClient } from '@/lib/supabase/admin.functions';
 import { supabaseBrowserClient } from '@/lib/supabase/client';
 import { createServerClient } from '@/lib/supabase/client.server';
 
-import type { User } from '../../domain/User';
+import type { User } from '../../domain/user';
 
+import { genGuestUsername } from '../../domain/user';
 import {
   defaultMetadata,
   getMetadataCookieFn,
@@ -100,9 +101,8 @@ export const getSessionFn = createServerFn({ method: 'GET' }).handler(
 
     const isGuest = sessionUser.is_anonymous;
 
-    // FIXME extract
     const username = isGuest
-      ? `Guest-${sessionUser.id.split('-').at(0)!}`
+      ? genGuestUsername(sessionUser.id)
       : user.username!;
     return {
       user: {

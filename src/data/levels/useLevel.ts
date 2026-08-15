@@ -40,7 +40,7 @@ export function useLevel() {
         data: { answer: walls, levelId: String(level!.id) },
       }),
     onSuccess: (result) => {
-      if (!result.isCorrect || !result.progress) return;
+      if (!result.isCorrect) return;
       // Defer progress update so the solved level stays until Next Level.
       queryClient.setQueryData(pendingProgressKey, result.progress);
     },

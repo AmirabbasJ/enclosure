@@ -3,3 +3,5 @@ export interface User {
   username: string;
   type: 'auth' | 'guest';
 }
+
+export const genGuestUsername = (id: string) => `Guest-${id.split('-').at(0)!}`;

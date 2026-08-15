@@ -1,5 +1,5 @@
--- Full leaderboard: no limit, include guest flag from auth.users
-drop function if exists public.get_leaderboard(integer);
+-- Return profile username + user id; no Guest- rewrite server-side
+drop function if exists public.get_leaderboard();
 
 create or replace function public.get_leaderboard()
 returns table (

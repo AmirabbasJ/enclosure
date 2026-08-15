@@ -35,10 +35,12 @@ export function LeaderboardMenu() {
             </p>
           ) : (
             leaderboard.map((entry) => {
-              const isYou = user?.username === entry.username;
+              const isYou = user?.id === entry.id;
+              const { username } = entry;
+
               return (
                 <div
-                  key={`${entry.rank}-${entry.username}`}
+                  key={entry.id}
                   ref={isYou ? youRef : undefined}
                   className={`flex items-center justify-between gap-3 px-2 py-1.5 ${
                     isYou ? 'bg-accent/20' : ''
@@ -48,13 +50,9 @@ export function LeaderboardMenu() {
                     <span className="w-6 shrink-0  text-[10px] text-text-light">
                       {entry.rank}
                     </span>
-                    <Avatar
-                      seed={entry.username}
-                      size={28}
-                      className="shrink-0"
-                    />
+                    <Avatar seed={username} size={28} className="shrink-0" />
                     <span className="truncate  text-xs text-text-light">
-                      {entry.username}
+                      {username}
                       {isYou ? ' (you)' : ''}
                     </span>
                   </div>
