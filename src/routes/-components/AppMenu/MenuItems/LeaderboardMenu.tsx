@@ -17,7 +17,7 @@ export function LeaderboardMenu() {
 
   useEffect(() => {
     if (isLoading || !youRef.current) return;
-    youRef.current.scrollIntoView({ block: 'center' });
+    youRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [isLoading, leaderboard, user?.username]);
 
   return (
