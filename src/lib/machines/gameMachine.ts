@@ -14,7 +14,6 @@ export type GameEvent =
   | { type: 'LEADERBOARD' }
   | { type: 'LEVEL_COMPLETED'; finished: boolean; levelId: number }
   | { type: 'NEXT_LEVEL' }
-  | { type: 'OPEN_SIGN_IN' }
   | { type: 'PAUSE' }
   | { type: 'PLAY' }
   | { type: 'PROFILE' }
@@ -137,7 +136,6 @@ export const gameMachine = setup({
         ],
         LEADERBOARD: { target: 'leaderboard' },
         HELP: { target: 'help' },
-        OPEN_SIGN_IN: { target: 'signIn' },
         SETTINGS: { target: 'settings' },
         PROFILE: [
           { guard: 'isSignedIn', target: 'profile' },
@@ -367,16 +365,6 @@ export const gameMachine = setup({
         rules: {
           on: { BACK: { target: 'menu' } },
         },
-      },
-    },
-
-    signIn: {
-      on: {
-        SIGN_IN: {
-          target: 'mainMenu',
-          actions: 'setSignedIn',
-        },
-        BACK: { target: 'mainMenu' },
       },
     },
 
