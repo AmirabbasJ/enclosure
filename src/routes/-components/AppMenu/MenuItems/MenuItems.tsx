@@ -14,7 +14,7 @@ import { MainMenu } from './MainMenu';
 import { PausedMenu } from './PausedMenu';
 import { ProfileMenu } from './ProfileMenu';
 import { SettingsMenu } from './SettingsMenu';
-import { SignUpMenu } from './SignUpMenu';
+import { AuthMenu } from './AuthMenu';
 import { UpgradeAccountMenu } from './UpgradeAccountMenu';
 
 export function MenuItems() {
@@ -48,7 +48,7 @@ export function MenuItems() {
 
   // sign in/up/out menu
   if (state.matches('askGuestOrSignUp')) return <AskGuestOrSignUpMenu />;
-  if (state.matches('signUp')) return <SignUpMenu />;
+  if (state.matches('auth')) return <AuthMenu />;
 
   // Profile menu
   if (state.matches('confirmDeleteAccount'))

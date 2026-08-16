@@ -5,7 +5,7 @@ import { useGame } from '@/context/GameContext';
 import { AuthForm } from '../AuthForm';
 import { MenuButton } from './components/MenuButton';
 
-export function SignUpMenu() {
+export function AuthMenu() {
   const { send } = useGame();
   const [title, setTitle] = useState('Sign Up');
   return (

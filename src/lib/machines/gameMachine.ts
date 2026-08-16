@@ -150,7 +150,7 @@ export const gameMachine = setup({
     askGuestOrSignUp: {
       on: {
         CONTINUE_AS_GUEST: { target: 'routeAfterAuth' },
-        SIGN_UP: { target: 'signUp' },
+        SIGN_UP: { target: 'auth' },
         BACK: {
           target: 'mainMenu',
           actions: 'clearPendingAction',
@@ -158,7 +158,7 @@ export const gameMachine = setup({
       },
     },
 
-    signUp: {
+    auth: {
       on: {
         SIGN_IN: {
           target: 'routeAfterAuth',
