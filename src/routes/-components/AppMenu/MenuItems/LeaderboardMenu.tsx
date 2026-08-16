@@ -24,17 +24,17 @@ export function LeaderboardMenu() {
     <div className="flex flex-col items-center gap-3">
       <p className="mb-3 text-center text-base opacity-80">Leaderboard</p>
       <div className="sm:min-w-120 w-full bg-foreground pixelated p-3 ">
-        <div className="leaderboard-scroll pe-3 flex max-h-[50vh] flex-col gap-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="flex justify-center py-6">
-              <LoadingDots />
-            </div>
-          ) : leaderboard.length === 0 ? (
-            <p className="py-6 text-center font-pixel text-[10px] text-text-light">
-              No rankings yet
-            </p>
-          ) : (
-            leaderboard.map((entry) => {
+        {isLoading ? (
+          <div className="flex justify-center py-6">
+            <LoadingDots />
+          </div>
+        ) : leaderboard.length === 0 ? (
+          <p className="py-6 text-center font-pixel text-[10px] text-text-light">
+            No rankings yet
+          </p>
+        ) : (
+          <div className="leaderboard-scroll pe-3 flex max-h-[50vh] flex-col gap-1 overflow-y-auto">
+            {leaderboard.map((entry) => {
               const isYou = user?.id === entry.id;
               const { username } = entry;
 
@@ -65,9 +65,9 @@ export function LeaderboardMenu() {
                   />
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
       <MenuButton onClick={() => send({ type: 'BACK' })}>Back</MenuButton>
     </div>
