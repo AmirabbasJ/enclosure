@@ -7,10 +7,15 @@ import TextField from '@/ui/text-field';
 
 interface AuthFormProps {
   initialMode?: 'signIn' | 'signUp';
+  onModeChange?: (mode: 'signIn' | 'signUp') => void;
   onSuccess?: () => void;
 }
 
-export function AuthForm({ initialMode = 'signIn', onSuccess }: AuthFormProps) {
+export function AuthForm({
+  initialMode = 'signIn',
+  onModeChange,
+  onSuccess,
+}: AuthFormProps) {
   const { signInMutation, signUpMutation } = useAuth();
   const [mode, setMode] = useState<'signIn' | 'signUp'>(initialMode);
   const [username, setUsername] = useState('');
@@ -18,6 +23,15 @@ export function AuthForm({ initialMode = 'signIn', onSuccess }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const pending = signInMutation.isPending || signUpMutation.isPending;
+
+  const toggleMode = () => {
+    setMode((current) => {
+      const newMode = current === 'signIn' ? 'signUp' : 'signIn';
+      onModeChange?.(newMode);
+      return newMode;
+    });
+    setError(null);
+  };
 
   const submit = async () => {
     setError(null);
@@ -80,14 +94,7 @@ export function AuthForm({ initialMode = 'signIn', onSuccess }: AuthFormProps) {
         >
           {mode === 'signIn' ? 'Sign In' : 'Create Account'}
         </Button>
-        <Button
-          disabled={pending}
-          type="button"
-          onClick={() => {
-            setMode((current) => (current === 'signIn' ? 'signUp' : 'signIn'));
-            setError(null);
-          }}
-        >
+        <Button disabled={pending} type="button" onClick={toggleMode}>
           {mode === 'signIn' ? 'Need an account?' : 'Have an account?'}
         </Button>
       </div>
