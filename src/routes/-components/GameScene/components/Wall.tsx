@@ -932,7 +932,6 @@ export function Wall({
     if (!draggable) return;
     if (!(e.object instanceof THREE.Mesh)) return;
     e.stopPropagation();
-    e.nativeEvent.preventDefault();
 
     const group = groupRef.current;
     const parent = group?.parent;
@@ -983,7 +982,6 @@ export function Wall({
 
     const onMove = (ev: PointerEvent) => {
       if (ev.pointerId !== pointerId) return;
-      ev.preventDefault();
       const g = groupRef.current;
       const p = g?.parent;
       if (!g || !p) return;
@@ -1074,7 +1072,6 @@ export function Wall({
 
     const onSecondFinger = (ev: PointerEvent) => {
       if (ev.pointerId === pointerId) return;
-      ev.preventDefault();
       rotateWhileDragging();
     };
 
@@ -1084,16 +1081,12 @@ export function Wall({
       rotateWhileDragging();
     };
 
-    window.addEventListener('pointermove', onMove, {
-      passive: false,
-      signal: drag.signal,
-    });
+    window.addEventListener('pointermove', onMove, { signal: drag.signal });
     window.addEventListener('pointerup', finishDrag, { signal: drag.signal });
     window.addEventListener('pointercancel', finishDrag, {
       signal: drag.signal,
     });
     window.addEventListener('pointerdown', onSecondFinger, {
-      passive: false,
       signal: drag.signal,
     });
     window.addEventListener('keydown', onSpace, { signal: drag.signal });
